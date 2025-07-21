@@ -1,0 +1,1091 @@
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+    <link href="https://fonts.googleapis.com/css?family=Inter:400,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+    :root {
+      --color-bg: #F5F1E6;
+      --color-box: #FFF8E7;
+      --color-dark: #25312b;
+      --color-accent: #C49C48;
+      --color-green: #35523A;
+      --color-bronze: #8B6B1E;
+      --color-brown: #6B4F1A;
+      --color-red: #A32121;
+      --color-pass: #2E7D32;
+      --color-fail: #A32121;
+      --color-na: #666;
+      --color-text-dark: #25312b;
+      --color-text-light: #F9F7F0;
+      --shadow-light: rgba(0,0,0,0.10);
+      --shadow-dark: rgba(255,255,255,0.15);
+    }
+    html, body {
+        min-height: 100vh;
+        background: url('/static/bg_grass.png') repeat;
+        background-size: 420px 420px;
+        color: var(--color-text-dark);
+        font-family: 'Open Sans', Arial, sans-serif;
+        margin:0;padding:0;
+        transition: background 0.27s, color 0.21s;
+    }
+    body.dark, .dark {
+        color: var(--color-text-light) !important;
+        transition: background 0.27s, color 0.21s;
+    }
+    body.dark .info-box {
+        background: #344833e8 !important;
+        color: var(--color-text-light) !important;
+        box-shadow: 0 4px 32px var(--shadow-dark);
+        transition: background 0.27s, color 0.21s, box-shadow 0.22s;
+    }
+    body.dark .overview-images img {
+        border-color: var(--color-accent) !important;
+        background: #222 !important;
+        transition: background 0.23s, border-color 0.23s;
+    }
+    body.dark .overview-title,
+    body.dark .info-title,
+    body.dark .label {
+        color: var(--color-accent) !important;
+        transition: color 0.21s;
+    }
+    body.dark .value {
+        color: #fff !important;
+        transition: color 0.21s;
+    }
+    body.dark .item-row {
+        background: #233245ea !important;
+        box-shadow: 0 1.5px 8px var(--shadow-dark);
+        transition: background 0.27s, color 0.21s, box-shadow 0.22s;
+    }
+    body.dark .top-center a {
+        background: #3d2f1c;
+        color: var(--color-accent) !important;
+        transition: background 0.27s, color 0.21s;
+    }
+    body.dark .top-center a:hover {
+        background: var(--color-accent) !important;
+        color: #222 !important;
+        transition: background 0.21s, color 0.21s;
+    }
+    body.dark .gold-upload-btn,
+    body.dark .drop-btn,
+    body.dark .test-btn,
+    body.dark .testdone-btn,
+    body.dark .testing-btn {
+        background: var(--color-brown) !important;
+        color: #fff !important;
+        box-shadow: 0 2px 10px var(--shadow-dark);
+        transition: background 0.27s, color 0.21s, box-shadow 0.22s;
+    }
+    body.dark .gold-upload-btn:hover,
+    body.dark .drop-btn:hover,
+    body.dark .test-btn:hover,
+    body.dark .testdone-btn:hover,
+    body.dark .testing-btn:hover {
+        background: var(--color-accent) !important;
+        color: #25312b !important;
+        transition: background 0.21s, color 0.21s;
+    }
+    body.dark .fail-btn {background: #c22 !important;}
+    body.dark .pass-btn {background: #43a047 !important;}
+    body.dark .data-btn {background: #888 !important;}
+    body.dark .img-item img,
+    body.dark .img-thumb {
+        border-color: var(--color-accent) !important;
+        background: #222 !important;
+        transition: background 0.23s, border-color 0.23s;
+    }
+    body.dark .upload-block {
+        background: #233245ea !important;
+        box-shadow: 0 2px 12px var(--shadow-dark);
+        transition: background 0.23s, box-shadow 0.23s;
+    }
+    body.dark #theme-btn {
+        background: var(--color-bronze) !important;
+        color: #fff !important;
+        transition: background 0.23s, color 0.23s;
+    }
+    .logout-btn {
+        background: var(--color-fail);
+        color: #fff !important;
+        border-radius: 100px;
+        font-size: 15px;
+        padding: 7px 23px;
+        font-weight: bold;
+        border: none;
+        box-shadow: 0 2px 10px var(--shadow-light);
+        cursor:pointer;
+        margin: 18px 0 0 10px;
+        display: inline-block;
+        position:relative;
+        transition: background 0.17s, color 0.17s;
+        font-family: 'Inter', sans-serif;
+    }
+    .logout-btn:hover { background: #760212; color: #fff !important;}
+    #theme-btn {
+      position: fixed; right: 24px; bottom: 26px; z-index: 11001;
+      background: var(--color-bronze); color: #fff;
+      border-radius: 100px; font-size: 17px;
+      padding: 6px 11px; border:none; box-shadow: 0 2px 10px var(--shadow-light);
+      cursor:pointer; height: 38px; width: 38px; min-width:36px;
+      display:flex;align-items:center;justify-content:center;opacity:0.96;
+      transition: background 0.16s, color 0.16s;
+      font-family: 'Inter', sans-serif;
+    }
+    #theme-btn:hover { background: var(--color-accent); color: #fff; opacity:1; }
+    .info-box {
+        background: #fffdfccf;
+        max-width: 540px;
+        margin: 38px auto 0 auto;
+        border-radius: 18px;
+        box-shadow: 0 4px 30px var(--shadow-light);
+        padding: 34px 20px 32px 20px;
+        animation: fadeGrow 0.7s;
+        position:relative;
+        font-family: 'Open Sans', Arial, sans-serif;
+        color: var(--color-text-dark);
+        transition: background 0.27s, color 0.21s, box-shadow 0.22s;
+    }
+    @keyframes fadeGrow {
+        0% { opacity: 0; transform: scale(0.98);}
+        100% { opacity: 1; transform: scale(1);}
+    }
+    .top-center {
+        text-align: center; margin-bottom: 17px; margin-top: 1px;
+        transition: color 0.21s;
+    }
+    .top-center a {
+        color: var(--color-accent) !important;
+        font-size: 17px;
+        font-weight: bold;
+        text-decoration: none !important;
+        border-radius: 8px;
+        padding: 8px 30px;
+        background: rgba(196,156,72,0.08);
+        transition: background 0.21s, color 0.21s;
+        display: inline-block;
+        font-family: 'Inter', sans-serif;
+    }
+    .top-center a:hover {background: var(--color-accent);color:#fff;}
+    .overview-images {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 24px 18px;
+        margin-bottom: 22px;
+    }
+    .overview-images img {
+        border-radius: 13px;
+        box-shadow: 0 8px 24px var(--shadow-light);
+        border: 3px solid var(--color-green);
+        max-width: 340px;
+        max-height: 220px;
+        width: 100%;
+        object-fit: contain;
+        background: #fff;
+        transition: box-shadow 0.16s, transform 0.12s, background 0.23s, border-color 0.23s;
+        cursor: zoom-in;
+    }
+    .overview-images img:hover {
+        box-shadow: 0 12px 38px var(--color-accent);
+        transform: scale(1.08) rotate(-1.5deg);
+    }
+    .info-title {
+        color: var(--color-green);
+        font-size: 25px;
+        font-weight: 900;
+        margin-bottom: 17px;
+        text-align: center;
+        letter-spacing: 0.08em;
+        margin-top: 0;
+        transition: color 0.21s;
+        text-shadow: 0 2px 12px #c49c483a;
+        font-family: 'Merriweather', serif;
+    }
+    .item-row {
+        display: flex;
+        align-items: flex-start;
+        background: #eaf4e6c9;
+        border-radius: 12px;
+        margin-bottom: 11px;
+        padding: 13px 14px 10px 14px;
+        box-shadow: 0 1.5px 7px #C49C4820;
+        transition: background 0.27s, color 0.21s, box-shadow 0.22s;
+    }
+    .label {
+        font-weight: bold;
+        color: var(--color-bronze);
+        width: 150px;
+        font-size: 19px;
+        min-width: 110px;
+        flex-shrink: 0;
+        letter-spacing: 0.07em;
+        transition: color 0.21s;
+        font-family: 'Open Sans', Arial, sans-serif;
+    }
+    .value {
+        font-size: 19px;
+        color: var(--color-green);
+        word-break:break-word;
+        max-width:340px;
+        padding-left: 12px;
+        font-weight: 600;
+        font-family: 'Merriweather', serif;
+        transition: color 0.21s;
+    }
+    .hint { color:#5e7a62;font-size:15px;margin:12px 0 20px 0; transition: color 0.21s;}
+    .form-pw input[type=password] {
+        font-size: 18px; padding:7px 12px; border-radius:7px; border:1.4px solid var(--color-green);
+        transition: border-color 0.22s, background 0.22s, color 0.22s;
+        font-family: 'Inter', sans-serif;
+    }
+    .form-pw button { font-size:17px;padding:7px 18px;border-radius:7px;margin-left:8px; background:var(--color-green);color:white; transition: background 0.21s, color 0.21s; font-family: 'Inter', sans-serif;}
+    .center-btns { display: flex; justify-content: center; margin: 18px 0 10px 0; align-items: center; }
+    .drop-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 13px;
+        font-size: 20px;
+        font-weight: bold;
+        border-radius: 11px;
+        padding: 13px 32px;
+        background: var(--color-accent);
+        color: #fff;
+        border: none;
+        box-shadow: 0 2px 13px var(--shadow-light);
+        letter-spacing: 0.6px;
+        margin: 0 auto 20px auto;
+        white-space: normal;            /* <-- Cho phép xuống dòng */
+        word-break: break-word;
+        text-align: center;
+        max-width: 95vw;                /* <-- Không cho tràn khỏi màn hình */
+        font-family: 'Inter', sans-serif;
+    }
+    @media (max-width: 500px) {
+        .drop-btn {
+            font-size: 16px;        /* Co lại trên mobile */
+            padding: 11px 7vw;
+            min-width: 0;
+            max-width: 99vw;
+        }
+    }
+        #material-arrow, #test-arrow {
+        display: flex;
+        align-items: center;
+    }
+    .center-btns .drop-btn { width: 270px; }
+    .drop-btn:hover {background:var(--color-bronze);color:#fff;}
+    #test-btns-group {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px;
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.36s cubic-bezier(.44,.09,.42,.97);
+      margin-top: 10px; margin-bottom: 25px;
+      justify-items: stretch; align-items: stretch;
+    }
+    #test-btns-group.show { max-height: 800px; }
+    @media (max-width: 700px) { #test-btns-group { grid-template-columns: repeat(2, 1fr);} }
+    @media (max-width: 420px) { #test-btns-group { grid-template-columns: 1fr;} }
+    .test-btn {
+      width: 100%; min-width: 0; min-height: 36px; max-height: 40px;
+      background: var(--color-green);
+      font-size: 15px; border-radius:8px; border:none; color: #fff;
+      font-weight: 700; text-align:center; cursor:pointer; text-decoration: none !important;
+      transition: background 0.27s, color 0.21s, box-shadow 0.22s;
+      display: flex; align-items: center; justify-content: center;
+      padding: 8px 0 8px 0; outline: none; white-space: normal;
+      box-shadow: 0 2px 9px var(--shadow-light); margin: 0;
+      position: relative; overflow: hidden;
+      letter-spacing: 0.08em;
+      font-family: 'Inter', sans-serif;
+    }
+    .test-btn:hover { background: var(--color-accent); color: #fff;}
+    .testing-btn {
+        background: var(--color-brown); color: #fff; font-size: 19px;
+        font-weight: bold; padding: 11px 30px; border-radius: 9px; border:none;
+        margin:0 auto 14px auto; display:inline-flex; min-width:170px;
+        align-items:center; justify-content:center; letter-spacing:0.8px;
+        text-align:center; margin-bottom: 10px; margin-top: 8px; position: relative; overflow: hidden;
+        box-shadow: 0 2px 10px var(--shadow-light);
+        transition: background 0.27s, color 0.21s, box-shadow 0.22s;
+        font-family: 'Inter', sans-serif;
+    }
+    .testing-btn:hover {background: var(--color-accent);}
+    .upload-block {
+        background: #f1f7f3d8;
+        padding: 17px 20px 18px 20px;
+        border-radius: 13px;
+        box-shadow: 0 2px 10px var(--shadow-light);
+        margin-bottom: 18px; max-width: 540px; margin-left: auto; margin-right: auto;
+        transition: background 0.27s, box-shadow 0.22s;
+        font-family: 'Open Sans', Arial, sans-serif;
+    }
+    .upload-title {
+        color: var(--color-bronze); font-weight: bold; font-size: 18px;
+        margin-bottom: 7px; text-align: center; letter-spacing: 0.07em;
+        transition: color 0.21s;
+        font-family: 'Open Sans', Arial, sans-serif;
+    }
+    .gold-upload-btn {
+        background: var(--color-accent); color: #fff; font-size: 17px; padding: 10px 28px;
+        border-radius: 9px; font-weight: bold; border: none; margin: 8px auto 0 auto;
+        box-shadow: 0 2px 10px var(--shadow-light);
+        transition: background 0.27s, color 0.21s, box-shadow 0.22s;
+        display: block; text-align:center; cursor:pointer; min-width:135px;
+        position: relative; overflow: hidden;
+        font-family: 'Inter', sans-serif;
+    }
+    .gold-upload-btn:hover { background: var(--color-bronze);}
+    .gold-upload-btn span { margin-left:10px; font-weight:normal; font-size:15px;}
+    .img-grid { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;}
+    .img-item { position:relative; }
+    .img-item img, .img-thumb {
+        max-width: 145px; max-height: 105px;
+        border:2px solid var(--color-green); border-radius:10px; cursor:zoom-in;
+        box-shadow:0 2px 10px #0001; background:#fff;
+        transition: box-shadow 0.15s, filter 0.2s, transform 0.15s, background 0.23s, border-color 0.23s;
+    }
+    .img-item img:hover, .img-thumb:hover {
+        filter: brightness(1.09) contrast(1.08);
+        transform: scale(1.08) rotate(-1.2deg);
+        box-shadow: 0 6px 32px var(--shadow-light);
+    }
+    .img-item form {
+        position: absolute; top: 5px; right: 6px; z-index: 3; margin: 0;
+    }
+    .img-item button {
+        background: var(--color-fail); color: #fff; border: none;
+        border-radius: 100px; width: 30px; height: 30px; font-size: 16px;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 2px 10px #2225; opacity: 0.85;
+        transition: opacity 0.18s, background 0.13s;
+        outline: none; cursor: pointer; padding: 0;
+        font-family: 'Inter', sans-serif;
+    }
+    .img-item button:hover { opacity: 1; background:#760212; }
+    .testdone-row {text-align:center;margin:16px 0 9px 0;}
+    .testdone-btn {
+        background: var(--color-green); color: #fff; border-radius: 9px;
+        font-size: 18px; padding: 12px 34px; font-weight: bold;
+        min-width: 148px; margin-bottom: 12px; margin-top: 6px; border:none;
+        display:inline-flex; align-items:center; justify-content:center; position: relative; overflow: hidden;
+        box-shadow: 0 2px 10px var(--shadow-light);
+        transition: background 0.27s, color 0.21s, box-shadow 0.22s;
+        font-family: 'Inter', sans-serif;
+    }
+    .testdone-btn:hover {background: var(--color-accent);}
+    .rating-row { text-align: center; margin: 12px 0 32px 0;}
+    .rating-btn {width:110px;height:46px;font-size:17px;margin:10px 7px 0 7px;border-radius:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center; border:none; position: relative; overflow: hidden; letter-spacing: 0.04em;
+        transition: background 0.21s, color 0.21s;
+        font-family: 'Inter', sans-serif;
+    }
+    .fail-btn {background: var(--color-fail); color:white;}
+    .pass-btn {background: var(--color-pass); color:white;}
+    .data-btn {background: #888; color:white;}
+    .fail-btn:hover, .pass-btn:hover, .data-btn:hover {filter: brightness(1.13);}
+    #img-popup {
+        display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100vw; height: 100vh;
+        background: rgba(0,0,0,0.88); align-items: center; justify-content: center;
+    }
+    #img-popup.show { display: flex; }
+    #img-popup-inner {
+        max-width: 96vw; max-height: 85vh; box-shadow: 0 2px 44px #000;
+        border-radius: 14px; border: 3px solid #fff; background: #f8faf8; object-fit: contain;
+        display: block; margin:auto;
+    }
+    #img-popup-close {
+        position: absolute; top: 20px; right: 36px; color: #fff; font-size: 32px;
+        font-weight: bold; background: rgba(0,0,0,0.16); border: none; border-radius: 100px;
+        width: 40px; height:40px; line-height: 35px; text-align: center; cursor:pointer; z-index: 3200;
+        box-shadow: 0 2px 12px #2226; transition: background 0.13s;
+    }
+    #img-popup-close:hover {background:rgba(220,40,40,0.22);}
+    .ripple {
+      position: absolute; border-radius: 50%; transform: scale(0);
+      animation: ripple 0.32s cubic-bezier(0.39, 0.58, 0.57, 1);
+      background: rgba(255,255,255,0.29); pointer-events: none; z-index: 10; opacity: 0.77;
+    }
+    @keyframes ripple { to { transform: scale(1.5); opacity: 0; } }
+    .main-action-col {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 13px;
+        margin: 22px 0 13px 0;
+        width: 100%;
+    }
+    .main-btn.action-btn {
+        border: none;
+        outline: none;
+        border-radius: 9px;
+        padding: 14px 0 14px 0;
+        font-size: 16px;
+        font-family: inherit;
+        font-weight: 500;
+        box-shadow: 0 1px 7px #0002;
+        transition: background 0.15s, color 0.15s, box-shadow 0.13s;
+        width: 92vw;
+        max-width: 440px;
+        min-width: 0;
+        margin: 0;
+        text-align: center;
+        justify-content: center;
+        align-items: center;
+        display: flex;
+        gap: 9px;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .btn-gold { 
+        background: #c49c48; 
+        color: #382900; 
+        font-weight: 600;
+        letter-spacing: 0.01em;
+    }
+    .btn-gold:hover { 
+        background: #f3e1a2;
+        color: #382900; 
+    }
+    .btn-green { 
+        background: #35523A; 
+        color: #fff; 
+        font-weight: 600;
+        letter-spacing: 0.01em;
+    }
+    .btn-green:hover { 
+        background: #53795d; 
+        color: #fff; 
+    }
+    @media (min-width: 601px) {
+        .main-action-col { flex-direction: row; gap: 13px; justify-content: center; }
+        .main-btn.action-btn { width: 180px; max-width:220px; font-size: 15.2px; }
+    }
+    .main-btn, .action-btn,
+    .main-btn:visited, .action-btn:visited,
+    .main-btn:active, .action-btn:active,
+    .main-btn:focus, .action-btn:focus {
+        color: #fff !important;
+        text-decoration: none !important;
+    }
+    
+    .btn-gold { background: #c49c48 !important; }
+    .btn-gold:hover { background: #b4943c !important; }
+    
+    .btn-green { background: #35523A !important; }
+    .btn-green:hover { background: #53795d !important; }
+    .btn-more {
+    background: #fff;
+    border: none;
+    color: #B78E24;
+    font-size: 26px;
+    border-radius: 100%;
+    width: 42px;
+    height: 42px;
+    box-shadow: 0 2px 7px #0001;
+    cursor: pointer;
+    transition: background 0.16s;
+    display: flex; align-items: center; justify-content: center;
+    }
+    .btn-more:hover { background: #f6ebd3; color:#8B6B1E; }
+
+    .dropdown {
+    position: relative;
+    display: inline-block;
+    }
+    .dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 43px;
+    min-width: 185px;
+    background: #fff;
+    box-shadow: 0 6px 22px #0003, 0 1.5px 8px #0001;
+    border-radius: 11px;
+    z-index: 9999;
+    padding: 7px 0;
+    animation: fadeIn 0.19s;
+    }
+    .dropdown-content a {
+    color: #3c614c;
+    padding: 8px 20px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+    gap: 9px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-radius: 7px;
+    transition: background 0.15s, color 0.12s;
+    }
+    .dropdown-content a:hover {
+    background: #e8e4d8;
+    color: #b78e24;
+    }
+    .show { display: block; }
+    @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-8px);}
+    to { opacity: 1; transform: none;}
+    }
+    @media (max-width: 650px) {
+    .dropdown-content { min-width: 150px; right: 0; }
+    }
+    </style>
+</head>
+<body>
+    {% if logout %}
+    <a href="/logout" class="logout-btn">Đăng xuất</a>
+    {% endif %}
+    <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
+    {% if logout %}
+    <div style="position: absolute; top: 22px; right: 26px; z-index: 50;">
+      <div class="dropdown">
+        <button class="btn-more" onclick="toggleDropdown()" title="More options">
+          <i class="fa fa-ellipsis-v"></i>
+        </button>
+        <div id="dropdownMenu" class="dropdown-content">
+          <a href="{{ url_for('list_samples', report=report_id) }}">
+            <i class="fa fa-list"></i> Danh sách mẫu lưu
+          </a>
+          <a href="#" onclick="alert('Chức năng Tạo report sẽ bổ sung sau!');return false;">
+            <i class="fa fa-plus-square"></i> Tạo report
+          </a>
+          <!-- Thêm nút mới ở đây sau này -->
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    <div class="info-box animate__animated animate__fadeInDown">
+        <div class="top-center">
+            <a href="/" tabindex="0">[Chọn mã sản phẩm khác]</a>
+        </div>
+        <div class="info-title">THÔNG TIN SẢN PHẨM</div>
+        {% if last_test_type %}
+        <div class="test-type-notify" style="text-align:center;color:#b68b22;font-size:18px;font-weight:600;margin-bottom:13px;">
+          Loại test: {{ last_test_type }}
+        </div>
+        {% endif %}
+        {% if img_overview and img_overview|length > 0 %}
+        <div class="overview-images">
+            {% for img in img_overview %}
+                <img src="{{ img }}" onclick="showPopup(this)">
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if show_hint %}
+        <div class="hint">Đăng nhập để tải ảnh và cập nhật trạng thái...</div>
+        {% endif %}
+        {% for label, value in lines %}
+            <div class="item-row">
+                <span class="label">{{ label }}</span>
+                <span class="value">{{ value }}</span>
+            </div>
+        {% endfor %}
+        {% if not logout %}
+        <form method="POST" class="form-pw login-row" style="position:relative; display:flex; gap:8px; align-items:center;">
+        <div style="position:relative; flex:1;">
+            <input
+            type="password"
+            name="password"
+            id="login-password"
+            placeholder="Nhập mật khẩu để cập nhật"
+            required
+            class="pw-input"
+            style="
+                padding-right:36px;
+                width:100%;
+                font-family:'Segoe UI',Arial,sans-serif;
+                font-size:17px;
+                height:38px;
+                line-height:38px;
+                border-radius:9px;
+                border:1.7px solid #c49c48;
+                box-sizing: border-box;
+                background: #fffdfc;
+                color: #333;
+            "
+            >
+            <button type="button" id="toggle-pw"
+            tabindex="-1"
+            style="
+                position:absolute;
+                right:8px;
+                top:0;
+                height:100%;
+                display:flex;
+                align-items:center;
+                background:transparent;
+                border:none;
+                cursor:pointer;
+                color:#b78e24;
+                font-size:18px;
+                opacity:0.84;
+                z-index:2;
+                padding:0 2px;
+                outline:none;
+            "
+            title="Hiện/Ẩn mật khẩu"
+            aria-label="Hiện/Ẩn mật khẩu"
+            >
+            <i class="fa fa-eye" id="eye-icon" style="vertical-align:middle;"></i>
+            </button>
+        </div>
+        <button name="action" value="login" class="pw-btn" style="min-width:100px;">Đăng nhập</button>
+        </form>
+        {% if message %}
+        <div style="color:#e33; margin-top:20px;">{{ message }}</div>
+        {% endif %}
+        {% endif %}
+        {% if show_func %}
+        <div class="center-btns">
+            <form method="POST" style="display:inline;">
+                <button name="action" value="testing" class="testing-btn">TESTING</button>
+            </form>
+        </div>
+        <div class="center-btns">
+            <button id="show-test-btn" onclick="toggleTestBtns()" class="drop-btn" type="button">
+                KIỂM TRA CẤU TRÚC 
+                <span id="test-arrow" style="font-size:19px; margin-left:7px; transition:transform 0.22s;">
+                    <i class="fa fa-caret-down"></i>
+                </span>
+            </button>
+        </div>
+        <div id="test-btns-group">
+            {% for key, name in test_groups %}
+                <a href="{{ url_for('test_group_page', report=report_id, group=key) }}" class="test-btn">{{ name }}</a>
+            {% endfor %}
+        </div>
+        
+        <!-- Block kiểm tra Material - Finishing -->
+        <div class="center-btns">
+            <button id="show-material-btn" onclick="toggleMaterialBtns()" class="drop-btn" type="button">
+                KIỂM TRA MATERIAL - FINISHING
+                <span id="material-arrow" style="font-size:19px; margin-left:7px; transition:transform 0.22s;">
+                    <i class="fa fa-caret-down"></i>
+                </span>
+            </button>
+        </div>
+        <div id="material-btns-group" style="max-height:0; overflow:hidden; transition:max-height 0.36s cubic-bezier(.44,.09,.42,.97); margin-bottom:18px;">
+            <div style="display:flex; gap:15px; justify-content:center; align-items:stretch; flex-wrap:wrap;">
+                <!-- Cột 1: Indoor -->
+                <div style="min-width:120px; flex:1 1 140px;">
+                    <div style="font-weight:bold; color:#4d665c; font-size:17px; margin-bottom:7px; text-align:center;">Indoor</div>
+                    <a href="{{ url_for('test_group_page', report=report_id, group='indoor_chuyen') }}" class="test-btn" style="margin-bottom:6px;">TEST CHUYỀN</a>
+                    <a href="{{ url_for('test_group_page', report=report_id, group='indoor_thuong') }}" class="test-btn" style="margin-bottom:6px;">TEST THƯỜNG</a>
+                    <a href="{{ url_for('test_group_page', report=report_id, group='indoor_stone') }}" class="test-btn" style="margin-bottom:6px;">TEST ĐÁ</a>
+                    <a href="{{ url_for('test_group_page', report=report_id, group='indoor_metal') }}" class="test-btn" style="margin-bottom:6px;">TEST METAL</a>
+                </div>
+                <!-- Cột 2: Outdoor -->
+                <div style="min-width:120px; flex:1 1 140px;">
+                    <div style="font-weight:bold; color:#4d665c; font-size:17px; margin-bottom:7px; text-align:center;">Outdoor</div>
+                    <a href="{{ url_for('test_group_page', report=report_id, group='outdoor_finishing') }}" class="test-btn" style="margin-bottom:6px;">OUTDOOR</a>
+                </div>
+                <!-- Cột 3: Line test -->
+                <div style="min-width:120px; flex:1 1 140px;">
+                    <div style="font-weight:bold; color:#4d665c; font-size:17px; margin-bottom:7px; text-align:center;">Line test</div>
+                    <a href="{{ url_for('line_test', report=report_id) }}" class="test-btn" style="margin-bottom:6px;">LINE TEST</a>
+                    {% if show_line_test_done_notice %}
+                        <div style="color:#357a32;font-size:16px;font-weight:bold;margin-top:7px;">
+                            &#10004; Đã hoàn thành line test (đủ {{ so_gio_test }} tiếng)
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div id="test-btns-group">
+            {% for key, name in test_groups %}
+                <a href="{{ url_for('test_group_page', report=report_id, group=key) }}" class="test-btn">{{ name }}</a>
+            {% endfor %}
+        </div>
+        <div class="center-btns">
+        <button id="show-transit-btn" onclick="toggleTransitBtns()" class="drop-btn" type="button">
+            KIỂM TRA TRANSIT
+            <span id="transit-arrow" style="font-size:19px; margin-left:7px; transition:transform 0.22s;">
+            <i class="fa fa-caret-down"></i>
+            </span>
+        </button>
+        </div>
+        <div id="transit-btns-group" style="max-height:0; overflow:hidden; transition:max-height 0.36s cubic-bezier(.44,.09,.42,.97); margin-bottom:18px;">
+        <div style="display:flex; gap:15px; justify-content:center; align-items:stretch; flex-wrap:wrap;">
+            <!-- Non-Pallet column -->
+            <div style="min-width:120px; flex:1 1 140px;">
+            <div style="font-weight:bold; color:#4d665c; font-size:17px; margin-bottom:7px; text-align:center;">Non-Pallet</div>
+            <a href="{{ url_for('test_group_page', report=report_id, group='transit_2c_np') }}" class="test-btn" style="margin-bottom:6px;">2C</a>
+            <a href="{{ url_for('test_group_page', report=report_id, group='transit_RH_np') }}" class="test-btn" style="margin-bottom:6px;">RH</a>
+            <a href="{{ url_for('test_group_page', report=report_id, group='transit_nonpallet') }}" class="test-btn" style="margin-bottom:6px;">181 (&lt;68kg)</a>
+            <a href="{{ url_for('test_group_page', report=report_id, group='transit_nonpallet') }}" class="test-btn" style="margin-bottom:6px;">3A</a>
+            <a href="{{ url_for('test_group_page', report=report_id, group='transit_nonpallet') }}" class="test-btn" style="margin-bottom:6px;">3B</a>
+            </div>
+            <!-- Pallet column -->
+            <div style="min-width:120px; flex:1 1 140px;">
+            <div style="font-weight:bold; color:#4d665c; font-size:17px; margin-bottom:7px; text-align:center;">Pallet</div>
+            <a href="{{ url_for('test_group_page', report=report_id, group='transit_2c_pallet') }}" class="test-btn" style="margin-bottom:6px;">2C</a>
+            <a href="{{ url_for('test_group_page', report=report_id, group='transit_RH_pallet') }}" class="test-btn" style="margin-bottom:6px;">RH</a>
+            <a href="{{ url_for('test_group_page', report=report_id, group='transit_pallet') }}" class="test-btn" style="margin-bottom:6px;">181 (&gt;68kg)</a>
+            <a href="{{ url_for('test_group_page', report=report_id, group='transit_pallet') }}" class="test-btn" style="margin-bottom:6px;">3B</a>
+            </div>
+        </div>
+        </div>
+        <script>
+        function toggleTransitBtns() {
+        var box = document.getElementById('transit-btns-group');
+        var arrow = document.getElementById('transit-arrow').querySelector('i');
+        if (box.classList.contains('show')) {
+            box.classList.remove('show');
+            box.style.maxHeight = "0";
+            arrow.className = "fa fa-caret-down";
+        } else {
+            box.classList.add('show');
+            box.style.maxHeight = "800px";
+            arrow.className = "fa fa-caret-up";
+        }
+        }
+        </script>
+        <!-- Block upload ảnh tổng quan -->
+        <div class="upload-block">
+            <div class="upload-title">ẢNH TỔNG QUAN SẢN PHẨM</div>
+            <form method="POST" enctype="multipart/form-data" style="margin-bottom:8px; text-align:center;">
+                <input type="file" name="overview_imgs" accept="image/*" multiple style="display:none;" id="overview-upload"
+                       onchange="submitSingleUpload(this, 'overview-fake-btn', 'overview')">
+                <button type="button" class="gold-upload-btn" onclick="triggerUpload('overview-upload')">
+                    <i class="fa fa-image"></i> Chọn và tải ảnh
+                    <span id="overview-fake-btn">Chưa chọn file</span>
+                </button>
+            </form>
+            <div class="img-grid">
+            {% for img in img_overview %}
+                <div class="img-item">
+                    <img src="{{ img }}" onclick="showPopup(this)">
+                    <form method="POST" action="{{ url_for('delete_image_main', report=report_id, imgfile=img.split('/')[-1], kind='overview') }}">
+                        <button type="submit" title="Xóa ảnh" onclick="return confirm('Bạn chắc chắn xóa ảnh này?')"><i class="fa fa-trash"></i></button>
+                    </form>
+                </div>
+            {% endfor %}
+            </div>
+        </div>
+        <!-- Block upload ảnh cân nặng -->
+        <div class="upload-block">
+            <div class="upload-title">ẢNH CÂN NẶNG SẢN PHẨM</div>
+            <form method="POST" enctype="multipart/form-data" style="margin-bottom:8px; text-align:center;">
+                <input type="file" name="weight_imgs" accept="image/*" multiple style="display:none;" id="weight-upload"
+                       onchange="submitSingleUpload(this, 'weight-fake-btn', 'weight')">
+                <button type="button" class="gold-upload-btn" onclick="triggerUpload('weight-upload')">
+                    <i class="fa fa-image"></i> Chọn và tải ảnh
+                    <span id="weight-fake-btn">Chưa chọn file</span>
+                </button>
+            </form>
+            <div class="img-grid">
+            {% for img in img_weight %}
+                <div class="img-item">
+                    <img src="{{ img }}" onclick="showPopup(this)">
+                    <form method="POST" action="{{ url_for('delete_image_main', report=report_id, imgfile=img.split('/')[-1], kind='weight') }}">
+                        <button type="submit" title="Xóa ảnh" onclick="return confirm('Bạn chắc chắn xóa ảnh này?')"><i class="fa fa-trash"></i></button>
+                    </form>
+                </div>
+            {% endfor %}
+            </div>
+        </div>
+        <form method="POST" class="testdone-row">
+            <button name="action" value="test_done" class="testdone-btn">
+                TEST DONE
+            </button>
+        </form>
+        <form method="POST" class="rating-row">
+            <button name="action" value="rating_fail" class="rating-btn fail-btn">FAIL</button>
+            <button name="action" value="rating_pass" class="rating-btn pass-btn">PASS</button>
+            <button name="action" value="rating_data" class="rating-btn data-btn">DATA</button>
+        </form>
+        <!-- ==== Nhóm 3 nút thao tác dưới cùng ==== -->
+        <div class="main-action-col">
+          <form method="GET" action="{{ url_for('store_sample') }}" style="margin:0;">
+            <input type="hidden" name="report" value="{{ report_id }}">
+            <button type="submit" class="main-btn action-btn btn-gold" style="background:#c49c48;">
+              <i class="fa fa-archive"></i> Lưu mẫu
+            </button>
+          </form>
+          <a href="{{ url_for('home') }}"
+             class="main-btn action-btn btn-green"
+             style="background:#35523A;">
+            <i class="fa fa-arrow-left"></i> Nhập mã report khác
+          </a>
+        </div>
+        {% if message %}
+        <div style="margin-top:18px;color:#357a32;font-weight:bold;font-size:17px;text-align:center;">{{ message|safe }}</div>
+        {% endif %}
+        {% endif %}
+    </div>
+    <div style="margin-top:15px;color:#fff;font-size:15px;text-align:center; font-weight:600; text-shadow:0 1px 5px #2c3d30;">
+        <i>Xem/Sửa trạng thái sản phẩm ở đây.</i>
+    </div>
+    <div id="img-popup">
+        <button id="img-popup-close" title="Đóng">&times;</button>
+        <img id="img-popup-inner" src="" />
+    </div>
+    <!-- Popup xác nhận lần 2 cho các nút trạng thái -->
+    <div id="confirm2-popup" style="
+        display:none; position:fixed; left:0;top:0;width:100vw;height:100vh;z-index:4000;
+        align-items:center;justify-content:center;background:rgba(0,0,0,0.40);">
+        <div style="background:#fff;padding:32px 24px 27px 24px;border-radius:13px;
+            box-shadow:0 6px 28px #0005;text-align:center;max-width:350px;margin:auto;position:relative;">
+            <div id="confirm2-msg" style="font-size:17px;color:#444;margin-bottom:24px;"></div>
+            <button id="confirm2-ok-btn"
+                style="background:#35523A;color:#fff;padding:8px 29px 8px 29px;border-radius:7px;
+                    font-size:16px;border:none;font-weight:bold;cursor:pointer;">
+                Xác nhận
+            </button>
+        </div>
+    </div>
+    <script>
+
+    function toggleDropdown() {
+      document.getElementById("dropdownMenu").classList.toggle("show");
+    }
+    window.onclick = function(event) {
+      if (!event.target.closest('.dropdown')) {
+        var dropdowns = document.getElementsByClassName("dropdown-content");
+        for (let i = 0; i < dropdowns.length; i++)
+          dropdowns[i].classList.remove('show');
+      }
+    }
+    function toggleTestBtns() {
+        var box = document.getElementById('test-btns-group');
+        var arrow = document.getElementById('test-arrow').querySelector('i');
+        if (box.classList.contains('show')) {
+            box.classList.remove('show');
+            arrow.className = "fa fa-caret-down";
+        } else {
+            box.classList.add('show');
+            arrow.className = "fa fa-caret-up";
+        }
+    }
+    function showPopup(img) {
+        var popup = document.getElementById('img-popup');
+        document.getElementById('img-popup-inner').src = img.src;
+        popup.classList.add('show');
+    }
+    document.getElementById('img-popup-close').onclick = function(e) {
+        var popup = document.getElementById('img-popup');
+        popup.classList.remove('show');
+        document.getElementById('img-popup-inner').src = '';
+        e.stopPropagation();
+    };
+    document.getElementById('img-popup').onclick = function(e) {
+        if (e.target === this) {
+            this.classList.remove('show');
+            document.getElementById('img-popup-inner').src = '';
+        }
+    };
+    document.addEventListener('keydown', function(e) {
+        if (e.key === "Escape") {
+            var popup = document.getElementById('img-popup');
+            popup.classList.remove('show');
+            document.getElementById('img-popup-inner').src = '';
+        }
+    });
+    document.querySelectorAll("form").forEach(form => {
+        form.addEventListener("submit", function() {
+            localStorage.setItem("scrollTop", window.scrollY);
+        });
+    });
+    window.addEventListener("DOMContentLoaded", function() {
+        let scroll = localStorage.getItem("scrollTop");
+        if (scroll !== null) {
+            window.scrollTo(0, parseInt(scroll));
+            localStorage.removeItem("scrollTop");
+        }
+    });
+    function triggerUpload(inputId) {
+        document.getElementById(inputId).click();
+    }
+    function submitSingleUpload(input, spanId, kind) {
+        var btn = document.getElementById(spanId);
+        if(input.files && input.files.length > 0) {
+            btn.innerText = Array.from(input.files).map(f=>f.name).join(', ');
+            var form = input.closest('form');
+            if(form) {
+                let hidden = form.querySelector('input[name="action"]');
+                if (!hidden) {
+                    hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = 'action';
+                    form.appendChild(hidden);
+                }
+                hidden.value = (kind === 'overview') ? 'upload_overview' : 'upload_weight';
+                setTimeout(()=>form.submit(), 200);
+            }
+        } else {
+            btn.innerText = "Chưa chọn file";
+        }
+    }
+    function toggleMaterialBtns() {
+        var box = document.getElementById('material-btns-group');
+        var arrow = document.getElementById('material-arrow').querySelector('i');
+        if (box.classList.contains('show')) {
+            box.classList.remove('show');
+            box.style.maxHeight = "0";
+            arrow.className = "fa fa-caret-down";
+        } else {
+            box.classList.add('show');
+            box.style.maxHeight = "800px";
+            arrow.className = "fa fa-caret-up";
+        }
+    }
+    function toggleTransitBtns() {
+        var box = document.getElementById('transit-btns-group');
+        var arrow = document.getElementById('transit-arrow').querySelector('i');
+        if (box.classList.contains('show')) {
+            box.classList.remove('show');
+            box.style.maxHeight = "0";
+            arrow.className = "fa fa-caret-down";
+        } else {
+            box.classList.add('show');
+            box.style.maxHeight = "800px";
+            arrow.className = "fa fa-caret-up";
+        }
+    }
+    document.addEventListener("DOMContentLoaded", function() {
+        // Ẩn/hiện mật khẩu (nếu có)
+        var togglePw = document.getElementById('toggle-pw');
+        if (togglePw) {
+            togglePw.onclick = function() {
+                var pw = document.getElementById('login-password');
+                var icon = document.getElementById('eye-icon');
+                if (pw.type === "password") {
+                    pw.type = "text";
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    pw.type = "password";
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            };
+        }
+
+        // Dropdown menu
+        var dropdownMenu = document.getElementById("dropdownMenu");
+        var btnMore = document.querySelector(".btn-more");
+        if (btnMore && dropdownMenu) {
+            btnMore.onclick = function() {
+                dropdownMenu.classList.toggle("show");
+            };
+        }
+        window.onclick = function(event) {
+            if (!event.target.closest('.dropdown')) {
+                var dropdowns = document.getElementsByClassName("dropdown-content");
+                for (let i = 0; i < dropdowns.length; i++)
+                    dropdowns[i].classList.remove('show');
+            }
+        };
+
+        // Ripple effect cho nút
+        document.querySelectorAll('button, .test-btn, .gold-upload-btn, .back-btn, .drop-btn').forEach(function(btn) {
+            btn.addEventListener('click', function (e) {
+                var circle = document.createElement("span");
+                circle.className = "ripple";
+                var rect = btn.getBoundingClientRect();
+                var size = Math.max(rect.width, rect.height) * 0.58;
+                circle.style.width = circle.style.height = size + 'px';
+                circle.style.left = (e.clientX - rect.left - size/2) + 'px';
+                circle.style.top = (e.clientY - rect.top - size/2) + 'px';
+                btn.appendChild(circle);
+                setTimeout(()=>circle.remove(), 340);
+            });
+        });
+
+        // Dark mode
+        var themeBtn = document.getElementById('theme-btn');
+        if (themeBtn) {
+            if (localStorage.getItem("darkmode") === "true") {
+                document.documentElement.classList.add('dark');
+                document.body.classList.add('dark');
+            }
+            function syncDarkModeBtn() {
+                var dark = document.body.classList.contains('dark');
+                themeBtn.innerHTML = dark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
+            }
+            themeBtn.onclick = function() {
+                var d = document.body.classList.toggle('dark');
+                document.documentElement.classList.toggle('dark');
+                localStorage.setItem("darkmode", d ? "true" : "false");
+                syncDarkModeBtn();
+            };
+            syncDarkModeBtn();
+        }
+
+        // ====== XÁC NHẬN 2 LẦN PASS/FAIL/DATA ======
+        let pendingBtn = null, lockConfirm = false;
+        document.querySelectorAll(".rating-btn, .state-btn").forEach(function(btn) {
+            btn.addEventListener("click", function(e) {
+                // Đã đang chờ xác nhận, không lặp lại
+                if (lockConfirm) { e.preventDefault(); return; }
+                e.preventDefault();
+                let value = btn.textContent.trim();
+                // Lấy biến report id qua template engine (với Flask: {{ report_id|default(report, true) }})
+                let report = "{{ report_id|default(report, true) }}";
+                if (!report) report = "";
+                if (confirm(`Bạn có chắc chắn chọn "${value}" không?`)) {
+                    document.getElementById("confirm2-msg").textContent =
+                        `Bạn đã cập nhật "${value}" cho report ${report}?`;
+                    document.getElementById("confirm2-popup").style.display = "flex";
+                    pendingBtn = btn;
+                    lockConfirm = true; // Khóa lại cho đến khi xong xác nhận
+                }
+            });
+        });
+
+        var okBtn = document.getElementById("confirm2-ok-btn");
+        if (okBtn) {
+            okBtn.onclick = function() {
+                document.getElementById("confirm2-popup").style.display = "none";
+                if (pendingBtn) {
+                    let btn = pendingBtn;
+                    pendingBtn = null;
+                    lockConfirm = false;
+                    if (btn.form) {
+                        if (typeof btn.form.requestSubmit === "function") {
+                            btn.form.requestSubmit(btn);
+                        } else {
+                            // Fallback cho browser cũ
+                            let temp = document.createElement("input");
+                            temp.type = "hidden";
+                            temp.name = btn.name;
+                            temp.value = btn.value;
+                            btn.form.appendChild(temp);
+                            btn.form.submit();
+                            setTimeout(()=>temp.remove(), 100);
+                        }
+                    }
+                }
+            };
+        }
+        var popup = document.getElementById("confirm2-popup");
+        if (popup) {
+            popup.onclick = function(e) {
+                // Chỉ khi click nền ngoài mới tắt
+                if (e.target === this) {
+                    this.style.display = "none";
+                    pendingBtn = null;
+                    lockConfirm = false;
+                }
+            }
+        }
+    });
+    </script>
+    <div id="confirm2-popup" style="display:none; position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:10000;
+      background:rgba(40,40,40,0.21);backdrop-filter:blur(2px);align-items:center;justify-content:center;">
+      <div style="background:#fffbe8;padding:30px 24px 22px 24px;border-radius:16px;box-shadow:0 3px 20px #3335;min-width:260px;text-align:center;">
+        <div id="confirm2-msg" style="color:#35523A;font-size:18px;font-weight:600;margin-bottom:23px;"></div>
+        <button id="confirm2-ok-btn" style="background:#35523A;color:#fff;padding:8px 36px;border:none;border-radius:9px;font-size:16px;font-weight:bold;box-shadow:0 2px 6px #2222;cursor:pointer;">OK</button>
+      </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,470 @@
+<html>
+<head>
+    <title>Chọn mục kiểm tra</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <!-- Font giống item template -->
+    <link href="https://fonts.googleapis.com/css?family=Inter:400,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+    <style>
+    :root {
+        --color-bronze: #8B6B1E;
+        --color-forest-green: #35523A;
+        --color-beige-bg: #F5F1E6;
+        --color-brown: #6B4F1A;
+        --color-red-metallic: #A32121;
+        --color-pass: #2E7D32;
+        --color-fail: var(--color-red-metallic);
+        --color-na: #666666;
+        --color-text-dark: #25312b;
+        --color-text-light: #F9F7F0;
+        --shadow-dark: rgba(255, 255, 255, 0.15);
+        --shadow-light: rgba(0,0,0,0.12);
+        --warn-bg-dark: #f3d5d5;
+        --warn-text-dark: #db4545;
+    }
+    /* Nền cỏ không đổi */
+    html, body {
+        height: 100%; margin: 0; padding: 0;
+        background: url('/static/bg_grass.png') repeat;
+        background-size: 420px 420px;
+        color: var(--color-text-dark);
+        font-family: 'Open Sans', Arial, sans-serif;
+        transition: color 0.2s;
+    }
+    /* Dark mode chỉ đổi chữ, box, nút, không đổi background */
+    body.dark, .dark {
+        color: var(--color-text-light);
+    }
+    .report-banner {
+        /* Font Merriweather giống item */
+        font-family: 'Merriweather', serif;
+        color: var(--color-beige-bg);
+        font-size: 21px;
+        font-weight: bold;
+        text-align: center;
+        /* Giảm khoảng cách xuống */
+        margin-top: 6px;
+        margin-bottom: 6px;
+        letter-spacing: 1px;
+        text-shadow: 0 2px 14px #c49c484a;
+    }
+    /* Giữ nguyên sáng cho mã report khi dark mode */
+    body.dark .report-banner {
+        color: var(--color-beige-bg) !important;
+    }
+    .box {
+        background: #fffdfccf;
+        max-width: 540px;
+        /* Giảm margin-top để nó gần banner hơn */
+        margin: 10px auto 0 auto;
+        padding: 28px 20px 30px 20px;
+        border-radius: 16px;
+        box-shadow: 0 4px 24px var(--shadow-light);
+        position: relative;
+        transition: background 0.22s, color 0.2s;
+        /* Font Open Sans giống item */
+        font-family: 'Open Sans', Arial, sans-serif;
+        color: var(--color-text-dark);
+    }
+    body.dark .box {
+        background: #344833e8;
+        box-shadow: 0 4px 24px var(--shadow-dark);
+        color: var(--color-text-light);
+    }
+    h2 {
+        /* Font Merriweather giống item */
+        font-family: 'Merriweather', serif;
+        color: var(--color-forest-green);
+        text-align: center;
+        margin-bottom: 32px;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        transition: color 0.21s;
+        text-shadow: none;
+    }
+    body.dark h2 {
+        color: var(--color-beige-bg);
+        text-shadow: 1px 1px 5px rgba(0,0,0,0.6);
+    }
+    .back-btn {
+        background: var(--color-bronze);
+        color: #fff !important;
+        font-size: 15px;
+        font-weight: bold;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 23px;
+        box-shadow: 0 2px 10px var(--shadow-light);
+        cursor: pointer;
+        transition: background 0.18s, color 0.15s;
+        text-decoration: none !important;
+        display: inline-block;
+        margin-bottom: 18px;
+        margin-top: 10px;
+        margin-left: 0;
+        /* Font Inter cho nút giống item */
+        font-family: 'Inter', sans-serif;
+    }
+    .back-btn:hover {
+        background: var(--color-brown);
+    }
+    .test-group-menu {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin: 0 0 16px 0;
+    }
+    .test-group-menu > div { width: 100%; }
+    .test-btn {
+        background: var(--color-forest-green);
+        color: var(--color-beige-bg);
+        border: none;
+        border-radius: 12px;
+        font-size: 17px;
+        font-weight: 600;
+        text-align: left;
+        padding: 14px 20px;
+        box-shadow: 0 2px 10px var(--shadow-light);
+        cursor: pointer;
+        transition: background 0.22s, color 0.15s, transform 0.15s;
+        margin: 0;
+        min-height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        outline: none;
+        position: relative;
+        overflow: hidden;
+        letter-spacing: 0.3px;
+        line-height: 1.35;
+        word-break: break-word;
+        word-wrap: break-word;
+        text-decoration: none;
+        /* Font Inter cho text chính */
+        font-family: 'Inter', sans-serif;
+    }
+    body.dark .test-btn {
+        background: var(--color-brown);
+        box-shadow: 0 2px 10px var(--shadow-dark);
+    }
+    .test-btn:hover {
+        background: var(--color-bronze);
+    }
+    .test-btn b {
+        font-weight: 700;
+        margin-right: 8px;
+        white-space: nowrap;
+        /* Font Merriweather cho phần b */
+        font-family: 'Merriweather', serif;
+        color: var(--color-beige-bg);
+        transition: color 0.22s;
+    }
+    body.dark .test-btn b {
+        color: var(--color-text-light);
+    }
+    .status-block {
+        font-size: 14px;
+        text-align: left;
+        padding-left: 12px;
+        color: var(--color-forest-green);
+        user-select: none;
+        margin-top: 6px;
+        font-family: 'Open Sans', Arial, sans-serif;
+        font-weight: 500;
+        font-style: italic;
+    }
+    body.dark .status-block {
+        color: var(--color-beige-bg);
+    }
+    .result-pass, .result-fail, .result-na, .comment {
+        padding: 4px 8px;
+        border-radius: 10px;
+        box-shadow: 0 3px 7px var(--shadow-light);
+        display: inline-block;
+        max-width: 95%;
+        word-break: break-word;
+        font-weight: 700;
+        transition: background 0.22s, color 0.22s;
+        font-family: 'Inter', sans-serif;
+    }
+    body.dark .result-pass, body.dark .result-fail, body.dark .result-na, body.dark .comment {
+        box-shadow: 0 3px 8px var(--shadow-dark);
+    }
+    .result-pass {
+        color: var(--color-beige-bg);
+        border: 1.6px solid var(--color-pass);
+        background: #2E7D32;
+    }
+    body.dark .result-pass {
+        background: #3c6f42;
+        border-color: #3c6f42;
+        color: var(--color-beige-bg);
+    }
+    .result-fail {
+        color: var(--color-beige-bg);
+        border: 1.6px solid var(--color-fail);
+        background: var(--color-fail);
+        font-weight: 800;
+    }
+    body.dark .result-fail {
+        background: #712626;
+        border-color: #712626;
+        color: var(--color-beige-bg);
+    }
+    .result-na {
+        color: var(--color-na);
+        border: 1.6px solid var(--color-na);
+        background: #e6e6e6;
+    }
+    body.dark .result-na {
+        background: #4a6151;
+        border-color: #4a6151;
+        color: var(--color-beige-bg);
+    }
+    .comment {
+        color: #2276a7;
+        background: #eaf4fb;
+        border: 1.5px solid #6ca7ce;
+        font-size: 13px;
+        margin-top: 4px;
+    }
+    body.dark .comment {
+        border-color: #9ac4e7;
+        background: #425a70;
+        color: #c7d7ff;
+    }
+    .img-warn {
+        color: var(--color-fail);
+        font-size: 13px;
+        font-weight: 900;
+        margin-top: 6px;
+        padding: 2px 8px;
+        border-radius: 8px;
+        background: var(--warn-bg-dark);
+        border: 1.5px solid var(--color-fail);
+        box-shadow: 0 0 8px var(--color-fail);
+        display: inline-block;
+        user-select: none;
+        font-family: 'Open Sans', Arial, sans-serif;
+    }
+    body:not(.dark) .img-warn {
+        background: #fbdcdc;
+        border-color: #db6e6e;
+        box-shadow: 0 0 6px #db6e6eaa;
+        color: #b61e1e;
+    }
+    .update-status {
+        font-size: 13px;
+        padding: 5px 12px;
+        border-radius: 10px;
+        background: var(--color-light-gray);
+        color: var(--color-brown);
+        box-shadow: 0 1px 5px var(--shadow-light);
+        user-select: none;
+        font-weight: 600;
+        font-style: italic;
+        letter-spacing: 0.05em;
+        margin-top: 6px;
+        transition: background 0.2s, color 0.2s;
+        font-family: 'Open Sans', Arial, sans-serif;
+    }
+    body.dark .update-status {
+        background: #3b4a3f;
+        color: var(--color-beige-bg);
+        box-shadow: 0 1px 5px var(--shadow-dark);
+    }
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      transform: scale(0);
+      animation: ripple 0.33s cubic-bezier(0.39, 0.58, 0.57, 1);
+      background: rgba(255,255,255,0.27);
+      pointer-events: none;
+      z-index: 10;
+      opacity: 0.76;
+    }
+    @keyframes ripple {
+      to { transform: scale(1.5); opacity: 0; }
+    }
+    #theme-btn {
+      position: fixed;
+      right: 24px;
+      bottom: 26px;
+      z-index: 11001;
+      background: var(--color-bronze);
+      color: #fff;
+      border-radius: 100px;
+      font-size: 17px;
+      padding: 6px 11px;
+      border:none;
+      box-shadow: 0 2px 10px var(--shadow-light);
+      cursor:pointer;
+      transition: background 0.16s;
+      height: 38px; width: 38px; min-width:36px;
+      display:flex;align-items:center;justify-content:center;
+      opacity:0.96;
+    }
+    #theme-btn:hover { background: var(--color-brown); color: #fff; opacity:1; }
+    </style>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chọn mục kiểm tra</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <!-- Font giống item template -->
+    <link href="https://fonts.googleapis.com/css?family=Inter:400,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+    <style>
+        /* ... (toàn bộ block CSS của bạn ở trên, không đổi gì) ... */
+        /* Giữ nguyên CSS đã cho */
+    </style>
+</head>
+<body>
+    <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
+    <div class="report-banner">
+        📝 MÃ REPORT: {{ report }}
+    </div>
+    <div class="box">
+        <div style="text-align: left;">
+            <a href="{{ url_for('update', report=report) }}" class="back-btn">
+                <svg width="19" height="19" style="vertical-align:middle;margin-right:4px;" fill="#fff" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M12.293 16.293a1 1 0 010-1.414L8.414 11H17a1 1 0 100-2H8.414l3.879-3.879a1 1 0 00-1.414-1.414l-5 5a1 1 0 000 1.414l5 5a1 1 0 001.414-1.414z" clip-rule="evenodd"/>
+                </svg>
+                Quay lại trang sản phẩm
+            </a>
+        </div>
+        <h2>CHỌN MỤC KIỂM TRA</h2>
+        <div style="text-align:center;font-size:17px;margin-bottom:14px;color:#c49c48;font-weight:600;">
+            {% if group == "ban_us" %}
+                BÀN US
+            {% elif group == "ban_eu" %}
+                BÀN EU
+            {% elif group == "ghe_us" %}
+                GHẾ US
+            {% elif group == "ghe_eu" %}
+                GHẾ EU
+            {% elif group == "tu_us" %}
+                TỦ US
+            {% elif group == "tu_eu" %}
+                TỦ EU
+            {% elif group == "giuong" %}
+                GIƯỜNG
+            {% elif group == "guong" %}
+                GƯƠNG
+            {% elif group == "testkhac" %}
+                TEST KHÁC
+            {% else %}
+                {{ group|upper }}
+            {% endif %}
+        </div>
+        <div class="test-group-menu">
+            {% set transit_step_groups = [
+                'transit_2c_np', 'transit_3b_np', 'transit_181_np', 'transit_rh_np',
+                'transit_2c_pallet', 'transit_3b_pallet', 'transit_181_pallet', 'transit_rh_pallet'
+            ] %}
+            {% for key, value in test_titles.items() %}
+                <div>
+                    {# ==== HOT & COLD ROUTE ĐẶC BIỆT ==== #}
+                    {% if key == 'hot_cold' and group in ['indoor_chuyen','indoor_thuong','indoor_stone','indoor_metal'] %}
+                        <a class="test-btn" href="{{ url_for('hot_cold_test', report=report, group=group) }}">
+                            {% if value.full %}
+                                <b>{{ value.full.split(":")[0] }}:</b> {{ value.full.split(":", 1)[1]|default('', true) }}
+                            {% else %}
+                                {{ value.full }}
+                            {% endif %}
+                        </a>
+                        {% if hotcold_show_done_notice %}
+                            <div style="color:#357a32;font-size:16px;font-weight:bold;margin-top:7px;">
+                                &#10004; Đã hoàn thành hot &amp; cold cycle test (đủ {{ so_gio_test }} tiếng)
+                            </div>
+                        {% endif %}
+                    {% elif group in transit_step_groups %}
+                        <a class="test-btn" href="{{ url_for('transit_item_page', report=report, group=group, step_key=key) }}">
+                            {% if value.full %}
+                                <b>{{ value.full.split(":")[0] }}:</b> {{ value.full.split(":", 1)[1]|default('', true) }}
+                            {% else %}
+                                {{ value.full }}
+                            {% endif %}
+                        </a>
+                    {% else %}
+                        <a class="test-btn" href="{{ url_for('test_group_item_dynamic', report=report, group=group, test_key=key) }}">
+                            {% if value.full %}
+                                <b>{{ value.full.split(":")[0] }}:</b> {{ value.full.split(":", 1)[1]|default('', true) }}
+                            {% else %}
+                                {{ value.full }}
+                            {% endif %}
+                        </a>
+                    {% endif %}
+                    {% set s = test_status[key] %}
+                    {% if s.status or s.comment or not s.status %}
+                    <div>
+                        {% if s.status %}
+                        <div class="status-block">
+                            <span>
+                                Trạng thái:
+                                {% if s.status == 'PASS' %}
+                                    <span class="result-pass">PASS</span>
+                                {% elif s.status == 'FAIL' %}
+                                    <span class="result-fail">FAIL</span>
+                                {% elif s.status == 'N/A' %}
+                                    <span class="result-na">N/A</span>
+                                {% else %}
+                                    {{ s.status }}
+                                {% endif %}
+                            </span><br>
+                            {% if s.comment %}
+                                <span class="comment">Ghi chú: {{ s.comment }}</span><br>
+                            {% endif %}
+                            {% if s.status in ['PASS','FAIL'] and not s.has_img %}
+                                <span class="img-warn"><b>Chưa upload ảnh kiểm thử!</b></span>
+                            {% endif %}
+                        </div>
+                        {% elif not s.status %}
+                        <div class="update-status">Chưa cập nhật</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.test-btn, .back-btn, #theme-btn').forEach(function(btn) {
+                btn.addEventListener('click', function (e) {
+                    var circle = document.createElement("span");
+                    circle.className = "ripple";
+                    var rect = btn.getBoundingClientRect();
+                    var size = Math.max(rect.width, rect.height) * 0.58;
+                    circle.style.width = circle.style.height = size + 'px';
+                    circle.style.left = (e.clientX - rect.left - size/2) + 'px';
+                    circle.style.top = (e.clientY - rect.top - size/2) + 'px';
+                    btn.appendChild(circle);
+                    setTimeout(()=>circle.remove(), 340);
+                });
+            });
+            if (localStorage.getItem("darkmode") === "true") {
+                document.documentElement.classList.add('dark');
+                document.body.classList.add('dark');
+            }
+            var themeBtn = document.getElementById('theme-btn');
+            function syncDarkModeBtn() {
+                var dark = document.body.classList.contains('dark');
+                themeBtn.innerHTML = dark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
+            }
+            themeBtn.onclick = function() {
+                var d = document.body.classList.toggle('dark');
+                document.documentElement.classList.toggle('dark');
+                localStorage.setItem("darkmode", d ? "true" : "false");
+                syncDarkModeBtn();
+            };
+            syncDarkModeBtn();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hot &amp; Cold Cycle Test - {{ report }} - {{ group.upper() }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+    <link href="https://fonts.googleapis.com/css?family=Inter:400,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: url('/static/bg_grass.png') repeat;
+            background-size: 420px 420px;
+            font-family: 'Open Sans', 'Inter', Arial, sans-serif;
+            color: #25312b;
+            margin: 0;
+            transition: color 0.22s, background-color 0.21s;
+        }
+        .box {
+            background: #fffdfccf;
+            border-radius: 18px;
+            box-shadow: 0 4px 32px #4d665c44;
+            max-width: 540px;
+            margin: 36px auto 16px auto;
+            padding: 26px 3vw 28px 3vw;
+            animation: fadeGrow 0.7s;
+            transition: background 0.22s, color 0.16s;
+            position: relative;
+        }
+        @keyframes fadeGrow {0% {opacity:0;transform:scale(0.98);}100%{opacity:1;transform:scale(1);}}
+        h2 {
+            font-family: 'Merriweather', serif;
+            font-size: 23px;
+            color: #35523A;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+            letter-spacing: 0.03em;
+            transition: color 0.18s;
+        }
+        .header-sub {
+            text-align: center;
+            color: #c49c48;
+            font-size: 15px;
+            margin-bottom: 13px;
+            font-family: 'Inter', 'Open Sans', Arial, sans-serif;
+            font-weight: 700;
+            letter-spacing:1px;
+        }
+        .back-btn {
+            position: absolute;
+            left: 17px; top: 15px; z-index: 2;
+            background:#faf7ec;
+            color:#73592c;
+            border:1px solid #d5c69d;
+            border-radius:11px;
+            font-family: 'Inter', 'Open Sans', Arial, sans-serif;
+            font-size: 13.3px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            padding: 4px 12px 4px 11px;
+            min-width:0;
+            box-shadow:0 1px 6px #d4c8942a;
+            text-decoration:none;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            transition:background 0.13s, color 0.13s, border-color 0.13s;
+        }
+        .back-btn:hover { background: #ffe082; color: #25312b; border-color: #ffe082;}
+        .test-desc {
+            color: #c49c48;
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            margin-top: 8px;
+            text-align: center;
+            letter-spacing: 0.18px;
+            background: rgba(255,233,120,0.12);
+            border-radius: 7px;
+            padding: 3px 10px;
+            display: inline-block;
+        }
+        body.dark .test-desc {
+            color: #ffe082;
+            background: rgba(44,47,20,0.32);
+        }
+        .section {
+            margin-bottom:15px;
+            text-align:center;
+        }
+        .section b { color: #344833; font-size: 15px; }
+        .section img.sample-img {
+            max-width:210px;
+            margin:8px;
+            border-radius:10px;
+            border:2px solid #b8bbcf;
+            box-shadow:0 2px 9px #8884;
+            cursor: zoom-in;
+            transition:box-shadow 0.16s, transform 0.15s, border 0.18s;
+        }
+        .section img.sample-img:hover {
+            box-shadow:0 7px 23px #ffe08266;
+            transform: scale(1.10) rotate(-1.5deg);
+            border:2.4px solid #ffe082;
+            z-index:9;
+        }
+        .section small { color:#666;font-size:13px;display:block;margin-top:3px;}
+        .state-btn-group {
+            display: flex;
+            gap: 17px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 13px;
+            margin-top: 0;
+        }
+        .state-btn {
+            font-size: 16px;
+            padding: 6px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            background: #e8e5da;
+            color: #25312b;
+            cursor: pointer;
+            box-shadow: 0 1px 6px #b5a67323;
+            transition: background 0.18s, color 0.17s, box-shadow 0.18s;
+            font-family: 'Inter', 'Open Sans', Arial, sans-serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            letter-spacing: 0.07em;
+        }
+        .state-btn.pass {background: #43a047; color:white;}
+        .state-btn.fail {background: #df2323; color:white;}
+        .state-btn.data {background: #c49c48; color:white;}
+        .state-btn.selected { box-shadow: 0 0 0 3px #93e5a0; background: #35733a; color: #fff;}
+        .state-btn:hover, .state-btn:focus { filter: brightness(1.11); }
+        .section-label {
+            font-size: 15px; font-weight: 600; color: #c49c48;
+            margin: 14px 0 7px 0; letter-spacing:0.03em;
+            font-family: 'Inter', 'Open Sans', Arial, sans-serif;
+            text-align:center;
+        }
+        .img-grid {display:flex;flex-wrap:wrap;gap:10px;justify-content:center;}
+        .img-thumb-wrap {position:relative;}
+        .img-thumb {
+            max-width: 95px; max-height: 95px; border-radius: 8px; border: 2px solid #4d665c;
+            box-shadow: 0 2px 10px #c49c4840; background: #fff; cursor: zoom-in;
+            margin: 0 auto; display: block; transition: box-shadow 0.16s, transform 0.14s, border-color 0.21s;
+        }
+        .img-thumb:hover {box-shadow:0 8px 24px #ffe08266;transform: scale(1.09) rotate(-1.7deg);border-color:#ffe082;z-index:9;}
+        .del-btn {
+            position:absolute;top:4px;right:6px;
+            background:#df2323;color:#fff;border:none;border-radius:100px;
+            width:23px;height:23px;font-size:13px;
+            display:flex;align-items:center;justify-content:center;box-shadow:0 1px 6px #2224;
+            opacity:0.93;z-index:2;transition:opacity 0.16s,background 0.16s;
+            outline:none;cursor:pointer;padding:0;
+        }
+        .del-btn:hover {opacity:1;background:#760212;}
+        .main-btn {
+            background: #c49c48;
+            color: #fff;
+            font-size: 15px;
+            padding: 9px 0;
+            border-radius: 9px;
+            border: none;
+            width: 100%;
+            font-weight: bold;
+            font-family: 'Inter', 'Open Sans', Arial, sans-serif;
+            box-shadow: 0 2px 7px #c49c4822;
+            cursor: pointer;
+            transition: background 0.14s, color 0.13s;
+            margin: 0 auto 0 auto;
+            max-width: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            letter-spacing: 0.06em;
+        }
+        .main-btn:hover {background:#35523A;color:#fff;}
+        .main-btn.save-cmt {margin-top:10px;background:#35523A;}
+        .main-btn.save-cmt:hover {background:#c49c48;color:#fff;}
+        .comment-block {margin: 23px 0 6px 0; text-align:center;}
+        .cmt-label {font-size:14px;color:#c49c48;font-weight:600;}
+        textarea {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 7px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            padding: 5px 12px;
+            font-size: 15px;
+            border: 1.2px solid #c49c48;
+            width: 100%;
+            min-height: 28px;
+            max-width: 230px;
+            height: 34px;
+            box-sizing: border-box;
+            transition: background 0.18s, color 0.18s, border-color 0.17s;
+            font-family: 'Open Sans', 'Inter', Arial, sans-serif;
+            background: #fffbe5;
+            color: #25312b;
+            resize: vertical;
+            text-align: left;
+        }
+        textarea:focus {
+            border-color: #ffe082;
+            background: #fffbe5;
+            outline: none;
+        }
+        .img-time-label {
+            text-align: center;
+            font-size: 13.3px;
+            color: #705e27;
+            background: #fff9e0;
+            padding: 4px 17px 4px 11px;
+            border-radius: 17px;
+            font-style: italic;
+            margin-bottom: 5px;
+            margin-top: 3px;
+            display: block;
+            box-shadow: 0 1px 5px #dec89317;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .img-time-label:before {
+            content: '\\f017  ';
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            margin-right: 3px;
+        }
+        @media (max-width:650px) {.box{max-width:99vw;padding:3vw 1vw 5vw 1vw;} #img-popup-inner{max-width:97vw;max-height:46vh;}}
+        body.dark, .dark {color: #f7f7ee !important;}
+        body.dark .box {background: #344833e8 !important;color: #f7f7ee !important;box-shadow: 0 4px 32px #000a;}
+        body.dark h2, body.dark .section-label, body.dark .cmt-label {color: #ffe082 !important;}
+        body.dark .state-btn {background: #3c3c2b; color: #ffe082;}
+        body.dark .state-btn.selected {background: #ffe082; color: #25312b;}
+        body.dark .state-btn.pass {background: #458859; color: #fff;}
+        body.dark .state-btn.fail {background: #d33c36; color: #fff;}
+        body.dark .state-btn.data {background: #b7a457; color: #25312b;}
+        body.dark .main-btn, body.dark .back-btn {background:#ffe082;color:#344833;border-color:#ffe082;}
+        body.dark .main-btn:hover, body.dark .back-btn:hover {background:#c49c48;color:#fff;border-color:#c49c48;}
+        body.dark input, body.dark textarea, body.dark select {background: #223323 !important; color: #ffe082 !important; border-color: #ffe082 !important;}
+        body.dark input[readonly] { background: #223323 !important; color: #d2cfa0;}
+        body.dark textarea:focus {background: #1d2520 !important;}
+        body.dark .img-thumb {background: #222e23 !important; border-color: #ffe082;}
+        ::selection {background: #ffe082; color: #222;}
+        body.dark ::selection {background: #c49c48; color: #25312b;}
+        #theme-btn {
+            position:fixed; right:19px; bottom:22px; z-index:1001;
+            background: #ece3cc; color: #b78e24;
+            border-radius: 50%; font-size: 21px; width: 39px; height: 39px;
+            display:flex; align-items:center; justify-content:center; border: none;
+            box-shadow:0 1px 7px #4d665c33; cursor:pointer;
+            transition: background 0.13s, color 0.15s;
+        }
+        #theme-btn:hover {background:#ffe082; color:#35523A;}
+        body.dark #theme-btn {background:#35523A; color:#ffe082;}
+        body.dark #theme-btn:hover {background:#b78e24; color:#fff;}
+        #img-popup {
+            display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100vw; height: 100vh;
+            background: rgba(15,20,25,0.83); align-items: center; justify-content: center;
+        }
+        #img-popup.show { display: flex; }
+        #img-popup-inner {
+            max-width: 96vw;
+            max-height: 70vh;
+            object-fit: contain;
+            border-radius: 13px;
+            border: 3px solid #ffe082;
+            background: #fff;
+            box-shadow: 0 6px 38px #000b;
+            margin: auto;
+            display: block;
+        }
+        #img-popup-close {
+            position: absolute; top: 17px; right: 25px; color: #fff; font-size: 27px;
+            font-weight: bold; background: rgba(0,0,0,0.22); border: none; border-radius: 100px;
+            width: 38px; height:38px; line-height: 32px; text-align: center; cursor:pointer; z-index: 3200;
+            box-shadow: 0 2px 12px #2226; transition: background 0.13s;
+        }
+        #img-popup-close:hover {background:rgba(220,40,40,0.22);}
+        #counter-hotcold {
+            color: #b68b22;
+            font-size: 15px;
+            font-weight: 600;
+            margin-top: 8px;
+            background: #fff9e0;
+            border-radius: 17px;
+            box-shadow: 0 1px 5px #dec89317;
+            display: block;
+            text-align: center;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 4px 18px 4px 13px;
+            font-family: 'Inter', 'Open Sans', Arial, sans-serif;
+            letter-spacing: 0.01em;
+        }
+        body.dark #counter-hotcold {
+            background: #28321b;
+            color: #ffe082;
+        }
+    </style>
+</head>
+<body>
+    <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
+    <div class="box animate__animated animate__fadeInDown centered-block">
+        <a href="{{ url_for('test_group_page', report=report, group=group) }}"
+           class="back-btn"
+           tabindex="0"
+           aria-label="Quay lại chọn mục kiểm tra">
+            <i class="fa fa-arrow-left"></i> <span>Quay lại mục kiểm tra</span>
+        </a>
+        <h2>Hot &amp; Cold Cycle Test</h2>
+        <div class="header-sub">Report: <b>{{ report }}</b> &mdash; Group: <b>{{ group.upper() }}</b></div>
+        {% if imgs_mo_ta %}
+        <div class="section">
+            <div class="test-desc">Mô tả kiểm thử (nhấp vào ảnh mẫu để phóng to xem chi tiết)</div>
+            {% for img in imgs_mo_ta %}
+                <img src="{{ img }}"
+                     alt="Ảnh mẫu kiểm thử"
+                     class="sample-img"
+                     onclick="showPopup(this)">
+            {% endfor %}
+        </div>
+        {% endif %}
+        <form method="POST" class="state-btn-group" style="justify-content:center;margin-bottom:14px;">
+            <button name="status" value="PASS" type="submit" class="state-btn pass {% if status == 'PASS' %}selected{% endif %}"><i class="fa fa-check"></i><span>PASS</span></button>
+            <button name="status" value="FAIL" type="submit" class="state-btn fail {% if status == 'FAIL' %}selected{% endif %}"><i class="fa fa-times"></i><span>FAIL</span></button>
+            <button name="status" value="DATA" type="submit" class="state-btn data {% if status == 'DATA' %}selected{% endif %}"><i class="fa fa-database"></i><span>DATA</span></button>
+        </form>
+        <!-- PHẦN UP ẢNH BEFORE -->
+        <div style="width:100%;">
+            <div class="section-label"><i class="fa fa-arrow-up"></i> Ảnh Before</div>
+            {% if before_upload_time %}
+            <div class="img-time-label">Thời gian bắt đầu: {{ before_upload_time }}</div>
+            {% endif %}
+            <form method="POST" enctype="multipart/form-data" style="margin-bottom:9px;text-align:center;">
+                <input type="file" name="hotcold_before_{{ group }}_imgs" multiple accept="image/*" style="display:none;" id="before-upload"
+                       onchange="submitTestImgs(this, 'before-fake-btn')">
+                <button type="button" class="main-btn" onclick="triggerUpload('before-upload')">
+                    <i class="fa fa-upload"></i><span>Tải ảnh Before</span>
+                    <span id="before-fake-btn" style="display:block;font-size:12px;font-weight:400;color:#eee;margin-left:3px;"></span>
+                </button>
+            </form>
+            <div class="img-grid">
+            {% for img in imgs_before %}
+                <div class="img-thumb-wrap">
+                    <img src="{{ img }}" class="img-thumb" onclick="showPopup(this)">
+                    <form method="POST" style="position:absolute;top:0;right:0;">
+                        <input type="hidden" name="delete_img" value="{{ img.split('/')[-1] }}">
+                        <button type="submit" class="del-btn"><i class="fa fa-trash"></i></button>
+                    </form>
+                </div>
+            {% endfor %}
+            </div>
+        </div>
+        {% if before_upload_time %}
+          <div id="counter-hotcold"></div>
+          <script>
+            var parts = "{{ before_upload_time }}".match(/(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4}) (\\d{1,2}):(\\d{1,2})/);
+            var uploadTime = new Date(parts[3], parts[2]-1, parts[1], parts[4], parts[5], 0);
+            function updateCounter() {
+              var now = new Date();
+              var elapsed = (now - uploadTime) / (1000 * 60 * 60); // giờ
+              var remain = {{ so_gio_test }} - elapsed;
+              var el = document.getElementById('counter-hotcold');
+              if (remain <= 0) {
+                el.innerHTML = "&#10004; Đã hoàn thành hot &amp; cold cycle test (đủ {{ so_gio_test }} tiếng)";
+              } else {
+                var totalSec = Math.floor(remain * 3600);
+                var h = Math.floor(totalSec / 3600);
+                var m = Math.floor((totalSec % 3600) / 60);
+                var s = totalSec % 60;
+                el.innerHTML = "Còn " + h + " giờ " + m + " phút " + s + " giây là đủ {{ so_gio_test }} tiếng";
+              }
+            }
+            updateCounter();
+            setInterval(updateCounter, 1000); // cập nhật mỗi giây
+          </script>
+        {% endif %}
+        <!-- PHẦN UP ẢNH AFTER -->
+        <div style="width:100%;margin-top:16px;">
+            <div class="section-label"><i class="fa fa-arrow-down"></i> Ảnh After</div>
+            {% if after_upload_time %}
+            <div class="img-time-label">Thời gian kết thúc: {{ after_upload_time }}</div>
+            {% endif %}
+            <form method="POST" enctype="multipart/form-data" style="margin-bottom:8px;text-align:center;">
+                <input type="file" name="hotcold_after_{{ group }}_imgs" multiple accept="image/*" style="display:none;" id="after-upload"
+                       onchange="submitTestImgs(this, 'after-fake-btn')">
+                <button type="button" class="main-btn" onclick="triggerUpload('after-upload')">
+                    <i class="fa fa-upload"></i><span>Tải ảnh After</span>
+                    <span id="after-fake-btn" style="display:block;font-size:12px;font-weight:400;color:#eee;margin-left:3px;"></span>
+                </button>
+            </form>
+            <div class="img-grid">
+            {% for img in imgs_after %}
+                <div class="img-thumb-wrap">
+                    <img src="{{ img }}" class="img-thumb" onclick="showPopup(this)">
+                    <form method="POST" style="position:absolute;top:0;right:0;">
+                        <input type="hidden" name="delete_img" value="{{ img.split('/')[-1] }}">
+                        <button type="submit" class="del-btn"><i class="fa fa-trash"></i></button>
+                    </form>
+                </div>
+            {% endfor %}
+            </div>
+        </div>
+        <!-- COMMENT -->
+        <form method="POST" class="comment-block">
+            <label class="cmt-label" for="comment_input"
+                style="display:block;text-align:center;font-size:15px;font-weight:600;margin-bottom:10px;">
+                Ghi chú/Comment:
+            </label>
+            <textarea name="comment_input" id="comment_input" rows="2">{{comment or ''}}</textarea>
+            <button type="submit" name="save_comment" class="main-btn save-cmt" style="margin-top:7px;">
+                <i class="fa fa-save"></i><span>Lưu comment</span>
+            </button>
+        </form>
+    </div>
+    <!-- Popup Ảnh lớn -->
+    <div id="img-popup">
+        <button id="img-popup-close" title="Đóng">&times;</button>
+        <img id="img-popup-inner" src="" />
+    </div>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var themeBtn = document.getElementById('theme-btn');
+        function syncDarkModeBtn() {
+            var dark = document.body.classList.contains('dark');
+            themeBtn.innerHTML = dark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
+        }
+        themeBtn.onclick = function() {
+            var d = document.body.classList.toggle('dark');
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem("darkmode", d ? "true" : "false");
+            syncDarkModeBtn();
+        };
+        if (localStorage.getItem("darkmode") === "true") {
+            document.documentElement.classList.add('dark');
+            document.body.classList.add('dark');
+        }
+        syncDarkModeBtn();
+    });
+
+    function triggerUpload(inputId) {
+        document.getElementById(inputId).click();
+    }
+    function submitTestImgs(input, spanId) {
+        var btn = document.getElementById(spanId);
+        if(input.files && input.files.length > 0) {
+            btn.innerText = Array.from(input.files).map(f=>f.name).join(', ');
+            var form = input.closest('form');
+            if(form) setTimeout(()=>form.submit(), 200);
+        } else {
+            btn.innerText = "";
+        }
+    }
+    function showPopup(img) {
+        var popup = document.getElementById('img-popup');
+        var popupImg = document.getElementById('img-popup-inner');
+        popupImg.src = img.src;
+        popup.classList.add('show');
+    }
+    document.getElementById('img-popup-close').onclick = function(e) {
+        var popup = document.getElementById('img-popup');
+        var popupImg = document.getElementById('img-popup-inner');
+        popup.classList.remove('show');
+        popupImg.src = '';
+        e.stopPropagation();
+    };
+    document.getElementById('img-popup').onclick = function(e) {
+        if (e.target === this) {
+            this.classList.remove('show');
+            document.getElementById('img-popup-inner').src = '';
+        }
+    };
+    document.addEventListener('keydown', function(e) {
+        if (e.key === "Escape") {
+            var popup = document.getElementById('img-popup');
+            popup.classList.remove('show');
+            document.getElementById('img-popup-inner').src = '';
+        }
+    });
+    </script>
+</body>
+</html>

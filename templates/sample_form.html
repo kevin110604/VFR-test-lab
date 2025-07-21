@@ -1,0 +1,287 @@
+<html>
+<head>
+    <title>Lưu mẫu vào kho</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+    <link href="https://fonts.googleapis.com/css?family=Inter:400,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&display=swap" rel="stylesheet">
+    <style>
+        html, body {
+            font-family: 'Inter', Arial, sans-serif;
+            background: url('/static/bg_grass.png') repeat;
+            background-size: 420px 420px;
+            color: #25312b;
+            margin: 0;
+            transition: color 0.22s, background-color 0.21s;
+        }
+        .box {
+            background: #fffdfccf;
+            border-radius: 22px;
+            box-shadow: 0 4px 32px #4d665c44;
+            max-width: 460px;
+            margin: 38px auto 26px auto;
+            padding: 33px 26px 32px 26px;
+            animation: fadeGrow 0.7s;
+            transition: background 0.22s, color 0.16s;
+            text-align:center;
+        }
+        @keyframes fadeGrow {0% {opacity:0;transform:scale(0.98);}100%{opacity:1;transform:scale(1);}}
+        h2 {
+            font-family: 'Merriweather', serif;
+            font-size: 25px;
+            color: #35523A;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 11px;
+            letter-spacing: 0.03em;
+            transition: color 0.21s;
+        }
+        .desc {
+            font-family: 'Inter', Arial, sans-serif;
+            color:#618476;
+            font-size:16px;
+            margin-bottom:15px;
+        }
+        .info-table {
+            width: 98%;
+            margin: 0 auto 14px auto;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+        }
+        .info-table td.label {
+            font-weight: 600;
+            font-size: 16.5px;
+            background: #fbe6b8;
+            color: #b78e24;
+            border-radius: 9px 0 0 9px;
+            padding: 7px 10px 7px 17px;
+            text-align: left;
+            letter-spacing: 0.04em;
+            font-family: 'Inter', Arial, sans-serif;
+            min-width: 85px;
+            transition: background 0.16s, color 0.15s;
+        }
+        .info-table td.value {
+            font-size: 16.3px;
+            background: #fffefc;
+            color: #25312b;
+            border-radius: 0 9px 9px 0;
+            padding: 7px 17px 7px 10px;
+            text-align: left;
+            font-family: 'Inter', Arial, sans-serif;
+        }
+        form {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .form-row {
+            margin-bottom: 17px;
+            width: 92%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        label {
+            font-weight: 600;
+            color: #b78e24;
+            font-size: 16px;
+            margin-bottom: 3px;
+            letter-spacing: 0.04em;
+            font-family: 'Inter', Arial, sans-serif;
+            align-self:flex-start;
+            transition: color 0.16s;
+        }
+        input[type="text"], input[type="number"], select {
+            font-size: 17px;
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 1.3px solid #4d665c;
+            margin-bottom: 0;
+            background: #f9f8f1;
+            color: #25312b;
+            width: 100%;
+            font-family: 'Inter', Arial, sans-serif;
+            transition: background 0.16s, color 0.13s, border-color 0.16s;
+            text-align:center;
+        }
+        input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
+            border-color: #b78e24;
+            outline: none;
+            background: #fffbe4;
+            color: #25312b;
+        }
+        input[readonly] {
+            background: #eee !important;
+            color: #7d7d7d;
+            font-weight: 600;
+        }
+        .radio-row {
+            display: flex;
+            gap: 22px;
+            align-items: center;
+            justify-content:center;
+        }
+        .radio-row label {
+            font-weight: 500;
+            font-size:15px;
+            margin-bottom:0;
+            letter-spacing:0.01em;
+        }
+        .main-btn {
+            background: #c49c48;
+            color: #fff;
+            font-size: 18px;
+            padding: 11px 0;
+            border-radius: 10px;
+            border: none;
+            width: 96%;
+            font-weight: bold;
+            font-family: 'Inter', Arial, sans-serif;
+            box-shadow: 0 2px 10px #c49c4822;
+            cursor: pointer;
+            transition: background 0.14s, color 0.16s;
+            margin: 0 auto;
+            display: block;
+        }
+        .main-btn:hover { background: #35523A; color: #fff;}
+        .btn-row {text-align: center; margin-top: 22px;}
+        .link-home {
+            color: #4d665c;
+            font-size: 15.5px;
+            text-decoration: none;
+            border: 1px solid #c49c48;
+            border-radius: 7px;
+            padding: 7px 18px;
+            transition: background 0.13s, color 0.13s;
+            margin-top: 12px;
+            display: inline-block;
+            font-family: 'Inter', Arial, sans-serif;
+        }
+        .link-home:hover { background: #c49c48; color: #fff;}
+        textarea {
+            border-radius:8px; padding:8px 14px; font-size:16px; border:1.3px solid #4d665c; width:100%;
+            min-height:44px; max-width:370px; font-family: 'Inter', Arial, sans-serif;
+            background: #f9f8f1; color: #25312b; transition: background 0.13s, color 0.13s, border-color 0.13s;
+            text-align:center;
+        }
+        textarea:focus {background: #fffbe4;}
+        /* DARK MODE STYLE */
+        body.dark, .dark {
+            color: #f7f7ee !important;
+        }
+        body.dark .box {
+            background: #344833e8 !important;
+            color: #f7f7ee !important;
+            box-shadow: 0 4px 32px #000a;
+        }
+        body.dark h2 {color: #ffe082 !important;}
+        body.dark label {color: #ffe082 !important;}
+        body.dark .main-btn {background:#ffe082;color:#344833;}
+        body.dark .main-btn:hover {background:#b78e24;color:#fff;}
+        body.dark .link-home {border-color:#ffe082; color: #ffe082;}
+        body.dark .link-home:hover {background:#ffe082;color:#344833;}
+        body.dark input, body.dark textarea, body.dark select {
+            background: #223323 !important; color: #ffe082 !important; border-color: #ffe082 !important;
+        }
+        body.dark input[readonly] { background: #223323 !important; color: #d2cfa0;}
+        body.dark textarea:focus {background: #1d2520 !important;}
+        body.dark .info-table td.label {background:#574707;color:#ffe082;}
+        body.dark .info-table td.value {background: #222c25; color: #ffe082;}
+        ::selection {background: #ffe082; color: #222;}
+        body.dark ::selection {background: #c49c48; color: #25312b;}
+        #theme-btn {
+            position:fixed; right:19px; bottom:22px; z-index:1001;
+            background: #ece3cc; color: #b78e24;
+            border-radius: 50%; font-size: 21px; width: 39px; height: 39px;
+            display:flex; align-items:center; justify-content:center; border: none;
+            box-shadow:0 1px 7px #4d665c33; cursor:pointer;
+            transition: background 0.13s, color 0.15s;
+        }
+        #theme-btn:hover {background:#ffe082; color:#35523A;}
+        body.dark #theme-btn {background:#35523A; color:#ffe082;}
+        body.dark #theme-btn:hover {background:#b78e24; color:#fff;}
+        @media (max-width:650px) {.box{max-width:99vw;padding:5vw 2vw 9vw 2vw;}}
+    </style>
+</head>
+<body>
+    <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
+    <div class="box animate__animated animate__fadeInDown">
+        <h2>Lưu mẫu vào kho</h2>
+        <div class="desc">
+            <i>Điền đầy đủ thông tin để lưu mẫu</i>
+        </div>
+        <table class="info-table">
+            <tr>
+                <td class="label">Report:</td>
+                <td class="value">{{ report }}</td>
+            </tr>
+            <tr>
+                <td class="label">Item:</td>
+                <td class="value">{{ item_code }}</td>
+            </tr>
+        </table>
+        <form method="POST">
+            <div class="form-row">
+                <label for="sample_type">Loại mẫu:</label>
+                <select id="sample_type" name="sample_type" required>
+                    <option value="QA test">Test thường - QA test</option>
+                    <option value="Line test">Test chuyền - Line test</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label for="height">Chiều cao:</label>
+                <select id="height" name="height" required>
+                    <option value="nhỏ">&lt; 30 cm (nhỏ)</option>
+                    <option value="vừa">&lt; 45 cm (vừa)</option>
+                    <option value="lớn">&lt; 90 cm (lớn)</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label for="width">Chiều rộng (cm):</label>
+                <input type="number" id="width" name="width" min="1" step="0.1" required>
+            </div>
+            <div class="form-row">
+                <label for="months">Thời gian lưu:</label>
+                <div class="radio-row">
+                    <label><input type="radio" name="months" value="3" checked> 3 tháng</label>
+                    <label><input type="radio" name="months" value="6"> 6 tháng</label>
+                    <label><input type="radio" name="months" value="12"> 12 tháng</label>
+                </div>
+            </div>
+            <div class="form-row">
+                <label for="note">Ghi chú:</label>
+                <textarea id="note" name="note"></textarea>
+            </div>
+            <button type="submit" class="main-btn">
+                <i class="fa fa-save"></i> Lưu và chỉ vị trí lưu
+            </button>
+        </form>
+        <div class="btn-row">
+            <a href="{{ url_for('update', report=report) }}" class="link-home"><i class="fa fa-home"></i> Về trang thông tin</a>
+        </div>
+    </div>
+    <script>
+    // Dark/Light mode toggle mượt
+    document.addEventListener("DOMContentLoaded", function() {
+        var themeBtn = document.getElementById('theme-btn');
+        function syncDarkModeBtn() {
+            var dark = document.body.classList.contains('dark');
+            themeBtn.innerHTML = dark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
+        }
+        themeBtn.onclick = function() {
+            var d = document.body.classList.toggle('dark');
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem("darkmode", d ? "true" : "false");
+            syncDarkModeBtn();
+        };
+        if (localStorage.getItem("darkmode") === "true") {
+            document.documentElement.classList.add('dark');
+            document.body.classList.add('dark');
+        }
+        syncDarkModeBtn();
+    });
+    </script>
+</body>
+</html>

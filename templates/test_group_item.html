@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ title['full'] }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link href="https://fonts.googleapis.com/css?family=Inter:400,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+    <style>
+    :root {
+        --color-bg: #F5F1E6;
+        --color-box: #FFF8E7;
+        --color-green: #35523A;
+        --color-bronze: #8B6B1E;
+        --color-accent: #C49C48;
+        --color-brown: #6B4F1A;
+        --color-pass: #38b430;
+        --color-fail: #df2323;
+        --color-na: #666;
+        --color-text-dark: #25312b;
+        --color-text-light: #F9F7F0;
+        --shadow-light: rgba(0,0,0,0.10);
+        --shadow-dark: rgba(255,255,255,0.15);
+        --dark-pass: #2a4e20;
+        --dark-fail: #6a1b1b;
+        --color-beige-bg: #F5F1E6;
+    }
+    html, body {
+        min-height: 100vh;
+        background: url('/static/bg_grass.png') repeat;
+        background-size: 420px 420px;
+        color: var(--color-text-dark);
+        font-family: 'Open Sans', Arial, sans-serif;
+        margin:0;padding:0;
+        transition: background 0.27s, color 0.21s;
+    }
+    body.dark, .dark {
+        color: var(--color-text-light) !important;
+        transition: background 0.27s, color 0.21s;
+    }
+    body.dark .box {
+        background: #344833e8 !important;
+        color: var(--color-text-light) !important;
+        box-shadow: 0 4px 32px var(--shadow-dark);
+    }
+    body.dark h2,
+    body.dark .cmt-label,
+    body.dark .section b {
+        color: var(--color-accent) !important;
+    }
+    body.dark .img-thumb, body.dark .sample-img {
+        border-color: var(--color-accent) !important;
+        background: #222 !important;
+    }
+    body.dark .back-btn,
+    body.dark .gold-upload-btn,
+    body.dark .del-btn {
+        background: var(--color-brown) !important;
+        color: #fff !important;
+        box-shadow: 0 2px 10px var(--shadow-dark);
+    }
+
+    .report-banner {
+        color: var(--color-beige-bg);
+        font-size: 21px;
+        font-weight: bold;
+        text-align: center;
+        margin-top: 6px;
+        margin-bottom: 14px;
+        letter-spacing: 1px;
+        text-shadow: 0 2px 14px #c49c484a;
+        font-family: 'Merriweather', serif;
+    }
+    #theme-btn {
+        position: fixed; right: 24px; bottom: 26px; z-index: 11001;
+        background: var(--color-bronze); color: #fff;
+        border-radius: 100px; font-size: 17px;
+        padding: 6px 11px; border:none; box-shadow: 0 2px 10px var(--shadow-light);
+        cursor:pointer; height: 38px; width: 38px; min-width:36px;
+        display:flex;align-items:center;justify-content:center;opacity:0.96;
+        transition: background 0.16s, color 0.16s;
+    }
+    #theme-btn:hover { background: var(--color-accent); color: #fff; opacity:1; }
+    .inline-status, .inline-status.fail, .inline-status.na {
+        transition: background 0.38s cubic-bezier(.37,.15,.36,1), color 0.36s cubic-bezier(.44,.09,.42,.97), border-color 0.36s;
+    }
+    .sample-img, .img-thumb {
+        transition: box-shadow 0.22s, transform 0.18s, background 0.34s, border-color 0.32s;
+    }
+    .box {
+        transition: background 0.38s cubic-bezier(.37,.15,.36,1), color 0.36s cubic-bezier(.44,.09,.42,.97), box-shadow 0.22s;
+        background: #fffdfccf;
+        max-width: 540px;
+        margin: 0 auto 32px auto;
+        border-radius: 18px;
+        box-shadow: 0 4px 30px var(--shadow-light);
+        padding: 34px 20px 32px 20px;
+        animation: fadeGrow 0.7s;
+        position:relative;
+        font-family: 'Open Sans', Arial, sans-serif;
+        color: var(--color-text-dark);
+    }
+    @keyframes fadeGrow {
+        0% { opacity: 0; transform: scale(0.98);}
+        100% { opacity: 1; transform: scale(1);}
+    }
+    .back-btn-container {
+        text-align: left;
+        margin-bottom: 6px;
+        margin-top: 0;
+    }
+    .back-btn {
+        background: var(--color-bronze);
+        color: #fff !important;
+        font-size: 15px;
+        font-weight: bold;
+        border: none;
+        border-radius: 8px;
+        padding: 7px 18px;
+        box-shadow: 0 2px 10px var(--shadow-light);
+        cursor: pointer;
+        display: inline-block;
+        transition: background 0.18s, color 0.15s;
+        text-decoration: none !important;
+    }
+    .back-btn:hover {
+        background: var(--color-accent);
+        color: #fff !important;
+    }
+
+    h2 {
+        color: var(--color-green);
+        margin-bottom: 12px;
+        text-align:center;
+        font-size: 25px;
+        font-weight: bold;
+        letter-spacing: 1.1px;
+        margin-top: 0;
+        text-shadow: 0 2px 14px #c49c484a;
+        font-family: 'Merriweather', serif;
+    }
+    .status-block {text-align:center;margin-bottom:14px;}
+    .inline-status {
+        font-size: 22px;
+        font-weight: bold;
+        margin: 0 auto 7px auto;
+        border-radius: 10px;
+        padding: 5px 22px;
+        display: inline-block;
+        letter-spacing: 0.08em;
+        box-shadow: 0 2px 13px #0002;
+    }
+    .inline-status {
+        background: #f8fff8;
+        color: var(--color-pass);
+        border: 2px solid var(--color-pass);
+    }
+    .inline-status.fail {
+        background: #fff5f7;
+        color: var(--color-fail) !important;
+        border: 2px solid var(--color-fail);
+    }
+    .inline-status.na {
+        background: #f1f1f1;
+        color: var(--color-na);
+        border: 2px solid #b8b8b8;
+    }
+    /* Keep status badges bright in dark mode */
+    body.dark .inline-status {
+        background: #f8fff8 !important;
+        color: var(--color-pass) !important;
+        border-color: var(--color-pass) !important;
+    }
+    body.dark .inline-status.fail {
+        background: #fff5f7 !important;
+        color: var(--color-fail) !important;
+        border-color: var(--color-fail) !important;
+    }
+    body.dark .inline-status.na {
+        background: #f1f1f1 !important;
+        color: var(--color-na) !important;
+        border-color: #b8b8b8 !important;
+    }
+
+    /* === NEW OVERRIDES === */
+    /* Keep report code bright in dark mode */
+    body.dark .report-banner {
+        color: var(--color-beige-bg) !important;
+    }
+    /* Keep status badges bright in dark mode */
+    body.dark .inline-status {
+        background: #f8fff8 !important;
+        color: var(--color-pass) !important;
+        border-color: var(--color-pass) !important;
+    }
+    body.dark .inline-status.fail {
+        background: #fff5f7 !important;
+        color: var(--color-fail) !important;
+        border-color: var(--color-fail) !important;
+    }
+    body.dark .inline-status.na {
+        background: #f1f1f1 !important;
+        color: var(--color-na) !important;
+        border-color: #b8b8b8 !important;
+    }
+    /* ====================== */
+
+    .missing-img-warn {color:#e33;font-size:16px;text-align:center;margin:4px auto 6px auto;font-weight:bold;}
+    .cmt-view {
+        border-radius:8px;
+        background:#f2f6f6;
+        padding:8px 13px;
+        margin:8px auto 0 auto;
+        font-size:17px;
+        color:#215d37;
+        min-height:25px;
+        max-width:95%;
+        border: 1.2px solid #b6c3c0;
+        display: inline-block;
+    }
+    .section { margin-bottom:28px; text-align:center;}
+    .section b { color: var(--color-bronze); font-size:18px; font-weight:700; letter-spacing: 0.06em;}
+    .sample-img {
+        border-radius: 13px;
+        border: 3px solid var(--color-green);
+        max-width: 340px; max-height: 200px;
+        min-width: 120px;
+        object-fit: contain;
+        background: #fff;
+        box-shadow: 0 8px 24px var(--shadow-light);
+        transition: box-shadow 0.16s, transform 0.12s, background 0.23s, border-color 0.23s;
+        cursor: zoom-in;
+    }
+    .sample-img:hover {box-shadow: 0 12px 38px var(--color-accent);transform: scale(1.08) rotate(-1.5deg);}
+    .state-btn-group {display:flex;gap:10px;justify-content:center;align-items:center;margin-bottom:6px;}
+    .state-btn {font-size:18px; padding:7px 18px; border:none; border-radius:9px; font-weight:bold;}
+    .pass {background: var(--color-pass); color:white;}
+    .fail {background: var(--color-fail); color:white;}
+    .na {background:#7a7a7a; color:white;}
+    .selected { box-shadow: 0 0 0 3px #93e5a0;}
+    .img-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 18px;
+        justify-items: center;
+        align-items: center;
+        margin-bottom: 22px;
+        margin-top: 6px;
+    }
+    .img-thumb-wrap {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 140px;
+        height: 140px;
+    }
+    .img-thumb {
+        max-width:130px; max-height:130px;
+        border-radius:11px;
+        border:2px solid var(--color-green);
+        box-shadow:0 4px 18px var(--shadow-light);
+        cursor:zoom-in;
+        background: #fff;
+        transition: box-shadow 0.15s, transform 0.12s, background 0.21s, border-color 0.21s;
+        display: block;
+        margin: 0 auto;
+    }
+    .img-thumb:hover {box-shadow:0 8px 26px var(--color-accent);transform: scale(1.06);}
+    .del-btn {
+        position: absolute;
+        top: 8px;
+        right: 10px;
+        background: var(--color-fail);
+        color: #fff;
+        border: none;
+        border-radius: 100px;
+        width: 28px; height: 28px;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 10px #2225;
+        opacity: 0.91;
+        z-index: 2;
+        transition: opacity 0.18s, box-shadow 0.14s, background 0.18s;
+        outline: none;
+        cursor: pointer;
+        padding: 0;
+    }
+    .del-btn:hover {opacity: 1; background:#760212;}
+    .comment-block {text-align:center;margin:18px 0 7px 0;}
+    .cmt-label {font-size:17px;color:var(--color-bronze);}
+    .center {text-align:center;}
+    .gold-upload-btn {
+        background: var(--color-accent);
+        color: #fff;
+        font-size: 17px;
+        padding: 10px 32px;
+        border-radius: 9px;
+        font-weight: bold;
+        border: none;
+        margin: 10px auto 0 auto;
+        box-shadow: 0 2px 10px var(--shadow-light);
+        display: inline-block;
+        text-align:center;
+        cursor:pointer;
+        min-width:135px;
+        position: relative;
+        overflow: hidden;
+    }
+    .gold-upload-btn:hover {background: var(--color-bronze);}
+    #img-popup {
+        display: none;
+        position: fixed;
+        z-index: 3000;
+        left: 0; top: 0; width: 100vw; height: 100vh;
+        background: rgba(0,0,0,0.88);
+        align-items: center;
+        justify-content: center;
+        transition: background 0.24s;
+    }
+    #img-popup.show { display: flex; }
+    #img-popup-inner {
+        max-width: 88vw; max-height: 80vh;
+        border-radius: 18px;
+        border: 4px solid #eacb82;
+        background: #fff;
+        box-shadow: 0 8px 56px #000b;
+        object-fit: contain;
+        display: block;
+        margin:auto;
+        transition: background 0.22s, border-color 0.22s, box-shadow 0.18s;
+    }
+    #img-popup-close {
+        position: absolute;
+        top: 20px; right: 36px;
+        color: #fff;
+        font-size: 33px;
+        font-weight: bold;
+        background: rgba(0,0,0,0.18);
+        border: none;
+        border-radius: 100px;
+        width: 44px; height:44px;
+        line-height: 36px;
+        text-align: center;
+        cursor:pointer;
+        z-index: 3200;
+        box-shadow: 0 2px 12px #2226;
+        transition: background 0.13s;
+    }
+    #img-popup-close:hover {background:rgba(220,40,40,0.22);}
+    .ripple {
+      position: absolute; border-radius: 50%; transform: scale(0);
+      animation: ripple 0.32s cubic-bezier(0.39, 0.58, 0.57, 1);
+      background: rgba(255,255,255,0.29); pointer-events: none; z-index: 10; opacity: 0.77;
+    }
+    @keyframes ripple { to { transform: scale(1.5); opacity: 0; } }
+    </style>
+</head>
+<body>
+    <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
+    <div class="report-banner">
+        📝 MÃ REPORT: {{ report }}
+    </div>
+    <div class="box" role="main">
+        <div class="back-btn-container">
+            <a href="{{ url_for('test_group_page', report=report, group=group) }}" class="back-btn" tabindex="0" aria-label="Quay lại chọn mục kiểm tra">
+                <svg width="19" height="19" style="vertical-align:middle;margin-right:4px;" fill="#fff" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M12.293 16.293a1 1 0 010-1.414L8.414 11H17a1 1 0 100-2H8.414l3.879-3.879a1 1 0 00-1.414-1.414l-5 5a1 1 0 000 1.414l5 5a1 1 0 001.414-1.414z" clip-rule="evenodd"/>
+                </svg>
+                Quay lại chọn mục kiểm tra
+            </a>
+        </div>
+        <h2>{{ title['short'] }}</h2>
+        <div class="status-block" role="status" aria-live="polite" aria-atomic="true">
+            {% if status %}
+                <div class="inline-status {% if status == 'FAIL' %}fail{% elif status == 'N/A' %}na{% endif %}">{{status}}</div>
+            {% endif %}
+            {% if (status == "PASS" or status == "FAIL") and (imgs|length == 0) %}
+                <div class="missing-img-warn">Chưa upload ảnh kiểm thử!</div>
+            {% endif %}
+            {% if comment %}
+                <div class="cmt-view"><b>Comment:</b> {{ comment }}</div>
+            {% endif %}
+        </div>
+        <div class="section">
+            <b>Mô tả kiểm thử:</b><br>
+            {% for img in title['img'] %}
+                <img src="{{ img }}" style="max-width:210px; margin:8px; border-radius:10px; border:2px solid #b8bbcf; box-shadow:0 2px 9px #8884;" alt="Ảnh mẫu kiểm thử"
+                     class="sample-img"
+                     onclick="showPopup(this)">
+            {% endfor %}
+            <br>
+            <small>Nhấp vào ảnh mẫu để phóng to xem chi tiết</small>
+        </div>
+        <form method="POST" class="state-btn-group" aria-label="Chọn trạng thái kiểm thử">
+            <button name="status" value="PASS" type="submit"
+                class="state-btn pass {% if status == 'PASS' %}selected{% endif %}" aria-pressed="{{ 'true' if status == 'PASS' else 'false' }}">PASS</button>
+            <button name="status" value="FAIL" type="submit"
+                class="state-btn fail {% if status == 'FAIL' %}selected{% endif %}" aria-pressed="{{ 'true' if status == 'FAIL' else 'false' }}">FAIL</button>
+            <button name="status" value="N/A" type="submit"
+                class="state-btn na {% if status == 'N/A' %}selected{% endif %}" aria-pressed="{{ 'true' if status == 'N/A' else 'false' }}">N/A</button>
+        </form>
+        <form method="POST" enctype="multipart/form-data" style="margin-bottom:13px;text-align:center;" aria-label="Upload ảnh kiểm thử">
+            <input type="file" name="test_imgs" multiple accept="image/*" style="display:none;" id="test-imgs-upload"
+                   onchange="submitTestImgs(this, 'test-imgs-fake-btn')">
+            <button type="button" class="gold-upload-btn" onclick="triggerUpload('test-imgs-upload')">
+                Chọn và tải ảnh
+                <span id="test-imgs-fake-btn">Chưa chọn file</span>
+            </button>
+        </form>
+        <div class="img-grid" aria-live="polite" aria-atomic="true">
+        {% if imgs %}
+            {% for img in imgs %}
+                <div class="img-thumb-wrap">
+                <img src="{{ img }}" class="img-thumb" onclick="showPopup(this)" tabindex="0" alt="Ảnh kiểm thử">
+                <form method="POST" action="{{ url_for('delete_test_group_image', report=report, group=group, key=key, imgfile=img.split('/')[-1]) }}">
+                    <button type="submit" class="del-btn"><i class="fa fa-trash"></i></button>
+                </form>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="width:100%;text-align:center;"><i>Chưa có ảnh nào.</i></div>
+        {% endif %}
+        </div>
+        <form method="POST" class="comment-block" aria-label="Thêm ghi chú hoặc comment">
+            <label class="cmt-label" for="comment_input">Thêm ghi chú/comment:</label><br>
+            <textarea name="comment_input" id="comment_input" rows="2" style="width:97%;max-width:380px;border-radius:8px;padding:7px;font-size:16px;">{{comment or ''}}</textarea>
+            <br>
+            <button type="submit" name="save_comment" style="background:#325a4a;color:white;font-size:15px;border-radius:7px;padding:4px 15px;margin-top:7px;">Lưu comment</button>
+        </form>
+    </div>
+    <div id="img-popup" role="dialog" aria-modal="true" aria-label="Ảnh kiểm thử phóng to">
+        <button id="img-popup-close" title="Đóng">&times;</button>
+        <img id="img-popup-inner" src="" alt="Ảnh kiểm thử lớn"/>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('button, .test-btn, .gold-upload-btn, .back-btn, .del-btn, #theme-btn').forEach(function(btn) {
+                btn.addEventListener('click', function (e) {
+                    var circle = document.createElement("span");
+                    circle.className = "ripple";
+                    var rect = btn.getBoundingClientRect();
+                    var size = Math.max(rect.width, rect.height) * 0.58;
+                    circle.style.width = circle.style.height = size + 'px';
+                    circle.style.left = (e.clientX - rect.left - size/2) + 'px';
+                    circle.style.top = (e.clientY - rect.top - size/2) + 'px';
+                    btn.appendChild(circle);
+                    setTimeout(()=>circle.remove(), 340);
+                });
+            });
+            if (localStorage.getItem("darkmode") === "true") {
+                document.documentElement.classList.add('dark');
+                document.body.classList.add('dark');
+            }
+            var themeBtn = document.getElementById('theme-btn');
+            function syncDarkModeBtn() {
+                var dark = document.body.classList.contains('dark');
+                themeBtn.innerHTML = dark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
+            }
+            themeBtn.onclick = function() {
+                var d = document.body.classList.toggle('dark');
+                document.documentElement.classList.toggle('dark');
+                localStorage.setItem("darkmode", d ? "true" : "false");
+                syncDarkModeBtn();
+            };
+            syncDarkModeBtn();
+        });
+
+        function showPopup(img) {
+            var popup = document.getElementById('img-popup');
+            var popupImg = document.getElementById('img-popup-inner');
+            popupImg.src = img.src;
+            popup.classList.add('show');
+        }
+        document.getElementById('img-popup-close').onclick = function(e) {
+            var popup = document.getElementById('img-popup');
+            var popupImg = document.getElementById('img-popup-inner');
+            popup.classList.remove('show');
+            popupImg.src = '';
+            e.stopPropagation();
+        };
+        document.getElementById('img-popup').onclick = function(e) {
+            if (e.target === this) {
+                this.classList.remove('show');
+                document.getElementById('img-popup-inner').src = '';
+            }
+        };
+        document.addEventListener('keydown', function(e) {
+            if (e.key === "Escape") {
+                var popup = document.getElementById('img-popup');
+                popup.classList.remove('show');
+                document.getElementById('img-popup-inner').src = '';
+            }
+        });
+        function triggerUpload(inputId) {
+            document.getElementById(inputId).click();
+        }
+        function submitTestImgs(input, spanId) {
+            var btn = document.getElementById(spanId);
+            if(input.files && input.files.length > 0) {
+                btn.innerText = Array.from(input.files).map(f=>f.name).join(', ');
+                var form = input.closest('form');
+                if(form) setTimeout(()=>form.submit(), 200);
+            } else {
+                btn.innerText = "Chưa chọn file";
+            }
+        }
+        document.querySelectorAll("form").forEach(form => {
+            form.addEventListener("submit", function() {
+                localStorage.setItem("scrollTop", window.scrollY);
+            });
+        });
+        window.addEventListener("DOMContentLoaded", function() {
+            let scroll = localStorage.getItem("scrollTop");
+            if (scroll !== null) {
+                window.scrollTo(0, parseInt(scroll));
+                localStorage.removeItem("scrollTop");
+            }
+        });
+    </script>
+</body>
+</html>

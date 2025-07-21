@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Line Test - {{ report }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+    <link href="https://fonts.googleapis.com/css?family=Inter:400,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: url('/static/bg_grass.png') repeat;
+            background-size: 420px 420px;
+            font-family: 'Open Sans', 'Inter', Arial, sans-serif;
+            color: #25312b;
+            margin: 0;
+            transition: color 0.22s, background-color 0.21s;
+        }
+        .box {
+            background: #fffdfccf;
+            border-radius: 18px;
+            box-shadow: 0 4px 32px #4d665c44;
+            max-width: 540px;
+            margin: 36px auto 16px auto;
+            padding: 26px 3vw 28px 3vw;
+            animation: fadeGrow 0.7s;
+            transition: background 0.22s, color 0.16s;
+        }
+        @keyframes fadeGrow {0% {opacity:0;transform:scale(0.98);}100%{opacity:1;transform:scale(1);}}
+        h2 {
+            font-family: 'Merriweather', serif;
+            font-size: 23px;
+            color: #35523A;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+            letter-spacing: 0.03em;
+            transition: color 0.18s;
+        }
+        .header-sub {
+            text-align: center;
+            color: #8e9b87;
+            font-size: 14px;
+            margin-bottom: 13px;
+            font-family: 'Inter', 'Open Sans', Arial, sans-serif;
+            font-weight: 600;
+        }
+        .centered-block { display: flex; flex-direction: column; align-items: center; }
+        .state-btn-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 13px;
+            margin-top: 0;
+        }
+        .state-btn {
+            font-size: 16px;
+            padding: 6px 16px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            background: #e8e5da;
+            color: #25312b;
+            cursor: pointer;
+            box-shadow: 0 1px 6px #b5a67323;
+            transition: background 0.18s, color 0.17s, box-shadow 0.18s;
+            font-family: 'Inter', 'Open Sans', Arial, sans-serif;
+        }
+        .state-btn.pass {background: #43a047; color:white;}
+        .state-btn.fail {background: #df2323; color:white;}
+        .state-btn.data {background: #c49c48; color:white;}
+        .state-btn.pass.selected { box-shadow: 0 0 0 3px #93e5a0; background: #35733a; color: #fff;}
+        .state-btn.fail.selected {
+            background: #df2323 !important;
+            color: #fff !important;
+            box-shadow: 0 0 0 3px #ffc3c3;
+        }
+        .state-btn:hover, .state-btn:focus { filter: brightness(1.1); }
+        .fail-reason {
+            background: #fffbe4;
+            border-left: 4px solid #df2323;
+            padding: 12px 14px 12px 14px;
+            margin: 0 auto 12px auto;
+            max-width: 415px;
+            border-radius: 10px;
+            font-size: 15px;
+            color: #be1520;
+            box-shadow: 0 2px 10px #f3ce7c1c;
+            font-family: 'Open Sans', 'Inter', Arial, sans-serif;
+            text-align: left;
+        }
+        .fail-reason .fail-title {font-size:16px;font-weight:700;color:#b32121;margin-bottom:6px;}
+        .fail-reason ul {margin: 0 0 0 20px; padding: 0;}
+        .fail-reason li {margin: 0 0 5px 0; line-height: 1.48;}
+        .section-label {
+            font-size: 15px; font-weight: 600; color: #c49c48;
+            margin: 14px 0 7px 0; letter-spacing:0.03em;
+            font-family: 'Inter', 'Open Sans', Arial, sans-serif;
+            text-align:center;
+        }
+        .img-grid {display:flex;flex-wrap:wrap;gap:10px;justify-content:center;}
+        .img-thumb-wrap {position:relative;}
+        .img-thumb {
+            max-width: 95px; max-height: 95px; border-radius: 8px; border: 2px solid #4d665c;
+            box-shadow: 0 2px 10px #c49c4840; background: #fff; cursor: zoom-in;
+            margin: 0 auto; display: block; transition: box-shadow 0.16s, transform 0.14s, border-color 0.21s;
+        }
+        .img-thumb:hover {box-shadow:0 6px 20px #c49c48;transform: scale(1.06);}
+        .del-btn {
+            position:absolute;top:4px;right:6px;
+            background:#df2323;color:#fff;border:none;border-radius:100px;
+            width:23px;height:23px;font-size:13px;
+            display:flex;align-items:center;justify-content:center;box-shadow:0 1px 6px #2224;
+            opacity:0.93;z-index:2;transition:opacity 0.16s,background 0.16s;
+            outline:none;cursor:pointer;padding:0;
+        }
+        .del-btn:hover {opacity:1;background:#760212;}
+        .main-btn {
+            background: #c49c48;
+            color: #fff;
+            font-size: 15px;
+            padding: 9px 0;
+            border-radius: 9px;
+            border: none;
+            width: 100%;
+            font-weight: bold;
+            font-family: 'Inter', 'Open Sans', Arial, sans-serif;
+            box-shadow: 0 2px 7px #c49c4822;
+            cursor: pointer;
+            transition: background 0.14s, color 0.13s;
+            margin: 0 auto 0 auto;
+            max-width: 180px;
+        }
+        .main-btn:hover {background:#35523A;color:#fff;}
+        .main-btn.save-cmt {margin-top:10px;background:#35523A;}
+        .main-btn.save-cmt:hover {background:#c49c48;color:#fff;}
+        .comment-block {margin: 23px 0 6px 0; text-align:center;}
+        .cmt-label {font-size:14px;color:#c49c48;font-weight:600;}
+        textarea {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 7px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            padding: 5px 12px;
+            font-size: 15px;
+            border: 1.2px solid #c49c48;
+            width: 100%;
+            min-height: 28px;
+            max-width: 230px;
+            height: 34px;
+            box-sizing: border-box;
+            transition: background 0.18s, color 0.18s, border-color 0.17s;
+            font-family: 'Open Sans', 'Inter', Arial, sans-serif;
+            background: #fffbe5;
+            color: #25312b;
+            resize: vertical;
+            box-shadow: 0 1px 7px #c49c4810;
+            text-align: left;
+        }
+        textarea:focus {
+            border-color: #ffe082;
+            background: #fffbe5;
+            outline: none;
+        }
+        .back-row {text-align:center;margin-top:17px;}
+        .back-link {
+            color: #fff;
+            font-size: 15px;
+            text-decoration: none;
+            border: 1.5px solid #c49c48;
+            border-radius: 7px;
+            padding: 8px 19px;
+            background: #c49c48;
+            transition: background 0.18s, color 0.13s, border-color 0.14s;
+            display:inline-block;
+            font-family: 'Inter', 'Open Sans', Arial, sans-serif;
+            font-weight: bold;
+            box-shadow: 0 2px 7px #c49c4822;
+        }
+        .back-link:hover { background: #ffe082; color: #25312b; border-color: #ffe082;}
+        .img-time-label {
+            text-align: center;
+            font-size: 13px;
+            color: #3b3b3b;
+            background: #fffbe5;
+            padding: 3px 11px;
+            border-radius: 8px;
+            font-style: italic;
+            margin-bottom: 5px;
+            margin-top: 3px;
+            display: inline-block;
+            box-shadow: 0 2px 7px #0001;
+        }
+        .img-time-label:before {
+            content: '\f017  ';
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            margin-right: 3px;
+        }
+        @media (max-width:650px) {.box{max-width:99vw;padding:3vw 1vw 5vw 1vw;} #img-popup-inner{max-width:97vw;max-height:46vh;}}
+        /* DARK MODE STYLE */
+        body.dark, .dark {color: #f7f7ee !important;}
+        body.dark .box {background: #344833e8 !important;color: #f7f7ee !important;box-shadow: 0 4px 32px #000a;}
+        body.dark h2, body.dark .section-label, body.dark .cmt-label {color: #ffe082 !important;}
+        body.dark .state-btn {background: #3c3c2b; color: #ffe082;}
+        body.dark .state-btn.selected {background: #ffe082; color: #25312b;}
+        body.dark .state-btn.pass {background: #458859; color: #fff;}
+        body.dark .state-btn.fail {background: #d33c36; color: #fff;}
+        body.dark .state-btn.data {background: #b7a457; color: #25312b;}
+        body.dark .fail-reason {background:#2d3327;color:#ffadb8;border-color:#ff5f7a;}
+        body.dark .fail-reason .fail-title {color:#ff5f7a;}
+        body.dark .main-btn, body.dark .back-link {background:#ffe082;color:#344833;border-color:#ffe082;}
+        body.dark .main-btn:hover, body.dark .back-link:hover {background:#c49c48;color:#fff;border-color:#c49c48;}
+        body.dark input, body.dark textarea, body.dark select {background: #223323 !important; color: #ffe082 !important; border-color: #ffe082 !important;}
+        body.dark input[readonly] { background: #223323 !important; color: #d2cfa0;}
+        body.dark textarea:focus {background: #1d2520 !important;}
+        body.dark .img-thumb {background: #222e23 !important; border-color: #ffe082;}
+        ::selection {background: #ffe082; color: #222;}
+        body.dark ::selection {background: #c49c48; color: #25312b;}
+        #theme-btn {
+            position:fixed; right:19px; bottom:22px; z-index:1001;
+            background: #ece3cc; color: #b78e24;
+            border-radius: 50%; font-size: 21px; width: 39px; height: 39px;
+            display:flex; align-items:center; justify-content:center; border: none;
+            box-shadow:0 1px 7px #4d665c33; cursor:pointer;
+            transition: background 0.13s, color 0.15s;
+        }
+        #theme-btn:hover {background:#ffe082; color:#35523A;}
+        body.dark #theme-btn {background:#35523A; color:#ffe082;}
+        body.dark #theme-btn:hover {background:#b78e24; color:#fff;}
+        /* Popup sửa lại */
+        #img-popup {
+            display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100vw; height: 100vh;
+            background: rgba(15,20,25,0.83); align-items: center; justify-content: center;
+        }
+        #img-popup.show { display: flex; }
+        #img-popup-inner {
+            max-width: 96vw;
+            max-height: 70vh;
+            object-fit: contain;
+            border-radius: 13px;
+            border: 3px solid #ffe082;
+            background: #fff;
+            box-shadow: 0 6px 38px #000b;
+            margin: auto;
+            display: block;
+        }
+        #img-popup-close {
+            position: absolute; top: 17px; right: 25px; color: #fff; font-size: 27px;
+            font-weight: bold; background: rgba(0,0,0,0.22); border: none; border-radius: 100px;
+            width: 38px; height:38px; line-height: 32px; text-align: center; cursor:pointer; z-index: 3200;
+            box-shadow: 0 2px 12px #2226; transition: background 0.13s;
+        }
+        #img-popup-close:hover {background:rgba(220,40,40,0.22);}
+    </style>
+</head>
+<body>
+    <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
+    <div class="box animate__animated animate__fadeInDown centered-block">
+        <h2>Kiểm thử Line Test</h2>
+        <div class="header-sub">Report: <b>{{ report }}</b></div>
+        <form method="POST" class="state-btn-group">
+            <button name="status" value="PASS" type="submit" class="state-btn pass {% if status == 'PASS' %}selected{% endif %}"><i class="fa fa-check"></i> PASS</button>
+            <button name="status" value="FAIL" type="submit" class="state-btn fail {% if status == 'FAIL' %}selected{% endif %}"><i class="fa fa-times"></i> FAIL</button>
+            <button name="status" value="DATA" type="submit" class="state-btn data {% if status == 'DATA' %}selected{% endif %}"><i class="fa fa-database"></i> DATA</button>
+        </form>
+        <!-- PHẦN UP ẢNH BEFORE -->
+        <div style="width:100%;">
+            <div class="section-label"><i class="fa fa-arrow-up"></i> Ảnh Before</div>
+            {% if before_upload_time %}
+            <div class="img-time-label">Thời gian bắt đầu: {{ before_upload_time }}</div>
+            {% endif %}
+            <form method="POST" enctype="multipart/form-data" style="margin-bottom:9px;text-align:center;">
+                <input type="file" name="line_before_imgs" multiple accept="image/*" style="display:none;" id="before-upload"
+                       onchange="submitTestImgs(this, 'before-fake-btn')">
+                <button type="button" class="main-btn" onclick="triggerUpload('before-upload')">
+                    Chọn & tải ảnh Before
+                    <span id="before-fake-btn" style="display:block;font-size:12px;font-weight:400;color:#eee;"></span>
+                </button>
+            </form>
+            <div class="img-grid">
+            {% for img in imgs_before %}
+                <div class="img-thumb-wrap">
+                    <img src="{{ img }}" class="img-thumb" onclick="showPopup(this)">
+                    <form method="POST" style="position:absolute;top:0;right:0;">
+                        <input type="hidden" name="delete_img" value="{{ img.split('/')[-1] }}">
+                        <button type="submit" class="del-btn"><i class="fa fa-trash"></i></button>
+                    </form>
+                </div>
+            {% endfor %}
+            </div>
+        </div>
+        {% if before_upload_time %}
+          <div id="counter-line" style="color:#b68b22;font-size:15px;font-weight:600;margin-top:8px;"></div>
+          <script>
+            // before_upload_time dạng "dd/mm/yyyy HH:MM"
+            var parts = "{{ before_upload_time }}".match(/(\d{1,2})\/(\d{1,2})\/(\d{4}) (\d{1,2}):(\d{1,2})/);
+            var uploadTime = new Date(parts[3], parts[2]-1, parts[1], parts[4], parts[5], 0);
+        
+            function updateCounter() {
+              var now = new Date();
+              var elapsed = (now - uploadTime) / (1000 * 60 * 60); // giờ
+              var remain = {{ so_gio_test }} - elapsed;
+              var el = document.getElementById('counter-line');
+              if (remain <= 0) {
+                el.innerHTML = "&#10004; Đã hoàn thành line test (đủ 50 tiếng)";
+              } else {
+                var totalSec = Math.floor(remain * 3600);
+                var h = Math.floor(totalSec / 3600);
+                var m = Math.floor((totalSec % 3600) / 60);
+                var s = totalSec % 60;
+                el.innerHTML = "Còn " + h + " giờ " + m + " phút " + s + " giây là đủ 50 tiếng";
+              }
+            }
+            updateCounter();
+            setInterval(updateCounter, 1000); // cập nhật mỗi giây
+          </script>
+        {% endif %}
+        <!-- PHẦN UP ẢNH AFTER -->
+        <div style="width:100%;margin-top:16px;">
+            <div class="section-label"><i class="fa fa-arrow-down"></i> Ảnh After</div>
+            {% if after_upload_time %}
+            <div class="img-time-label">Thời gian kết thúc: {{ after_upload_time }}</div>
+            {% endif %}
+            <form method="POST" enctype="multipart/form-data" style="margin-bottom:8px;text-align:center;">
+                <input type="file" name="line_after_imgs" multiple accept="image/*" style="display:none;" id="after-upload"
+                       onchange="submitTestImgs(this, 'after-fake-btn')">
+                <button type="button" class="main-btn" onclick="triggerUpload('after-upload')">
+                    Chọn & tải ảnh After
+                    <span id="after-fake-btn" style="display:block;font-size:12px;font-weight:400;color:#eee;"></span>
+                </button>
+            </form>
+            <div class="img-grid">
+            {% for img in imgs_after %}
+                <div class="img-thumb-wrap">
+                    <img src="{{ img }}" class="img-thumb" onclick="showPopup(this)">
+                    <form method="POST" style="position:absolute;top:0;right:0;">
+                        <input type="hidden" name="delete_img" value="{{ img.split('/')[-1] }}">
+                        <button type="submit" class="del-btn"><i class="fa fa-trash"></i></button>
+                    </form>
+                </div>
+            {% endfor %}
+            </div>
+        </div>
+        {% if status == 'FAIL' %}
+        <form method="POST" style="margin-bottom:14px;">
+        <div class="fail-reason">
+            <div class="fail-title"><i class="fa fa-exclamation-triangle"></i> Chọn nguyên nhân FAIL:</div>
+            <ul style="list-style:none;padding-left:0;margin-bottom:14px;">
+            {% for reason in fail_reasons_list %}
+                <li style="margin-bottom:7px;">
+                <label>
+                    <input type="checkbox" name="fail_reason" value="{{ reason }}" {% if reason in fail_reasons %}checked{% endif %}>
+                    {{ reason }}
+                </label>
+                </li>
+            {% endfor %}
+            <li>
+                <label>
+                <input type="checkbox" id="other_reason_checkbox" onchange="toggleOtherReasonInput(this)">
+                Nguyên nhân khác:
+                </label>
+                <input type="text" name="fail_reason_other" id="fail_reason_other" placeholder="Nhập nguyên nhân khác..." 
+                style="margin-left:7px; min-width:160px;" 
+                value="{% if fail_reason_other %}{{ fail_reason_other }}{% endif %}" 
+                {% if not fail_reason_other %}disabled{% endif %}>
+            </li>
+            </ul>
+            <div style="text-align:center;">
+            <button type="submit" name="save_fail_reason" value="1" class="main-btn save-cmt">
+                <i class="fa fa-save"></i> Lưu nguyên nhân
+            </button>
+            </div>
+        </div>
+        </form>
+        <script>
+        function toggleOtherReasonInput(checkbox) {
+            var input = document.getElementById('fail_reason_other');
+            if (checkbox.checked) {
+                input.disabled = false;
+                input.focus();
+            } else {
+                input.value = '';
+                input.disabled = true;
+            }
+        }
+        window.addEventListener('DOMContentLoaded', function() {
+        // Nếu đã nhập nguyên nhân khác thì tự động check box khi load lại
+        var input = document.getElementById('fail_reason_other');
+        var checkbox = document.getElementById('other_reason_checkbox');
+        if(input && input.value && checkbox){
+            checkbox.checked = true;
+            input.disabled = false;
+        }
+        });
+        </script>
+        {% endif %}
+        <div class="back-row">
+            <a href="{{ url_for('update', report=report) }}" class="back-link">
+                <i class="fa fa-home"></i> Về trang thông tin
+            </a>
+        </div>
+    </div>
+    <!-- Popup Ảnh lớn -->
+    <div id="img-popup">
+        <button id="img-popup-close" title="Đóng">&times;</button>
+        <img id="img-popup-inner" src="" />
+    </div>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var themeBtn = document.getElementById('theme-btn');
+        function syncDarkModeBtn() {
+            var dark = document.body.classList.contains('dark');
+            themeBtn.innerHTML = dark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
+        }
+        themeBtn.onclick = function() {
+            var d = document.body.classList.toggle('dark');
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem("darkmode", d ? "true" : "false");
+            syncDarkModeBtn();
+        };
+        if (localStorage.getItem("darkmode") === "true") {
+            document.documentElement.classList.add('dark');
+            document.body.classList.add('dark');
+        }
+        syncDarkModeBtn();
+    });
+
+    function triggerUpload(inputId) {
+        document.getElementById(inputId).click();
+    }
+    function submitTestImgs(input, spanId) {
+        var btn = document.getElementById(spanId);
+        if(input.files && input.files.length > 0) {
+            btn.innerText = Array.from(input.files).map(f=>f.name).join(', ');
+            var form = input.closest('form');
+            if(form) setTimeout(()=>form.submit(), 200);
+        } else {
+            btn.innerText = "";
+        }
+    }
+    function showPopup(img) {
+        var popup = document.getElementById('img-popup');
+        var popupImg = document.getElementById('img-popup-inner');
+        popupImg.src = img.src;
+        popup.classList.add('show');
+    }
+    document.getElementById('img-popup-close').onclick = function(e) {
+        var popup = document.getElementById('img-popup');
+        var popupImg = document.getElementById('img-popup-inner');
+        popup.classList.remove('show');
+        popupImg.src = '';
+        e.stopPropagation();
+    };
+    document.getElementById('img-popup').onclick = function(e) {
+        if (e.target === this) {
+            this.classList.remove('show');
+            document.getElementById('img-popup-inner').src = '';
+        }
+    };
+    document.addEventListener('keydown', function(e) {
+        if (e.key === "Escape") {
+            var popup = document.getElementById('img-popup');
+            popup.classList.remove('show');
+            document.getElementById('img-popup-inner').src = '';
+        }
+    });
+    </script>
+</body>
+</html>

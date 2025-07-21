@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <title>Danh sách mẫu đã lưu</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+            background: #faf6ea;
+            margin: 0;
+            color: #232323;
+        }
+        .container {
+            max-width: 900px;
+            margin: 35px auto 25px auto;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px #0001;
+            padding: 26px 19px 28px 19px;
+        }
+        h2 {
+            font-size: 2rem;
+            margin-top: 0;
+            margin-bottom: 23px;
+            font-weight: 600;
+            text-align: center;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 23px;
+        }
+        th, td {
+            padding: 10px 10px;
+            text-align: center;
+        }
+        th {
+            background: #c49c48;
+            color: #fff;
+            font-size: 1.03em;
+            font-weight: 500;
+        }
+        tr:nth-child(even) { background: #f4ecd6; }
+        tr:hover { background: #fffbe2; }
+        .main-btn, .btn-update {
+            border: none;
+            outline: none;
+            border-radius: 7px;
+            text-decoration: none;
+            font-size: 15.5px;
+            font-family: inherit;
+            padding: 8px 16px;
+            margin: 0 3px;
+            box-shadow: 0 1px 7px #0002;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            transition: background 0.13s, color 0.13s;
+            cursor: pointer;
+        }
+        .main-btn { background: #8B6B1E; color: #fff; }
+        .main-btn:hover { background: #c49c48; color: #222; }
+        .btn-update { background: #33A9DD; color: #fff; }
+        .btn-update:hover { background: #2680b7; color: #fff; }
+        .btn-gold { background: #c49c48; color: #fff; }
+        .btn-gold:hover { background: #f3e1a2; color: #382900; }
+        .btn-green { background: #35523A; color: #fff; }
+        .btn-green:hover { background: #53795d; color: #fff; }
+        .btn-row {
+            text-align: center;
+            margin: 18px 0 0 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+        }
+        .input-inline {
+            width: 90px;
+            padding: 4px 7px;
+            border-radius: 5px;
+            border: 1px solid #bbb;
+            font-size: 14px;
+        }
+        .form-inline {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-cancel {
+            background: #aaa !important;
+            color: #fff !important;
+            margin-left: 5px;
+        }
+        @media (max-width: 650px) {
+            .container { padding: 8px 1vw 15px 1vw; }
+            th, td { padding: 6px 2px; font-size: 15px; }
+            .main-btn, .btn-update { font-size: 15px; padding: 10px 9px;}
+            .btn-row { flex-direction: column; gap: 12px;}
+            .input-inline { width: 85vw; }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Danh sách mẫu đã lưu</h2>
+        <table>
+            <tr>
+                <th>Vị trí</th>
+                <th>Report</th>
+                <th>Item#</th>
+                <th>Loại mẫu</th>
+                <th>Người mượn</th>
+                <th>Ghi chú</th>
+                <th>Chức năng</th>
+            </tr>
+            {% for row in rows %}
+            <tr>
+                <td>{{ row.loc }}</td>
+                <td>{{ row.report }}</td>
+                <td>{{ row.item_code }}</td>
+                <td>{{ row.sample_type }}</td>
+                {% if edit_loc == row.loc %}
+                <form method="POST" class="form-inline">
+                  <td>
+                    <input class="input-inline" type="text" name="borrower" value="{{ row.borrower or '' }}">
+                  </td>
+                  <td>
+                    <input class="input-inline" type="text" name="note" value="{{ row.note or '' }}">
+                  </td>
+                  <td>
+                    <input type="hidden" name="loc" value="{{ row.loc }}">
+                    <button type="submit" class="btn-update"><i class="fa fa-save"></i> Lưu</button>
+                    <a href="{{ url_for('list_samples') }}" class="main-btn btn-cancel">Hủy</a>
+                  </td>
+                </form>
+                {% else %}
+                <td>{{ row.borrower or '' }}</td>
+                <td>{{ row.note or '' }}</td>
+                <td>
+                    <a class="main-btn" href="{{ url_for('sample_map', location_id=row.loc) }}">
+                        <i class="fa fa-map-location-dot"></i> Xem info
+                    </a>
+                    <a class="btn-update" href="{{ url_for('list_samples', edit=row.loc) }}">
+                        <i class="fa fa-edit"></i> Cập nhật
+                    </a>
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </table>
+        <div class="btn-row">
+            <a href="/store_sample" class="main-btn btn-gold">
+                <i class="fa fa-plus-circle"></i> Lưu mẫu mới
+            </a>
+            <a href="{{ url_for('update', report=report_id) }}" class="main-btn btn-green">
+                <i class="fa fa-arrow-left"></i> Quay lại thông tin sản phẩm
+            </a>
+            <a href="/" class="main-btn" style="background:#8B6B1E;">
+                <i class="fa fa-home"></i> Trang nhập mã report
+            </a>
+        </div>
+    </div>
+</body>
+</html>

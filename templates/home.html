@@ -1,0 +1,722 @@
+<html>
+<head>
+    <title>VFR - Tra cứu sản phẩm</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --main-bg: #fffdfc;
+            --main-card: #fffdfccf;
+            --main-text: #333;
+            --main-th: #4d665c;
+            --main-border: #4d665c55;
+        }
+        body.darkmode {
+            --main-bg: #1a1d22;
+            --main-card: #22242aeb;
+            --main-text: #f6f6ef;
+            --main-th: #ffe082;
+            --main-border: #2229;
+        }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--main-bg) url('/static/bg_grass.png') repeat;
+            background-size: 420px 420px;
+            margin: 0;
+            padding: 0;
+            color: var(--main-text);
+            transition: background 0.5s, color 0.4s;
+        }
+        .center-form {
+            max-width: 820px;
+            margin: 60px auto;
+            background: var(--main-card);
+            border-radius: 22px;
+            box-shadow: 0 4px 28px var(--main-border);
+            padding: 40px;
+        }
+        h2 {
+            text-align: center;
+            font-size: 28px;
+            color: var(--main-th);
+            margin-bottom: 30px;
+        }
+        h3 {
+            color: var(--main-th);
+        }
+        .overview-board {
+            display: flex;
+            gap: 20px;
+            margin: 10px 0 20px 0;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background: #fffbe8;
+            border-radius: 13px;
+            min-width: 90px;
+            min-height: 65px;
+            flex: 1 1 0;
+            padding: 10px 18px;
+            text-align: center;
+            box-shadow: 0 2px 8px #c49c4822;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 1;
+            transition: opacity 0.2s;
+            max-width: 180px;
+        }
+        .stat-card.late { border: 2.2px solid #df2323; }
+        .stat-card.due { border: 2.2px solid #fbc02d; }
+        .stat-card.must { border: 2.2px solid #00bcd4; }
+        .stat-card.active { border: 2.2px solid #43a047; }
+        .stat-num {
+            font-size: 25px;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        .stat-label {
+            font-size: 12.7px;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+        .stat-label span { display: block; font-size: 11px; color: #a1887f; font-weight: 400;}
+        .info-row {
+            text-align: center;
+            font-size: 13.4px;
+            color: #b78e24;
+            margin-bottom: 8px;
+        }
+        .info-row span {
+            font-weight: 600;
+        }
+        .info-row .late { color: #df2323; }
+        .info-row .due { color: #ff9800; }
+        .info-row .must { color: #00bcd4; }
+        .info-row .active { color: #43a047; }
+        form {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        input[type=text], input[type=password] {
+            font-size: 18px;
+            padding: 10px 14px;
+            width: 80%;
+            margin: 10px 0;
+            border-radius: 9px;
+            border: 1.7px solid var(--main-th);
+            color: var(--main-text);
+            background: var(--main-bg);
+            transition: background 0.3s, color 0.3s;
+        }
+        button {
+            font-size: 17px;
+            padding: 9px 24px;
+            border-radius: 9px;
+            background: var(--main-th);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            box-shadow: 0 3px 12px #0002;
+            transform: scale(1.02);
+        }
+        .error-message {
+            color: #e33;
+            margin-top: 10px;
+            text-align: center;
+        }
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 18px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 680px;
+            font-size: 16px;
+            background: var(--main-bg);
+            color: var(--main-text);
+        }
+        th, td {
+            border: 1px solid #999;
+            padding: 10px 12px;
+            text-align: center;
+        }
+        th {
+            background-color: var(--main-th);
+            color: white;
+        }
+        td button {
+            font-size: 15px;
+            padding: 6px 12px;
+        }
+        .logout-link {
+            display: inline-block;
+            margin-top: 16px;
+            text-align: center;
+        }
+        .logout-link a {
+            color: #a33;
+            font-size: 15px;
+            text-decoration: none;
+        }
+        .status-late {
+            color: #d32f2f;
+            font-weight: bold;
+            -webkit-text-stroke: 0.5px #222;
+            text-shadow: 0 1px 2px #000c;
+            letter-spacing: 1px;
+        }
+        .status-must {
+            color: #FFD600;
+            font-weight: bold;
+            -webkit-text-stroke: 0.5px #222;
+            text-shadow: 0 1px 2px #000c;
+            letter-spacing: 1px;
+        }
+        .status-due {
+            color: #FF9800;
+            font-weight: bold;
+            -webkit-text-stroke: 0.5px #222;
+            text-shadow: 0 1px 2px #000c;
+            letter-spacing: 1px;
+        }
+        .counter-block {color: #232323}
+        /* Darkmode chỉnh đẹp */
+        body.darkmode, body.darkmode td, body.darkmode .stat-label, body.darkmode .stat-num {
+            color: #f6f6ef !important;
+        }
+        body.darkmode .counter-block {
+            background: #272917;
+            color: #232323 !important; /* màu vàng đậm, hoặc chọn màu dễ nhìn trên nền tối */
+        }
+        body.darkmode th {
+            color: #222 !important;
+        }
+        body.darkmode h2, body.darkmode h3, body.darkmode .info-row {
+            color: #ffe082 !important;
+        }
+        body.darkmode table {
+            background: #23252c;
+        }
+        body.darkmode .stat-card {
+            background: #24283b !important;
+        }
+        body.darkmode .overview-board .stat-card.late { border-color: #f87171; }
+        body.darkmode .overview-board .stat-card.due { border-color: #fbbf24; }
+        body.darkmode .overview-board .stat-card.must { border-color: #38bdf8; }
+        body.darkmode .overview-board .stat-card.active { border-color: #4ade80; }
+        /* Nút darkmode mới */
+        #theme-btn {
+            position: fixed;
+            right: 24px; bottom: 26px; z-index: 11001;
+            background: #c49c48;
+            color: #fff;
+            border-radius: 100px;
+            font-size: 22px;
+            padding: 0;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.13);
+            cursor: pointer;
+            height: 44px; width: 44px; min-width: 44px; min-height:44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.96;
+            transition: background 0.16s, color 0.16s;
+        }
+        #theme-btn:hover { background: #35523A; color: #ffe07a; opacity:1; }
+        #theme-btn i {font-size: 23px; line-height: 1; display: block; margin:0;}
+        /* Responsive for mobile */
+        @media (max-width: 800px) {
+            .center-form { padding: 16px 1vw; }
+            table { font-size: 13px; min-width: 520px; }
+            th, td { padding: 7px 6px; }
+            form { margin-bottom: 12px; }
+            h2 { font-size: 22px; }
+            #theme-btn { right: 10px; bottom: 14px; width: 39px; height: 39px; font-size: 16px; }
+            .overview-board { gap: 10px; }
+            .stat-card { min-width: 65px; min-height: 52px; padding: 8px 7px; }
+            .stat-num { font-size: 18px;}
+        }
+        @media (max-width: 520px) {
+            .center-form { padding: 3vw 1vw; }
+            table { font-size: 11px; min-width: 390px; }
+            th, td { padding: 6px 3px; }
+            h2 { font-size: 18px; }
+            #theme-btn { right: 6px; bottom: 8px; width: 32px; height: 32px; font-size: 13px;}
+            .stat-card { min-width: 47px; min-height: 32px; padding: 4px 3px; }
+            .stat-num { font-size: 13px;}
+        }
+        .status-info-box {
+            background: #fffbe8;
+            border-radius: 12px;
+            box-shadow: 0 1px 8px #f7cf3a18;
+            padding: 8px 15px 7px 15px;
+            margin: 28px auto 8px auto;
+            max-width: 430px;
+            border: 1.5px solid #ffe082;
+        }
+        .status-info-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            font-size: 14.2px;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            color: #b78e24;
+        }
+        .status-label { font-weight: 700; }
+        .status-label.late   { color: #df2323; }
+        .status-label.due    { color: #ff9800; }
+        .status-label.must   { color: #00bcd4; }
+        .status-label.active { color: #43a047; }
+        .status-sep { color: #ccc; margin: 0 4px; font-weight: 300;}
+        body.darkmode .status-info-box {
+            background: #ffe082;
+            border-color: #ffe082;
+        }
+        body.darkmode .status-info-row {
+            color: #222 !important;
+        }
+        body.darkmode .status-label { color: #222 !important; }
+        body.darkmode .status-label.late   { color: #d32f2f !important; }
+        body.darkmode .status-label.due    { color: #b98509 !important; }
+        body.darkmode .status-label.must   { color: #0c6bb0 !important; }
+        body.darkmode .status-label.active { color: #0a7422 !important; }
+        .type-filter-form {
+            margin-top: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+        .type-filter-label {
+            font-size: 15px;
+            font-weight: 600;
+            color: #c49c48;
+            margin-bottom: 0;
+        }
+        .type-filter-select {
+            font-size: 15px;
+            padding: 6px 16px;
+            border-radius: 7px;
+            border: 1.4px solid #ffe082;
+            background: #fffbe8;
+            color: #775d17;
+            font-weight: 600;
+            outline: none;
+            box-shadow: 0 1px 8px #f7cf3a13;
+            transition: border 0.15s, background 0.18s, color 0.15s;
+        }
+        .type-filter-select:focus {
+            border-color: #fbc02d;
+        }
+        body.darkmode .type-filter-label {
+            color: #b78e24 !important;
+        }
+        body.darkmode .type-filter-select {
+            background: #ffe082 !important;
+            color: #222 !important;
+            border-color: #ffe082 !important;
+        }
+        body.darkmode button,
+        body.darkmode button[type="submit"] {
+            color: #232323 !important;
+            background: #ffe082 !important;
+        }
+        body.darkmode a button {
+            color: #232323 !important;
+            background: #ffe082 !important;
+        }
+        .status-summary-board {
+            margin-left: auto;
+            margin-right: auto;
+            width: 100%;
+            max-width: 700px;
+            background: var(--main-card);
+            border-radius: 13px;
+            box-shadow: 0 2px 16px #fbc02d23;
+            padding: 12px 10px 8px 10px;
+            overflow: visible;
+        }
+        .status-summary-scroll {
+            width: 100%;
+            overflow-x: auto;
+        }
+        .status-summary-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 15px;
+            background: transparent;
+            min-width: 340px;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        .status-summary-table th, .status-summary-table td {
+            padding: 8px 9px;
+            border-bottom: 1.2px solid #ffe08288;
+            text-align: center;
+            background: none;
+            white-space: nowrap;
+        }
+        .status-summary-table th {
+            background: #fffbe8;
+            color: #b78e24;
+            font-size: 13.5px;
+            font-weight: 800;
+            border-top: none;
+            border-bottom: 2px solid #ffe082;
+            letter-spacing: 0.04em;
+        }
+        .status-summary-table td {
+            background: transparent;
+            font-size: 13.5px;
+        }
+        .status-summary-table .late-col   { color: #df2323 !important; font-weight: 700;}
+        .status-summary-table .due-col    { color: #ff9800 !important; font-weight: 700;}
+        .status-summary-table .must-col   { color: #00bcd4 !important; font-weight: 700;}
+        .status-summary-table .active-col { color: #43a047 !important; font-weight: 700;}
+        /* Responsive cho mobile: font nhỏ, padding nhỏ lại, không tràn */
+        @media (max-width: 600px) {
+            .status-summary-board { padding: 7px 0 7px 0; }
+            .status-summary-table th, .status-summary-table td {
+                padding: 3px 1px;
+                font-size: 13px;
+            }
+            .status-summary-table th { font-size: 14px; }
+        }
+        @media (max-width: 370px) {
+            .status-summary-table { min-width: 80px;}
+            .status-summary-table th, .status-summary-table td { padding: 1.7px 1px; font-size: 8px;}
+        }
+        /* DARKMODE: chỉ th chữ đen, còn lại giữ nguyên màu trạng thái */
+        body.darkmode .status-summary-board {
+            background: #ffe082 !important;
+            box-shadow: 0 1px 10px #2222;
+        }
+        body.darkmode .status-summary-table th {
+            background: #ffe082 !important;
+            color: #222 !important;
+        }
+        body.darkmode .status-summary-table td {
+            background: transparent !important;
+        }
+        body.darkmode .status-summary-table .late-col   { color: #df2323 !important; }
+        body.darkmode .status-summary-table .due-col    { color: #ff9800 !important; }
+        body.darkmode .status-summary-table .must-col   { color: #00bcd4 !important; }
+        body.darkmode .status-summary-table .active-col { color: #43a047 !important; }
+        /* Pagination style */
+        .pagination-box {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            margin: 18px 0 12px 0;
+        }
+        .pagination-btn {
+            display: inline-block;
+            min-width: 32px;
+            padding: 6px 12px;
+            margin: 0 2px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #b78e24;
+            background: #fffbe8;
+            border: 1.2px solid #ffe082;
+            border-radius: 7px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.15s, color 0.15s, border 0.15s;
+            z-index: 11;
+            position: relative;
+            user-select: none;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: rgba(0,0,0,0.15);
+        }
+        .pagination-btn.active,
+        .pagination-btn:hover {
+            background: #ffe082;
+            color: #232323;
+            border-color: #fbc02d;
+            font-weight: 700;
+            pointer-events: none;
+        }
+        body.darkmode .pagination-btn {
+            background: #ffe082 !important;
+            color: #222 !important;
+            border-color: #ffe082 !important;
+        }
+        body.darkmode .pagination-btn.active {
+            background: #fffbe8 !important;
+            color: #dcb300 !important;
+            border-color: #ffe082 !important;
+        }
+        .main-btn:hover {
+            background: #c49c48 !important;
+            color: #232826 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="center-form">
+        <h2>TRA CỨU SẢN PHẨM</h2>
+        <form method="GET" action="/go_report">
+            <input type="text" name="report" placeholder="Nhập REPORT#">
+            <br>
+            <button type="submit"><i class="fa fa-search"></i> Xem thông tin</button>
+        </form>
+        {% if not session.get('auth_ok') %}
+        <form method="POST" class="form-pw login-row" style="position:relative; display:flex; gap:8px; align-items:center;">
+            <div style="position:relative; flex:1;">
+                <input type="password" name="password" id="login-password"
+                    placeholder="Nhập mật khẩu để cập nhật" required
+                    class="pw-input"
+                    style="padding-right:36px; width:100%;">
+                <button type="button" id="toggle-pw"
+                    tabindex="-1"
+                    style="
+                        position: absolute;
+                        right: 8px;
+                        top: 0;
+                        height: 100%;
+                        display: flex;
+                        align-items: center;
+                        background: transparent;
+                        border: none;
+                        cursor: pointer;
+                        color: #b78e24;
+                        font-size: 18px;
+                        opacity: 0.84;
+                        z-index: 2;
+                        padding: 0 2px;"
+                    title="Hiện/Ẩn mật khẩu"
+                    aria-label="Hiện/Ẩn mật khẩu"
+                >
+                    <i class="fa fa-eye" id="eye-icon"></i>
+                </button>
+            </div>
+            <button name="action" value="login" class="pw-btn" style="min-width:100px;">Đăng nhập</button>
+        </form>
+        {% if message %}
+            <div class="error-message">{{ message }}</div>
+        {% endif %}
+        {% else %}
+        <div class="logout-link">
+            <a href="/logout"><i class="fa fa-sign-out-alt"></i> Đăng xuất</a>
+        </div>
+        {% endif %}
+    
+        {% if session.get('auth_ok') and report_list %}
+            <h3 style="margin-top:36px; color:var(--main-th);">Danh sách report:</h3>
+            <div class="status-summary-board">
+              <div class="status-summary-scroll">
+                <table class="status-summary-table">
+                  <thead>
+                    <tr>
+                      <th>TRẠNG THÁI</th>
+                      {% for t in summary_by_type %}
+                        <th>{{ t.short }}</th>
+                      {% endfor %}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="late-col"><b>LATE</b></td>
+                      {% for t in summary_by_type %}<td class="late-col">{{ t.late }}</td>{% endfor %}
+                    </tr>
+                    <tr>
+                      <td class="due-col"><b>DUE</b></td>
+                      {% for t in summary_by_type %}<td class="due-col">{{ t.due }}</td>{% endfor %}
+                    </tr>
+                    <tr>
+                      <td class="must-col"><b>MUST</b></td>
+                      {% for t in summary_by_type %}<td class="must-col">{{ t.must }}</td>{% endfor %}
+                    </tr>
+                    <tr>
+                      <td class="active-col"><b>ACTIVE</b></td>
+                      {% for t in summary_by_type %}<td class="active-col">{{ t.active }}</td>{% endfor %}
+                    </tr>
+                    <tr class="total-row">
+                      <td><b>TOTAL</b></td>
+                      {% for t in summary_by_type %}<td><b>{{ t.total }}</b></td>{% endfor %}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="counter-block"; style="margin-top:24px; padding:14px 0; background:#f6f3e9; border-radius:10px; text-align:center; font-size:17px; font-weight:bold;">
+                <div>Đơn hoàn thành giờ HC (8:00–16:45): <span style="color:#2e7d32;">{{ counter.office }}</span></div>
+                <div>Đơn hoàn thành giờ OT (16:45–23:59): <span style="color:#a32121;">{{ counter.ot }}</span></div>
+            </div>
+            <div style="text-align:center; margin-top:20px;">
+                <a href="{{ url_for('view_counter_log') }}"
+                   class="main-btn"
+                   style="background:#35523A;
+                          color:#fff;
+                          border-radius:12px;
+                          font-size:18px;
+                          font-weight:600;
+                          padding:12px 38px;
+                          display:inline-block;
+                          box-shadow:0 3px 13px #3333;
+                          letter-spacing:0.04em;
+                          text-decoration:none;
+                          transition:background 0.22s;">
+                   <i class="fa fa-table" style="margin-right:7px;"></i>
+                    Xem bảng thống kê từng ngày
+                </a>
+            </div>
+
+            <form method="get" class="type-filter-form" style="text-align:right; margin-bottom:10px;">
+                <label for="type_of" class="type-filter-label">Lọc theo loại:&nbsp;</label>
+                <select name="type_of" id="type_of" onchange="this.form.submit()" class="type-filter-select">
+                    <option value="">--- Tất cả ---</option>
+                    {% for t in type_of_set %}
+                    <option value="{{ t }}" {% if t == selected_type %}selected{% endif %}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            <!-- Bảng tổng hợp số lượng từng loại đã bị xoá theo yêu cầu -->
+    
+            <div class="table-responsive">
+            <div id="report-table-box">
+                <table id="report-table">
+                    <thead>
+                        <tr>
+                            <th>REPORT#</th>
+                            <th>ITEM#</th>
+                            <th>TYPE OF</th>
+                            <th>STATUS</th>
+                            <th>LOG IN DATE</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in report_list %}
+                        <tr class="report-row">
+                            <td>{{ r.report }}</td>
+                            <td>{{ r.item }}</td>
+                            <td>{{ r.type_of }}</td>
+                            <td>
+                            <span class="{% if r.status == 'LATE' %}status-late{% elif r.status == 'MUST' %}status-must{% elif r.status == 'DUE' %}status-due{% endif %}">
+                                {{ r.status }}
+                            </span>
+                            </td>
+                            <td>{{ r.log_date }}</td>
+                            <td>
+                                <a href="/update?report={{ r.report }}">
+                                    <button><i class="fa fa-edit"></i> Xem</button>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div style="text-align:center; margin:18px 0;">
+                    <button id="prev-btn" style="display:none; font-size:17px; padding:8px 24px; border-radius:8px; background:#ffe082; color:#232323; border:none; cursor:pointer; margin-right:10px;">
+                        &#8592; Quay lại
+                    </button>
+                    <button id="load-more-btn" style="display:none; font-size:17px; padding:8px 32px; border-radius:8px; background:#ffe082; color:#232323; border:none; cursor:pointer;">
+                        Tiếp theo
+                    </button>
+                </div>
+            </div>
+            </div>
+            <div class="status-info-box">
+                <div class="status-info-row">
+                    <span class="status-label late">LATE</span>: trễ hạn
+                    <span class="status-sep">|</span>
+                    <span class="status-label due">DUE</span>: hôm nay
+                    <span class="status-sep">|</span>
+                    <span class="status-label must">MUST</span>: ngày mai
+                    <span class="status-sep">|</span>
+                    <span class="status-label active">ACTIVE</span>: đang theo dõi
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Darkmode
+        var themeBtn = document.getElementById('theme-btn');
+        if (localStorage.getItem("darkmode") === "true") {
+            document.body.classList.add("darkmode");
+            themeBtn.innerHTML = '<i class="fa fa-sun"></i>';
+        }
+        themeBtn.onclick = function() {
+            var d = document.body.classList.toggle('darkmode');
+            localStorage.setItem("darkmode", d ? "true" : "false");
+            themeBtn.innerHTML = d ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
+        };
+
+        // Phân trang report
+        const tableBox = document.getElementById('report-table-box');
+        if (tableBox) {
+            const rows = Array.from(document.querySelectorAll('.report-row'));
+            console.log('Rows:', rows.length); // debug nếu cần
+            const btnNext = document.getElementById('load-more-btn');
+            const btnPrev = document.getElementById('prev-btn');
+            let startIdx = 0;
+            const chunkSize = 10;
+
+            function showChunk(idx) {
+                rows.forEach((row, i) => {
+                    row.style.display = (i >= idx && i < idx + chunkSize) ? '' : 'none';
+                });
+                btnPrev.style.display = (idx <= 0) ? 'none' : '';
+                btnNext.style.display = (idx + chunkSize >= rows.length) ? 'none' : '';
+                if (rows.length > 0) {
+                    window.scrollTo({ top: tableBox.offsetTop, behavior: 'smooth' });
+                }
+            }
+
+            btnNext.addEventListener('click', function() {
+                if (startIdx + chunkSize < rows.length) {
+                    startIdx += chunkSize;
+                    showChunk(startIdx);
+                }
+            });
+            btnPrev.addEventListener('click', function() {
+                startIdx = Math.max(0, startIdx - chunkSize);
+                showChunk(startIdx);
+            });
+
+            if (rows.length > chunkSize) {
+                btnNext.style.display = '';
+            }
+            showChunk(0);
+        }
+
+        // Hiện/ẩn mật khẩu chỉ khi có input mật khẩu trên trang
+        var togglePw = document.getElementById('toggle-pw');
+        if (togglePw) {
+            togglePw.onclick = function() {
+                var pw = document.getElementById('login-password');
+                var icon = document.getElementById('eye-icon');
+                if (pw.type === "password") {
+                    pw.type = "text";
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    pw.type = "password";
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            };
+        }
+    });
+    </script>
+</body>
+</html>
