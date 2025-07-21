@@ -679,6 +679,17 @@
                     </button>
                 </div>
             {% endif %}
+            {% if status_value %}
+            <div class="status-block" style="margin-top:16px;text-align:center;">
+                {% if status_value == "PASS" %}
+                    <span class="inline-status pass">PASS</span>
+                {% elif status_value == "FAIL" %}
+                    <span class="inline-status fail">FAIL</span>
+                {% elif status_value == "N/A" %}
+                    <span class="inline-status na">N/A</span>
+                {% endif %}
+            </div>
+            {% endif %}
         </form>
 
         <form method="POST" class="comment-block" aria-label="Thêm ghi chú hoặc comment">

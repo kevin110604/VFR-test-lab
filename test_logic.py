@@ -48,6 +48,32 @@ def get_group_test_status(report, group, test_key):
             comment = f.read().strip()
     return {'status': status, 'comment': comment, 'has_img': has_img, 'first_img': first_img}
 
+def update_group_note_file(file_path, key, value):
+    lines = []
+    found = False
+    if os.path.exists(file_path):
+        with open(file_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+    new_lines = []
+    for line in lines:
+        if line.strip().startswith(f"Mục {key}:"):
+            new_lines.append(f"Mục {key}: {value}\n")
+            found = True
+        else:
+            new_lines.append(line)
+    if not found:
+        new_lines.append(f"Mục {key}: {value}\n")
+    with open(file_path, 'w', encoding='utf-8') as f:
+        f.writelines(new_lines)
+
+def get_group_note_value(file_path, key):
+    if os.path.exists(file_path):
+        with open(file_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.strip().startswith(f"Mục {key}:"):
+                    return line.strip().split(":", 1)[1].strip()
+    return None
+
 BAN_US_TEST_TITLES = {
     "muc4.2": {
         "full": "Mục 4.2: Stability with extendible elements open test",

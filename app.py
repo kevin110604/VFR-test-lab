@@ -4,7 +4,8 @@ from config import SECRET_KEY, PASSWORD, local_main, SAMPLE_STORAGE, UPLOAD_FOLD
 from excel_utils import get_item_code, get_col_idx, copy_row_with_style, is_img_at_cell
 from image_utils import allowed_file, safe_filename, get_img_urls
 from auth import login, logout, is_logged_in
-from test_logic import load_group_notes, get_group_test_status, is_drop_test, is_impact_test, is_rotational_test,  TEST_GROUP_TITLES, TEST_TYPE_VI, DROP_ZONES, DROP_LABELS, IMPACT_ZONES, IMPACT_LABELS, ROT_LABELS, ROT_ZONES, RH_IMPACT_ZONES, RH_VIB_ZONES, RH_SECOND_IMPACT_ZONES
+from test_logic import load_group_notes, get_group_test_status, is_drop_test, is_impact_test, is_rotational_test,  TEST_GROUP_TITLES, TEST_TYPE_VI, DROP_ZONES, DROP_LABELS
+from test_logic import IMPACT_ZONES, IMPACT_LABELS, ROT_LABELS, ROT_ZONES, RH_IMPACT_ZONES, RH_VIB_ZONES, RH_SECOND_IMPACT_ZONES, update_group_note_file, get_group_note_value
 from notify_utils import send_teams_message
 from counter_utils import update_counter, log_order_complete, check_and_reset_counter, log_report_complete
 from openpyxl import load_workbook, Workbook
@@ -481,12 +482,160 @@ def test_group_item_dynamic(report, group, test_key):
     # Nếu là hot_cold cycle test thì redirect sang route mới
     if test_key == "hot_cold" and group in ["indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal"]:
         return redirect(url_for("hot_cold_test", report=report, group=group))
+
     # Lấy cấu hình group
     group_titles = TEST_GROUP_TITLES.get(group)
     if not group_titles or test_key not in group_titles:
         return "Mục kiểm tra không tồn tại!", 404
-    # Render item
-    return render_test_group_item(report, group, test_key, group_titles)
+    title = group_titles[test_key]
+
+    report_folder = os.path.join(UPLOAD_FOLDER, str(report))
+    os.makedirs(report_folder, exist_ok=True)
+    status_file = os.path.join(report_folder, f"status_{group}.txt")
+    comment_file = os.path.join(report_folder, f"comment_{group}.txt")
+
+    # --- Trạng thái PASS/FAIL/N/A ---
+    all_status = load_group_notes(status_file)
+    status_value = all_status.get(test_key, "")
+
+    # --- Comment ---
+    def update_comment(file_path, value):
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(value)
+    def get_comment(file_path):
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                return f.read().strip()
+        return ""
+    comment = get_comment(comment_file)
+
+    # --- Xác định loại test đặc biệt ---
+    is_rh_np = (group == "transit_RH_np")
+    is_drop = is_drop_test(title) if group.startswith("transit") else False
+    is_impact = is_impact_test(title) if group.startswith("transit") else False
+    is_rot = is_rotational_test(title) if group.startswith("transit") else False
+
+    # --- RH Non Pallet zones ---
+    rh_impact_zones = RH_IMPACT_ZONES if is_rh_np and test_key == "step3" else []
+    rh_vib_zones = RH_VIB_ZONES if is_rh_np and test_key == "step4" else []
+    rh_second_impact_zones = RH_SECOND_IMPACT_ZONES if is_rh_np and test_key == "step5" else []
+
+    # --- Xử lý upload ảnh, xóa ảnh, comment, status ---
+    if request.method == 'POST':
+        # Upload vùng RH (step3/4/5)
+        for zone, label in rh_impact_zones + rh_vib_zones + rh_second_impact_zones:
+            files = request.files.getlist(f'rh_impact_img_{zone}') or \
+                    request.files.getlist(f'rh_vib_img_{zone}') or \
+                    request.files.getlist(f'rh_second_impact_img_{zone}')
+            for file in files:
+                if file and allowed_file(file.filename):
+                    ext = file.filename.rsplit('.', 1)[-1].lower()
+                    prefix = f"test_{group}_{test_key}_{zone}_"
+                    current_nums = [
+                        int(f[len(prefix):].split('.')[0])
+                        for f in os.listdir(report_folder)
+                        if f.startswith(prefix) and f[len(prefix):].split('.')[0].isdigit()
+                    ]
+                    next_num = max(current_nums) + 1 if current_nums else 1
+                    new_fname = f"{prefix}{next_num}.{ext}"
+                    file.save(os.path.join(report_folder, new_fname))
+        # Xử lý upload ảnh thường
+        if 'test_imgs' in request.files:
+            files = request.files.getlist('test_imgs')
+            for file in files:
+                if file and allowed_file(file.filename):
+                    ext = file.filename.rsplit('.', 1)[-1].lower()
+                    prefix = f"test_{group}_{test_key}_"
+                    current_nums = [
+                        int(f[len(prefix):].split('.')[0])
+                        for f in os.listdir(report_folder)
+                        if f.startswith(prefix) and f[len(prefix):].split('.')[0].isdigit()
+                    ]
+                    next_num = max(current_nums) + 1 if current_nums else 1
+                    new_fname = f"{prefix}{next_num}.{ext}"
+                    file.save(os.path.join(report_folder, new_fname))
+        # Xóa ảnh thường hoặc vùng
+        if 'delete_img' in request.form:
+            del_img = request.form['delete_img']
+            img_path = os.path.join(report_folder, del_img)
+            if os.path.exists(img_path):
+                os.remove(img_path)
+        # Ghi status PASS/FAIL/N/A
+        if 'status' in request.form:
+            update_group_note_file(status_file, test_key, request.form['status'])
+        # Ghi comment
+        if 'save_comment' in request.form:
+            comment = request.form.get('comment_input', '').strip()
+            update_comment(comment_file, comment)
+        return redirect(request.url)
+
+    # --- Chuẩn bị dữ liệu ảnh vùng RH (step3/4/5) ---
+    zone_imgs = {}
+    for zone, label in rh_impact_zones + rh_vib_zones + rh_second_impact_zones:
+        imgs_zone = []
+        for f in os.listdir(report_folder):
+            if allowed_file(f) and f.startswith(f"test_{group}_{test_key}_{zone}_"):
+                imgs_zone.append(f"/images/{report}/{f}")
+        zone_imgs[zone] = imgs_zone
+
+    # --- Chuẩn bị dữ liệu ảnh thường ---
+    imgs = []
+    for f in sorted(os.listdir(report_folder)):
+        if allowed_file(f) and f.startswith(f"test_{group}_{test_key}_") and all(not f.startswith(f"test_{group}_{test_key}_{zone}_") for zone, _ in rh_impact_zones + rh_vib_zones + rh_second_impact_zones):
+            imgs.append(f"/images/{report}/{f}")
+
+    # --- Chuẩn bị ảnh drop, impact, rot nếu có ---
+    drop_imgs, impact_imgs, rot_imgs = [], [], []
+    if is_drop:
+        for zone in DROP_ZONES:
+            di = []
+            for f in os.listdir(report_folder):
+                if allowed_file(f) and f.startswith(f"test_{group}_{test_key}_drop_{zone}_"):
+                    di.append(f"/images/{report}/{f}")
+            drop_imgs.append(di)
+    if is_impact:
+        for zone in IMPACT_ZONES:
+            ii = []
+            for f in os.listdir(report_folder):
+                if allowed_file(f) and f.startswith(f"test_{group}_{test_key}_impact_{zone}_"):
+                    ii.append(f"/images/{report}/{f}")
+            impact_imgs.append(ii)
+    if is_rot:
+        for zone in ROT_ZONES:
+            ri = []
+            for f in os.listdir(report_folder):
+                if allowed_file(f) and f.startswith(f"test_{group}_{test_key}_rotation_{zone}_"):
+                    ri.append(f"/images/{report}/{f}")
+            rot_imgs.append(ri)
+
+    # --- Trả về template ---
+    return render_template(
+        "test_transit_item.html",
+        report=report,
+        group=group,
+        key=test_key,
+        title=title,
+        is_rh_np=is_rh_np,
+        status=status_value,
+        imgs=imgs,
+        is_drop=is_drop,
+        drop_labels=DROP_LABELS,
+        drop_zones=DROP_ZONES,
+        drop_imgs=drop_imgs,
+        is_impact=is_impact,
+        impact_labels=IMPACT_LABELS,
+        impact_zones=IMPACT_ZONES,
+        impact_imgs=impact_imgs,
+        is_rot=is_rot,
+        rot_labels=ROT_LABELS,
+        rot_zones=ROT_ZONES,
+        rot_imgs=rot_imgs,
+        rh_impact_zones=rh_impact_zones,
+        rh_vib_zones=rh_vib_zones,
+        rh_second_impact_zones=rh_second_impact_zones,
+        zone_imgs=zone_imgs,
+        comment=comment,
+    )
 
 def render_test_group_item(report, group, key, group_titles):
     title = group_titles[key]
@@ -948,18 +1097,29 @@ def get_line_test_elapsed(report):
 @app.route('/test_group/<report>/<group>/<step_key>', methods=['GET', 'POST'])
 def transit_item_page(report, group, step_key):
     """
-    Hiện giao diện test cho từng bước (item) transit hoặc các nhóm test dạng step.
-    Chỉ upload ảnh + comment, không có PASS/FAIL/NA.
+    Giao diện test từng bước (item) transit, có vùng upload ảnh, comment, PASS/FAIL/N/A và các vùng đặc biệt (drop/impact/RH...).
     """
+    from test_logic import (
+        is_drop_test, is_impact_test, is_rotational_test, load_group_notes, 
+        RH_IMPACT_ZONES, RH_VIB_ZONES, RH_SECOND_IMPACT_ZONES, 
+        DROP_LABELS, DROP_ZONES, IMPACT_LABELS, IMPACT_ZONES,
+        ROT_LABELS, ROT_ZONES, TEST_GROUP_TITLES
+    )
     group_titles = TEST_GROUP_TITLES.get(group)
     if not group_titles or step_key not in group_titles:
         return "Không tìm thấy bước kiểm tra!", 404
-    step = group_titles[step_key]
+    title = group_titles[step_key]
 
     report_folder = os.path.join(UPLOAD_FOLDER, str(report))
     os.makedirs(report_folder, exist_ok=True)
-    comment_file = os.path.join(report_folder, f"comment_{group}_{step_key}.txt")
+    status_file = os.path.join(report_folder, f"status_{group}.txt")
+    comment_file = os.path.join(report_folder, f"comment_{group}.txt")
 
+    # --- Trạng thái PASS/FAIL/N/A ---
+    all_status = load_group_notes(status_file)
+    status_value = all_status.get(step_key, "")
+
+    # --- Comment ---
     def update_comment(file_path, value):
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(value)
@@ -968,15 +1128,30 @@ def transit_item_page(report, group, step_key):
             with open(file_path, 'r', encoding='utf-8') as f:
                 return f.read().strip()
         return ""
+    comment = get_comment(comment_file)
 
-    # POST: upload ảnh & lưu comment
+    # --- Xác định loại test đặc biệt ---
+    is_rh_np = (group == "transit_RH_np")
+    is_drop = is_drop_test(title) if group.startswith("transit") else False
+    is_impact = is_impact_test(title) if group.startswith("transit") else False
+    is_rot = is_rotational_test(title) if group.startswith("transit") else False
+
+    # --- RH Non Pallet zones ---
+    rh_impact_zones = RH_IMPACT_ZONES if is_rh_np and step_key == "step3" else []
+    rh_vib_zones = RH_VIB_ZONES if is_rh_np and step_key == "step4" else []
+    rh_second_impact_zones = RH_SECOND_IMPACT_ZONES if is_rh_np and step_key == "step5" else []
+
+    # --- Xử lý upload ảnh, xóa ảnh, comment, status ---
     if request.method == 'POST':
-        if 'test_imgs' in request.files:
-            files = request.files.getlist('test_imgs')
+        # Upload vùng RH (step3/4/5)
+        for zone, label in rh_impact_zones + rh_vib_zones + rh_second_impact_zones:
+            files = request.files.getlist(f'rh_impact_img_{zone}') or \
+                    request.files.getlist(f'rh_vib_img_{zone}') or \
+                    request.files.getlist(f'rh_second_impact_img_{zone}')
             for file in files:
                 if file and allowed_file(file.filename):
                     ext = file.filename.rsplit('.', 1)[-1].lower()
-                    prefix = f"transit_{group}_{step_key}_"
+                    prefix = f"test_{group}_{step_key}_{zone}_"
                     current_nums = [
                         int(f[len(prefix):].split('.')[0])
                         for f in os.listdir(report_folder)
@@ -985,35 +1160,103 @@ def transit_item_page(report, group, step_key):
                     next_num = max(current_nums) + 1 if current_nums else 1
                     new_fname = f"{prefix}{next_num}.{ext}"
                     file.save(os.path.join(report_folder, new_fname))
-        if 'save_comment' in request.form:
-            comment = request.form.get('comment_input', '').strip()
-            update_comment(comment_file, comment)
+        # Xử lý upload ảnh thường
+        if 'test_imgs' in request.files:
+            files = request.files.getlist('test_imgs')
+            for file in files:
+                if file and allowed_file(file.filename):
+                    ext = file.filename.rsplit('.', 1)[-1].lower()
+                    prefix = f"test_{group}_{step_key}_"
+                    current_nums = [
+                        int(f[len(prefix):].split('.')[0])
+                        for f in os.listdir(report_folder)
+                        if f.startswith(prefix) and f[len(prefix):].split('.')[0].isdigit()
+                    ]
+                    next_num = max(current_nums) + 1 if current_nums else 1
+                    new_fname = f"{prefix}{next_num}.{ext}"
+                    file.save(os.path.join(report_folder, new_fname))
+        # Xóa ảnh thường hoặc vùng
         if 'delete_img' in request.form:
             del_img = request.form['delete_img']
             img_path = os.path.join(report_folder, del_img)
             if os.path.exists(img_path):
                 os.remove(img_path)
+        # Ghi status PASS/FAIL/N/A
+        if 'status' in request.form:
+            from test_logic import update_group_note_file
+            update_group_note_file(status_file, step_key, request.form['status'])
+        # Ghi comment
+        if 'save_comment' in request.form:
+            comment = request.form.get('comment_input', '').strip()
+            update_comment(comment_file, comment)
         return redirect(request.url)
 
-    comment = get_comment(comment_file)
-    imgs = []
-    if os.path.exists(report_folder):
-        for f in sorted(os.listdir(report_folder)):
-            prefix = f"transit_{group}_{step_key}_"
-            if allowed_file(f) and f.startswith(prefix):
-                imgs.append(f"/images/{report}/{f}")
+    # --- Chuẩn bị dữ liệu ảnh vùng RH (step3/4/5) ---
+    zone_imgs = {}
+    for zone, label in rh_impact_zones + rh_vib_zones + rh_second_impact_zones:
+        imgs_zone = []
+        for f in os.listdir(report_folder):
+            if allowed_file(f) and f.startswith(f"test_{group}_{step_key}_{zone}_"):
+                imgs_zone.append(f"/images/{report}/{f}")
+        zone_imgs[zone] = imgs_zone
 
-    # --- Hiển thị template test từng bước ---
+    # --- Chuẩn bị dữ liệu ảnh thường ---
+    imgs = []
+    for f in sorted(os.listdir(report_folder)):
+        if allowed_file(f) and f.startswith(f"test_{group}_{step_key}_") and all(not f.startswith(f"test_{group}_{step_key}_{zone}_") for zone, _ in rh_impact_zones + rh_vib_zones + rh_second_impact_zones):
+            imgs.append(f"/images/{report}/{f}")
+
+    # --- Chuẩn bị ảnh drop, impact, rot nếu có ---
+    drop_imgs, impact_imgs, rot_imgs = [], [], []
+    if is_drop:
+        for zone in DROP_ZONES:
+            di = []
+            for f in os.listdir(report_folder):
+                if allowed_file(f) and f.startswith(f"test_{group}_{step_key}_drop_{zone}_"):
+                    di.append(f"/images/{report}/{f}")
+            drop_imgs.append(di)
+    if is_impact:
+        for zone in IMPACT_ZONES:
+            ii = []
+            for f in os.listdir(report_folder):
+                if allowed_file(f) and f.startswith(f"test_{group}_{step_key}_impact_{zone}_"):
+                    ii.append(f"/images/{report}/{f}")
+            impact_imgs.append(ii)
+    if is_rot:
+        for zone in ROT_ZONES:
+            ri = []
+            for f in os.listdir(report_folder):
+                if allowed_file(f) and f.startswith(f"test_{group}_{step_key}_rotation_{zone}_"):
+                    ri.append(f"/images/{report}/{f}")
+            rot_imgs.append(ri)
+
+    # --- Trả về template ---
     return render_template(
         "test_transit_item.html",
         report=report,
         group=group,
-        step_key=step_key,
-        name=step['full'],
-        short_name=step.get('short', ''),
+        key=step_key,
+        title=title,
+        is_rh_np=is_rh_np,
+        status=status_value,
         imgs=imgs,
+        is_drop=is_drop,
+        drop_labels=DROP_LABELS,
+        drop_zones=DROP_ZONES,
+        drop_imgs=drop_imgs,
+        is_impact=is_impact,
+        impact_labels=IMPACT_LABELS,
+        impact_zones=IMPACT_ZONES,
+        impact_imgs=impact_imgs,
+        is_rot=is_rot,
+        rot_labels=ROT_LABELS,
+        rot_zones=ROT_ZONES,
+        rot_imgs=rot_imgs,
+        rh_impact_zones=rh_impact_zones,
+        rh_vib_zones=rh_vib_zones,
+        rh_second_impact_zones=rh_second_impact_zones,
+        zone_imgs=zone_imgs,
         comment=comment,
-        img_sample=step.get('img', []),
     )
 
 @app.route("/store_sample", methods=["GET", "POST"])
