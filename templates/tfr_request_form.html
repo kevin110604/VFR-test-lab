@@ -43,7 +43,7 @@
             color: #fff;
             border: none;
             border-radius: 8px;
-            font-size: 15px;
+            font-size: 17px;
             font-family: 'Inter', Arial, sans-serif;
             padding: 6px 15px 6px 11px;
             font-weight: 600;
@@ -71,6 +71,19 @@
             letter-spacing: 0.04em;
         }
         .error { color: #e33; font-size: 16px; text-align: center; margin-bottom: 16px; }
+        .has-error input,
+        .has-error select,
+        .has-error textarea {
+            border-color: #e33 !important;
+            background: #fff2f2 !important;
+        }
+        .error-msg {
+            color: #e33;
+            font-size: 14px;
+            margin-top: 2px;
+            text-align: left;
+            width: 100%;
+        }
         label {
             font-weight: 600;
             color: #c49c48;
@@ -85,6 +98,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            width: 100%;
         }
         input[type="text"], input[type="number"], input[type="date"] {
             font-size: 16.3px;
@@ -166,7 +180,6 @@
             background: #223323 !important; color: #ffe082 !important; border-color: #ffe082 !important;
         }
         body.dark input[readonly] { background: #223323 !important; color: #d2cfa0;}
-        /* Nút darkmode nổi */
         #theme-btn {
             position:fixed; right:24px; bottom:26px; z-index:11001;
             background: #c49c48; color: #fff;
@@ -177,8 +190,124 @@
             transition: background 0.16s, color 0.16s;
         }
         #theme-btn:hover { background: #35523A; color: #ffe082; opacity:1; }
-        @media (max-width:700px) {
-            .box { max-width:98vw; padding:18vw 3vw 12vw 3vw;}
+        @media (max-width: 600px) {
+            html, body {
+                padding: 0;
+                margin: 0;
+                width: 100vw;
+                overflow-x: hidden;
+            }
+            .container-center {
+                min-height: unset;
+                align-items: flex-start;
+                width: 100vw;
+                padding: 0;
+                margin: 0;
+            }
+            .box {
+                max-width: 97vw !important;
+                width: 97vw !important;
+                min-width: 0 !important;
+                margin: 3vw 0 3vw 0;
+                padding: 6vw 2vw 5vw 2vw;
+                border-radius: 11px;
+                box-shadow: 0 1.5px 8px #4d665c1a;
+                background: #fffdfccf;
+            }
+            h2 {
+                font-size: 17px;
+                margin-bottom: 10px;
+                margin-top: 0;
+                line-height: 1.19;
+                letter-spacing: 0.03em;
+            }
+            .form-group {
+                margin-bottom: 10px;
+                width: 100%;
+                align-items: stretch;
+                padding: 0;
+            }
+            .form-group label {
+                font-size: 12.5px;
+                margin-bottom: 3px;
+                font-weight: 600;
+                letter-spacing: 0.03em;
+                padding-left: 1px;
+            }
+            input[type="text"], input[type="number"], input[type="date"] {
+                font-size: 13.5px;
+                padding: 7px 9px;
+                border-radius: 7px;
+                margin-bottom: 0;
+                width: 100% !important;
+                min-width: 0;
+                max-width: 100%;
+                box-sizing: border-box;
+                background: #fff;
+                border: 1.2px solid #b9bcab;
+            }
+            .input-na-wrap {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                gap: 6px;
+                width: 100%;
+            }
+            .na-label {
+                margin-left: 4px;
+                font-size: 11.8px;
+                white-space: nowrap;
+                padding: 0;
+                line-height: 1.6;
+            }
+            .radio-row, .checkbox-row {
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 10px 9px;
+                font-size: 12.7px;
+                align-items: center;
+                justify-content: flex-start;
+                margin: 3px 0 3px 0;
+                width: 100%;
+                padding: 0;
+            }
+            .radio-row label, .checkbox-row label {
+                font-size: 12.7px;
+                font-weight: 500;
+                margin-bottom: 0;
+                letter-spacing: 0.01em;
+                white-space: nowrap;
+                display: flex;
+                align-items: center;
+                min-width: 0;
+                padding: 0 4px 0 0;
+            }
+            button[type="submit"] {
+                font-size: 14px;
+                padding: 10px 0;
+                border-radius: 8px;
+                margin-top: 10px;
+                width: 100%;
+            }
+            input[type="date"].input-date-mobile {
+                width: 60vw !important;
+                max-width: 250px !important;
+                min-width: 64px;
+                font-size: 12.5px;
+                padding: 6px 6px;
+                height: 35px;     
+            }
+            .back-home-btn {
+                left: 7px;
+                top: 6px;
+                font-size: 12.3px;
+                border-radius: 6px;
+                padding: 3px 8px 3px 7px;
+            }
+            .error-msg {
+                font-size: 12px;
+            }
         }
     </style>
 </head>
@@ -186,94 +315,145 @@
     <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
     <div class="container-center">
     <div class="box">
-        <!-- Nút về Home -->
         <a href="/" class="back-home-btn"><i class="fa fa-chevron-left"></i> Trang chủ</a>
         <h2>TẠO TEST REQUEST FORM</h2>
+        <div style="position:absolute; top:14px; right:20px; font-weight:bold; color:#b78e24;">
+            ID: {{ form_data.get('tlq_id', 'Đang tạo...') }}
+        </div>
         {% if error %}
         <div class="error">{{ error }}</div>
         {% endif %}
         <form method="POST" action="">
-            <div class="form-group">
+            <input type="hidden" name="tlq_id" value="{{ form_data.get('tlq_id', '') }}">
+            <div class="form-group {% if 'requestor' in missing_fields %}has-error{% endif %}">
                 <label>Requestor <span class="required">*</span></label>
-                <input type="text" name="requestor" required>
+                <input type="text" name="requestor" required value="{{ form_data.get('requestor', '') }}">
+                {% if 'requestor' in missing_fields %}<div class="error-msg">Bắt buộc nhập</div>{% endif %}
             </div>
-            <div class="form-group">
+            <div class="form-group {% if 'department' in missing_fields %}has-error{% endif %}">
                 <label>Department <span class="required">*</span></label>
-                <input type="text" name="department" required>
+                <input type="text" name="department" required value="{{ form_data.get('department', '') }}">
+                {% if 'department' in missing_fields %}<div class="error-msg">Bắt buộc nhập</div>{% endif %}
             </div>
-            <div class="form-group">
+            <div class="form-group {% if 'request_date' in missing_fields %}has-error{% endif %}">
                 <label>Request Date <span class="required">*</span></label>
-                <input type="date" name="request_date" required>
+                <input type="date" name="request_date" required value="{{ form_data.get('request_date', '') }}" class="input-date-mobile" autocomplete="off" inputmode="none">
+                {% if 'request_date' in missing_fields %}<div class="error-msg">Bắt buộc nhập</div>{% endif %}
             </div>
-            <div class="form-group">
+            <div class="form-group {% if 'sample_type' in missing_fields %}has-error{% endif %}">
                 <label>Test Sample Type <span class="required">*</span></label>
                 <div class="radio-row">
-                    <label><input type="radio" name="sample_type" value="Material" required> Material</label>
-                    <label><input type="radio" name="sample_type" value="Carcass" required> Carcass</label>
-                    <label><input type="radio" name="sample_type" value="Finished Item" required> Finished Item</label>
-                    <label><input type="radio" name="sample_type" value="Other" required> Other</label>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Sample description <span class="required">*</span></label>
-                <div class="input-na-wrap">
-                    <input type="text" name="sample_description" style="flex:1 1 0;" id="sample_description_input">
-                    <label class="na-label">
-                        <input type="checkbox" name="sample_description_na" value="1" id="sample_description_na"> N/A
+                    <label>
+                        <input type="radio" name="sample_type" value="Material" required
+                            {% if form_data.get('sample_type') == 'Material' %}checked{% endif %}> Material
+                    </label>
+                    <label>
+                        <input type="radio" name="sample_type" value="Carcass" required
+                            {% if form_data.get('sample_type') == 'Carcass' %}checked{% endif %}> Carcass
+                    </label>
+                    <label>
+                        <input type="radio" name="sample_type" value="Finished Item" required
+                            {% if form_data.get('sample_type') == 'Finished Item' %}checked{% endif %}> Finished Item
+                    </label>
+                    <label>
+                        <input type="radio" name="sample_type" value="Other" required
+                            {% if form_data.get('sample_type') == 'Other' %}checked{% endif %}> Other
                     </label>
                 </div>
+                {% if 'sample_type' in missing_fields %}<div class="error-msg">Bắt buộc chọn</div>{% endif %}
+            </div>
+            <div class="form-group {% if 'sample_description' in missing_fields %}has-error{% endif %}">
+                <label>Sample description <span class="required">*</span></label>
+                <div class="input-na-wrap">
+                    <input type="text" name="sample_description" style="flex:1 1 0;" id="sample_description_input"
+                        value="{{ '' if form_data.get('sample_description_na') else form_data.get('sample_description','') }}">
+                    <label class="na-label">
+                        <input type="checkbox" name="sample_description_na" value="1" id="sample_description_na"
+                            {% if form_data.get('sample_description_na') %}checked{% endif %}> N/A
+                    </label>
+                </div>
+                {% if 'sample_description' in missing_fields %}<div class="error-msg">Bắt buộc nhập/chọn N/A</div>{% endif %}
             </div>
             <div class="form-group">
                 <label>Item Code <span class="required">*</span></label>
                 <div class="input-na-wrap">
-                    <input type="text" name="item_code" style="flex:1 1 0;" id="item_code_input">
-                    <label class="na-label"><input type="checkbox" name="item_code_na" value="1" id="item_code_na"> N/A</label>
+                    <input type="text" name="item_code" style="flex:1 1 0;" id="item_code_input"
+                        value="{{ '' if form_data.get('item_code_na') else form_data.get('item_code','') }}">
+                    <label class="na-label"><input type="checkbox" name="item_code_na" value="1" id="item_code_na"
+                        {% if form_data.get('item_code_na') %}checked{% endif %}> N/A</label>
                 </div>
             </div>
             <div class="form-group">
                 <label>Supplier <span class="required">*</span></label>
                 <div class="input-na-wrap">
-                    <input type="text" name="supplier" style="flex:1 1 0;" id="supplier_input">
-                    <label class="na-label"><input type="checkbox" name="supplier_na" value="1" id="supplier_na"> N/A</label>
+                    <input type="text" name="supplier" style="flex:1 1 0;" id="supplier_input"
+                        value="{{ '' if form_data.get('supplier_na') else form_data.get('supplier','') }}">
+                    <label class="na-label"><input type="checkbox" name="supplier_na" value="1" id="supplier_na"
+                        {% if form_data.get('supplier_na') %}checked{% endif %}> N/A</label>
                 </div>
             </div>
             <div class="form-group">
                 <label>Subcon <span class="required">*</span></label>
                 <div class="input-na-wrap">
-                    <input type="text" name="subcon" style="flex:1 1 0;" id="subcon_input">
-                    <label class="na-label"><input type="checkbox" name="subcon_na" value="1" id="subcon_na"> N/A</label>
+                    <input type="text" name="subcon" style="flex:1 1 0;" id="subcon_input"
+                        value="{{ '' if form_data.get('subcon_na') else form_data.get('subcon','') }}">
+                    <label class="na-label"><input type="checkbox" name="subcon_na" value="1" id="subcon_na"
+                        {% if form_data.get('subcon_na') %}checked{% endif %}> N/A</label>
                 </div>
             </div>
-            <div class="form-group">
+            <div class="form-group {% if 'test_status' in missing_fields %}has-error{% endif %}">
                 <label>Test status <span class="required">*</span></label>
                 <div class="radio-row">
-                    <label><input type="radio" name="test_status" value="1st" required> 1st</label>
-                    <label><input type="radio" name="test_status" value="2nd" required> 2nd</label>
-                    <label><input type="radio" name="test_status" value="3rd" required> 3rd</label>
                     <label>
-                        <input type="radio" name="test_status" value="nth" required> ...th
-                        <input type="number" name="test_status_nth" style="width:62px;" min="4" placeholder="số">
+                        <input type="radio" name="test_status" value="1st" required
+                            {% if form_data.get('test_status') == '1st' %}checked{% endif %}> 1st
+                    </label>
+                    <label>
+                        <input type="radio" name="test_status" value="2nd" required
+                            {% if form_data.get('test_status') == '2nd' %}checked{% endif %}> 2nd
+                    </label>
+                    <label>
+                        <input type="radio" name="test_status" value="3rd" required
+                            {% if form_data.get('test_status') == '3rd' %}checked{% endif %}> 3rd
+                    </label>
+                    <label>
+                        <input type="radio" name="test_status" value="nth" required
+                            {% if form_data.get('test_status') not in ['1st','2nd','3rd','',None] %}checked{% endif %}> ...th
+                        <input type="number" name="test_status_nth" style="width:62px;" min="4" placeholder="số"
+                            value="{% if form_data.get('test_status') not in ['1st','2nd','3rd','',None] %}{{ form_data.get('test_status').replace('th','') }}{% endif %}">
                     </label>
                 </div>
+                {% if 'test_status' in missing_fields %}<div class="error-msg">Bắt buộc chọn</div>{% endif %}
             </div>
-            <div class="form-group">
+            <div class="form-group {% if 'furniture_testing' in missing_fields %}has-error{% endif %}">
                 <label>Furniture testing <span class="required">*</span></label>
                 <div class="checkbox-row">
-                    <label><input type="checkbox" name="furniture_testing" value="Indoor"> Indoor</label>
-                    <label><input type="checkbox" name="furniture_testing" value="Outdoor"> Outdoor</label>
+                    <label><input type="checkbox" name="furniture_testing" value="Indoor"
+                        {% if 'Indoor' in form_data.get('furniture_testing', []) %}checked{% endif %}> Indoor</label>
+                    <label><input type="checkbox" name="furniture_testing" value="Outdoor"
+                        {% if 'Outdoor' in form_data.get('furniture_testing', []) %}checked{% endif %}> Outdoor</label>
                 </div>
+                {% if 'furniture_testing' in missing_fields %}<div class="error-msg">Bắt buộc chọn</div>{% endif %}
             </div>
-            <div class="form-group">
+            <div class="form-group {% if 'quantity' in missing_fields %}has-error{% endif %}">
                 <label>Quantity <span class="required">*</span></label>
-                <input type="number" name="quantity" min="1" required>
+                <input type="number" name="quantity" min="1" required value="{{ form_data.get('quantity','') }}">
+                {% if 'quantity' in missing_fields %}<div class="error-msg">Bắt buộc nhập</div>{% endif %}
             </div>
-            <div class="form-group">
+            <div class="form-group {% if 'test_group' in missing_fields %}has-error{% endif %}">
                 <label>Chọn loại test <span class="required">*</span></label>
                 <div class="checkbox-row">
-                    <label><input type="checkbox" name="test_group" value="CONSTRUCTION TEST"> CONSTRUCTION TEST</label>
-                    <label><input type="checkbox" name="test_group" value="PACKAGING TEST (TRANSIT TEST)"> PACKAGING TEST (TRANSIT TEST)</label>
-                    <label><input type="checkbox" name="test_group" value="MATERIAL AND FINISHING TEST"> MATERIAL AND FINISHING TEST</label>
+                    <label><input type="checkbox" name="test_group" value="CONSTRUCTION TEST"
+                        {% if 'CONSTRUCTION TEST' in form_data.get('test_group', []) %}checked{% endif %}>
+                        CONSTRUCTION TEST</label>
+                    <label><input type="checkbox" name="test_group" value="PACKAGING TEST (TRANSIT TEST)"
+                        {% if 'PACKAGING TEST (TRANSIT TEST)' in form_data.get('test_group', []) %}checked{% endif %}>
+                        PACKAGING TEST (TRANSIT TEST)</label>
+                    <label><input type="checkbox" name="test_group" value="MATERIAL AND FINISHING TEST"
+                        {% if 'MATERIAL AND FINISHING TEST' in form_data.get('test_group', []) %}checked{% endif %}>
+                        MATERIAL AND FINISHING TEST</label>
                 </div>
+                {% if 'test_group' in missing_fields %}<div class="error-msg">Bắt buộc chọn</div>{% endif %}
             </div>
             <button type="submit"><i class="fa fa-file-export"></i> Xuất TFR</button>
         </form>
@@ -314,6 +494,17 @@
         handleNaInput("item_code_input", "item_code_na");
         handleNaInput("supplier_input", "supplier_na");
         handleNaInput("subcon_input", "subcon_na");
+
+        // Scroll đến trường lỗi đầu tiên nếu có lỗi
+        {% if missing_fields %}
+        document.addEventListener("DOMContentLoaded", function() {
+            var firstError = document.querySelector('.has-error input, .has-error select, .has-error textarea');
+            if (firstError) {
+                firstError.scrollIntoView({behavior: 'smooth', block: 'center'});
+                firstError.focus();
+            }
+        });
+        {% endif %}
     </script>
 </body>
 </html>

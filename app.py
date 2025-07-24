@@ -1,7 +1,7 @@
 # app.py
 from flask import Flask, request, render_template, session, redirect, url_for
 from config import SECRET_KEY, PASSWORD, local_main, SAMPLE_STORAGE, UPLOAD_FOLDER, TEST_GROUPS, local_complete, qr_folder, SO_GIO_TEST, ALL_SLOTS, TEAMS_WEBHOOK_URL
-from excel_utils import get_item_code, get_col_idx, copy_row_with_style, is_img_at_cell
+from excel_utils import get_item_code, get_col_idx, copy_row_with_style, is_img_at_cell, write_tfr_to_excel
 from image_utils import allowed_file, safe_filename, get_img_urls
 from auth import login, logout, is_logged_in
 from test_logic import load_group_notes, get_group_test_status, is_drop_test, is_impact_test, is_rotational_test,  TEST_GROUP_TITLES, TEST_TYPE_VI, DROP_ZONES, DROP_LABELS
@@ -22,6 +22,7 @@ import os
 import pytz
 import json
 import openpyxl
+import random
 from collections import defaultdict, OrderedDict
 
 app = Flask(__name__)
@@ -33,6 +34,12 @@ def get_group_title(group):
             return g_name
     return None
 
+def generate_unique_tlq_id(existing_ids):
+    while True:
+        new_id = f"TL-{random.randint(100000, 999999)}"
+        if new_id not in existing_ids:
+            return new_id
+        
 @app.route("/", methods=["GET", "POST"])
 def home():
     message = None
@@ -163,40 +170,48 @@ def tfr_request_form():
     # Đọc danh sách đã request (để hiển thị nếu cần)
     if os.path.exists(TFR_LOG_FILE):
         tfr_requests = []
-        if os.path.exists(TFR_LOG_FILE):
-            with open(TFR_LOG_FILE, "r", encoding="utf-8") as f:
-                try:
-                    content = f.read().strip()
-                    if content:
-                        tfr_requests = json.loads(content)
-                    else:
-                        tfr_requests = []
-                except Exception:
+        with open(TFR_LOG_FILE, "r", encoding="utf-8") as f:
+            try:
+                content = f.read().strip()
+                if content:
+                    tfr_requests = json.loads(content)
+                else:
                     tfr_requests = []
+            except Exception:
+                tfr_requests = []
     else:
         tfr_requests = []
 
     error = ""
+    form_data = {}
+    missing_fields = []
+
+    # Khi người dùng vừa vào form (GET), sinh sẵn TLQ-ID
+    existing_ids = {r.get("tlq_id") for r in tfr_requests if "tlq_id" in r}
+    default_tlq_id = generate_unique_tlq_id(existing_ids)
+
     if request.method == "POST":
         form = request.form
+
         # Validate các trường bắt buộc
         required_fields = [
-            "requestor", "department", "request_date", "sample_type", 
+            "requestor", "department", "request_date", "sample_type",
             "sample_description", "test_status", "quantity"
         ]
         for field in required_fields:
             if not form.get(field):
-                error = "Vui lòng điền đủ các trường bắt buộc (*)"
-                break
+                missing_fields.append(field)
 
         # Validate nhóm test tối thiểu 1
         test_groups = request.form.getlist("test_group")
         if not test_groups:
+            missing_fields.append("test_group")
             error = "Phải chọn ít nhất 1 loại test!"
 
         # Validate Furniture testing
         furniture_testing = request.form.getlist("furniture_testing")
         if not furniture_testing:
+            missing_fields.append("furniture_testing")
             error = "Phải chọn Indoor hoặc Outdoor!"
 
         # Validate N/A logic cho các trường option
@@ -206,83 +221,158 @@ def tfr_request_form():
                 return "N/A"
             return form.get(key, "").strip()
 
-        if not error:
-            item_code = na_or_value("item_code")
-            supplier = na_or_value("supplier")
-            subcon = na_or_value("subcon")
+        form_data = form.to_dict(flat=False)  # Lưu lại tất cả đã nhập (kể cả multi checkbox)
+        for k, v in form_data.items():
+            if isinstance(v, list) and len(v) == 1:
+                form_data[k] = v[0]
+        form_data["test_group"] = test_groups
+        form_data["furniture_testing"] = furniture_testing
 
-            # Test status: nếu chọn ...th thì lấy thêm ô nhập thứ tự
-            test_status = form.get("test_status")
-            if test_status == "nth":
-                nth = form.get("test_status_nth", "").strip()
-                test_status = nth + "th" if nth.isdigit() else "nth"
+        # Giữ lại ID để hiển thị khi có lỗi
+        form_data["tlq_id"] = request.form.get("tlq_id", default_tlq_id)
 
-            # Furniture testing: ghép thành chuỗi
-            furniture_testing_str = ", ".join(furniture_testing)
+        if missing_fields:
+            if not error:
+                error = "Vui lòng điền đủ các trường bắt buộc (*)"
+            return render_template(
+                "tfr_request_form.html",
+                error=error,
+                form_data=form_data,
+                missing_fields=missing_fields
+            )
 
-            # Lưu thông tin
-            new_request = {
-                "requestor": form.get("requestor"),
-                "department": form.get("department"),
-                "request_date": form.get("request_date"),
-                "sample_type": form.get("sample_type"),
-                "sample_description": form.get("sample_description"),
-                "item_code": item_code,
-                "supplier": supplier,
-                "subcon": subcon,
-                "test_status": test_status,
-                "furniture_testing": furniture_testing_str,
-                "quantity": form.get("quantity"),
-                "test_groups": test_groups,
-                "status": "Submitted",  # Default trạng thái
-                "decline_reason": ""
-            }
-            tfr_requests.append(new_request)
-            # Ghi xuống file
-            with open(TFR_LOG_FILE, "w", encoding="utf-8") as f:
-                json.dump(tfr_requests, f, ensure_ascii=False, indent=2)
-            # Chuyển sang trang trạng thái (hoặc thông báo thành công)
-            return redirect(url_for('tfr_request_status'))
+        # Nếu không lỗi, tạo request mới
+        item_code = na_or_value("item_code")
+        supplier = na_or_value("supplier")
+        subcon = na_or_value("subcon")
+        test_status = form.get("test_status")
+        if test_status == "nth":
+            nth = form.get("test_status_nth", "").strip()
+            test_status = nth + "th" if nth.isdigit() else "nth"
+        furniture_testing_str = ", ".join(furniture_testing)
+        new_request = {
+            "tlq_id": form.get("tlq_id", default_tlq_id),
+            "requestor": form.get("requestor"),
+            "department": form.get("department"),
+            "request_date": form.get("request_date"),
+            "sample_type": form.get("sample_type"),
+            "sample_description": form.get("sample_description"),
+            "item_code": item_code,
+            "supplier": supplier,
+            "subcon": subcon,
+            "test_status": test_status,
+            "furniture_testing": furniture_testing_str,
+            "quantity": form.get("quantity"),
+            "test_groups": test_groups,
+            "status": "Submitted",
+            "decline_reason": "",
+            "report_no": ""
+        }
+        tfr_requests.append(new_request)
+        with open(TFR_LOG_FILE, "w", encoding="utf-8") as f:
+            json.dump(tfr_requests, f, ensure_ascii=False, indent=2)
+        return redirect(url_for('tfr_request_status'))
 
-    # Render form
-    return render_template("tfr_request_form.html", error=error)
+    # GET – truy cập lần đầu, truyền sẵn ID vào form
+    form_data["tlq_id"] = default_tlq_id
+    return render_template("tfr_request_form.html", error=error, form_data=form_data, missing_fields=missing_fields)
 
 @app.route("/tfr_request_status", methods=["GET", "POST"])
 def tfr_request_status():
     # Đọc log request
     if os.path.exists(TFR_LOG_FILE):
         tfr_requests = []
-        if os.path.exists(TFR_LOG_FILE):
-            with open(TFR_LOG_FILE, "r", encoding="utf-8") as f:
-                try:
-                    content = f.read().strip()
-                    if content:
-                        tfr_requests = json.loads(content)
-                    else:
-                        tfr_requests = []
-                except Exception:
+        with open(TFR_LOG_FILE, "r", encoding="utf-8") as f:
+            try:
+                content = f.read().strip()
+                if content:
+                    tfr_requests = json.loads(content)
+                else:
                     tfr_requests = []
+            except Exception:
+                tfr_requests = []
     else:
         tfr_requests = []
 
     is_admin = session.get("auth_ok", False)
 
-    # Xử lý POST khi admin duyệt
+    # Xử lý POST khi admin duyệt hoặc duplicate
     if request.method == "POST" and is_admin:
         idx = int(request.form.get("idx"))
         action = request.form.get("action")
         if 0 <= idx < len(tfr_requests):
             if action == "approve":
-                # 1. Sinh PDF
+                etd_value = request.form.get("etd", "").strip()
+                if not etd_value:
+                    from flask import flash
+                    flash("Bạn cần điền Estimated Completion Date (ETD) trước khi approve!")
+                    return redirect(url_for('tfr_request_status'))
+                tfr_requests[idx]["etd"] = etd_value  # Lưu ETD khi approve
                 pdf_path, report_no = approve_request_fill_docx_pdf(tfr_requests[idx])
                 tfr_requests[idx]["status"] = "Approved"
                 tfr_requests[idx]["decline_reason"] = ""
-                tfr_requests[idx]["pdf_path"] = pdf_path  # Lưu đường dẫn PDF để hiện link
+                tfr_requests[idx]["pdf_path"] = pdf_path
+                tfr_requests[idx]["report_no"] = report_no
+
+                # == Ghi vào file Excel ==
+                print("DEBUG: local_main =", local_main)
+                write_tfr_to_excel(local_main, report_no, tfr_requests[idx])
+
+                # === GHI THÔNG TIN VÀO EXCEL DS ===
+                try:
+                    # Load file Excel DS
+                    wb = load_workbook(local_main)
+                    ws = wb.active
+
+                    # Tìm dòng có mã report đúng (so sánh với report_no vừa gán)
+                    report_col = get_col_idx(ws, "report")
+                    row_idx = None
+                    for row in range(2, ws.max_row + 1):
+                        v = ws.cell(row=row, column=report_col).value
+                        if v and str(v).strip() == str(report_no):
+                            row_idx = row
+                            break
+                    if row_idx:
+                        def set_val(col_name, value):
+                            col_idx = get_col_idx(ws, col_name)
+                            if col_idx:
+                                ws.cell(row=row_idx, column=col_idx).value = value
+
+                        set_val("item#", tfr_requests[idx].get("item_code", ""))
+                        # Nếu test_groups là list thì join lại, hoặc chỉ lấy 1 nhóm tùy bạn muốn
+                        groups = tfr_requests[idx].get("test_groups", [])
+                        if isinstance(groups, list):
+                            groups_val = ", ".join(groups)
+                        else:
+                            groups_val = groups or ""
+                        set_val("type of", groups_val)
+                        set_val("item name/ description", tfr_requests[idx].get("sample_description", ""))
+                        set_val("furniture testing", tfr_requests[idx].get("furniture_testing", ""))
+                        set_val("submiter in", tfr_requests[idx].get("requestor", ""))
+                        set_val("submited", tfr_requests[idx].get("department", ""))
+                        set_val("remark", tfr_requests[idx].get("test_status", ""))
+                        # Không đổi format file Excel, chỉ ghi value
+                        wb.save(local_main)
+                except Exception as e:
+                    print("Ghi vào Excel bị lỗi:", e)
+
             elif action == "decline":
                 tfr_requests[idx]["status"] = "Declined"
                 tfr_requests[idx]["decline_reason"] = request.form.get("decline_reason", "")
             elif action == "delete":
                 tfr_requests.pop(idx)
+            elif action == "duplicate":
+                old_req = tfr_requests[idx]
+                new_req = old_req.copy()
+                # Khi duplicate sẽ KHÔNG COPY report_no, chỉ clear nó để approve sẽ tự sinh
+                new_req["report_no"] = ""
+                new_req["status"] = "Submitted"
+                new_req["pdf_path"] = ""
+                new_req["decline_reason"] = ""
+                new_req["etd"] = ""
+                tfr_requests.append(new_req)
+
+            # Không còn action save_etd nữa!
             with open(TFR_LOG_FILE, "w", encoding="utf-8") as f:
                 json.dump(tfr_requests, f, ensure_ascii=False, indent=2)
         return redirect(url_for('tfr_request_status'))

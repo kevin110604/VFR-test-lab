@@ -66,3 +66,76 @@ def get_item_code(report):
     if not row.empty:
         return str(row.iloc[0]['item#'])  # item#
     return ""
+
+from openpyxl import load_workbook
+
+from openpyxl import load_workbook
+import re
+
+def normalize_colname(s):
+    # Chuẩn hóa tên cột để dò cho "khôn": xóa mọi khoảng trắng, dấu /, dấu chấm, in thường
+    return re.sub(r'[\s/\.:\n]+', '', str(s).strip().lower())
+
+def write_tfr_to_excel(excel_path, report_no, request):
+    wb = load_workbook(excel_path)
+    ws = wb.active
+
+    # Đọc headers, chuẩn hóa để dò cột
+    headers = {}
+    for col in range(1, ws.max_column + 1):
+        cell = ws.cell(row=1, column=col)
+        name = cell.value
+        if name:
+            headers[normalize_colname(name)] = col
+
+    # Tìm cột "report no"
+    report_col = None
+    for k in headers:
+        if "report" in k and "no" in k:
+            report_col = headers[k]
+            break
+
+    # Tìm dòng theo report_no, hoặc thêm mới nếu chưa có
+    row_idx = None
+    if report_col:
+        for row in range(2, ws.max_row + 1):
+            cell_val = ws.cell(row=row, column=report_col).value
+            if str(cell_val).strip() == str(report_no):
+                row_idx = row
+                break
+        if row_idx is None:
+            row_idx = ws.max_row + 1
+            ws.cell(row=row_idx, column=report_col).value = report_no
+    else:
+        row_idx = ws.max_row + 1
+
+    # CHỈ value ghi vào là in hoa hết, header để nguyên!
+    def to_upper(val):
+        return str(val).upper() if val else ""
+
+    # Map trường bạn yêu cầu:
+    field_map = [
+        # (các từ khóa cần match, value cần ghi vào, comment)
+        (["item#"], to_upper(request.get("item_code", ""))),  # Item#
+        (["typeof"], to_upper(", ".join(request.get("test_groups", [])))),  # Type of
+        (["itemname", "description"], to_upper(request.get("sample_description", ""))),  # Item name/Description
+        (["furnituretesting"], to_upper(request.get("furniture_testing", ""))),  # Furniture testing
+        (["submitterinchange"], to_upper(request.get("requestor", ""))),  # Submitter in change
+        (["submitteddept"], to_upper(request.get("department", ""))),  # Submitted dept.
+        (["remark"], to_upper(request.get("test_status", ""))),  # Remark
+    ]
+
+    # Ghi lần lượt từng trường vào đúng cột, đúng dòng
+    for keys, value in field_map:
+        col_found = None
+        for header, col in headers.items():
+            for key in keys:
+                if key in header:
+                    col_found = col
+                    break
+            if col_found:
+                break
+        if col_found:
+            ws.cell(row=row_idx, column=col_found).value = value
+
+    wb.save(excel_path)

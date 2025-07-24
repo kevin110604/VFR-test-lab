@@ -3,9 +3,9 @@ import os
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'bmp'}
 UPLOAD_FOLDER = "images"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-local_main = r"E:\VFR\ds sản phẩm test với qr.xlsx"
-local_complete = r"E:\VFR\completed_items.xlsx"
-qr_folder = r"E:\VFR\qr_labels"
+local_main = "ds sản phẩm test với qr.xlsx"
+local_complete = "completed_items.xlsx"
+qr_folder = "qr_labels"
 TEAMS_WEBHOOK_URL = "https://mphcmiuedu.webhook.office.com/webhookb2/11e4d9d9-a3bf-4f77-9947-4c790d2c90e0@a7380202-eb54-415a-9b66-4d9806cfab42/IncomingWebhook/69ca9bf67d3342c1984109a9f3073faf/81e98e9d-7a3f-492d-9f99-3ac5a5ecbbf3/V2ou84tjRa9HGhGQHzzzaVkzig_fT-ACqaRCaq11ertlo1"
 PASSWORD = "123"
 SECRET_KEY = "vfr_secret_key_123"

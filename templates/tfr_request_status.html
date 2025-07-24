@@ -49,34 +49,35 @@
         }
         .back-home-btn:hover { background: #35523A; color: #ffe082; }
         h2 {
-            font-family: 'Merriweather', serif; font-size: 1.65rem; color: #c49c48;
-            text-align: center; font-weight: bold; margin-bottom: 21px;
+            font-family: 'Merriweather', serif; font-size: 1.35rem; color: #c49c48;
+            text-align: center; font-weight: bold; margin-bottom: 18px;
             letter-spacing: 0.04em; text-shadow: 0 3px 18px #c49c4827;
         }
         .table-wrap {
             width: 100%;
             overflow-x: auto;
+            padding-bottom: 8px;
         }
         table {
             width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
+            min-width: 690px;
+            border-collapse: collapse;
             background: #fffbe8e5;
             border-radius: 14px;
-            font-size: 1.00rem;
+            font-size: 0.97rem;
             box-shadow: 0 2px 12px #bca96b18;
         }
         th, td {
-            padding: 11px 5px;
+            padding: 8px 6px;
             text-align: center;
             vertical-align: middle;
-            word-break: break-word;
+            white-space: nowrap;
         }
         th {
             background: #c49c48;
             color: #fff;
             font-weight: 700;
-            font-size: 1.02rem;
+            font-size: 0.97rem;
             letter-spacing: 0.04em;
             border: none;
         }
@@ -97,8 +98,8 @@
             gap: 4px;
         }
         .btn-action {
-            padding: 6px 13px;
-            font-size: 15px;
+            padding: 6px 12px;
+            font-size: 13px;
             border:none;
             border-radius:100px;
             font-weight:600;
@@ -111,10 +112,10 @@
         .btn-decline { background:#df2323; color:#fff;}
         .btn-decline:hover { background:#be1919; }
         .input-reason {
-            padding: 5px 8px;
+            padding: 4px 8px;
             border-radius: 100px;
             border:1.2px solid #c49c48;
-            font-size:14px; width:94px;
+            font-size:13px; width:84px;
             outline: none;
             background: #fdf8ea;
             margin-top: 2px;
@@ -125,8 +126,8 @@
             color: #b8922e;
             border: 1.1px solid #c49c48;
             border-radius: 100px;
-            padding: 4px 12px;
-            font-size: 14px;
+            padding: 3px 9px;
+            font-size: 13px;
             font-weight: 600;
             margin-left: 1px;
             margin-top: 2px;
@@ -148,15 +149,55 @@
             color: #35523A;
             border-color: #35523A;
         }
-        @media (max-width:700px) {
-            .box {padding:10px 2vw 7vw 2vw;}
-            h2 {font-size: 1.07rem;}
-            table {font-size: 0.95rem;}
-            th, td {padding: 8px 2px;}
+        .table-toolbar {
+            width: 100%;
+            background: transparent;
+            position: sticky;
+            top: 0;
+            z-index: 3;
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: flex-end;
         }
-        @media (max-width:600px) {
-            .box {padding: 6vw 1vw 5vw 1vw;}
-            table {font-size: 0.89rem;}
+        .table-toolbar input {
+            padding: 7px 13px;
+            font-size: 14px;
+            border-radius: 8px;
+            border:1.2px solid #ccc;
+            width: 185px;
+            background: #fff;
+        }
+        .table-wrap {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            background: transparent;
+        }
+        table {
+            min-width: 850px; /* hoặc tùy bạn, đủ 8 cột */
+            width: max-content;
+            max-width: 100%;
+            border-collapse: collapse;
+            background: #fffbe8e5;
+            border-radius: 14px;
+            font-size: 0.96rem;
+            box-shadow: 0 2px 12px #bca96b18;
+            table-layout: auto;
+        }
+        @media (max-width: 900px) {
+            .box { width: 99vw; min-width: 0; }
+            .table-wrap { max-width: 99vw; }
+            table { min-width: 900px; font-size: 12px; }
+            th, td { font-size: 11.5px; padding: 7px 3px; }
+            /* KHÔNG ẨN BẤT CỨ CỘT NÀO */
+        }
+
+        @media (max-width: 600px) {
+            .box { width: 98vw; min-width: 0; }
+            .table-wrap { max-width: 98vw; }
+            table { min-width: 900px; font-size: 11px;}
+            th, td { font-size: 10.5px; padding: 6px 2px;}
+            /* KHÔNG ẨN BẤT CỨ CỘT NÀO */
         }
         /* Darkmode chỉ đổi box, không đổi background */
         body.dark .box { background: #344833ef !important; color: #f7f7ee !important; box-shadow: 0 4px 32px #000a;}
@@ -186,9 +227,6 @@
             transition: background 0.16s, color 0.16s;
         }
         #theme-btn:hover { background: #35523A; color: #ffe082; opacity:1; }
-        @media (max-width:700px) {
-            .box { max-width:98vw; padding:18vw 3vw 12vw 3vw;}
-        }
     </style>
 </head>
 <body>
@@ -197,31 +235,51 @@
     <div class="box">
         <a href="/" class="back-home-btn"><i class="fa fa-chevron-left"></i> Trang chủ</a>
         <h2>Trạng thái Test Request đã gửi</h2>
+        <!-- FLASH MESSAGE HIỂN THỊ LỖI -->
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div style="color:#d32f2f;font-weight:bold;margin-bottom:10px;text-align:center;">
+              {{ messages[0] }}
+            </div>
+          {% endif %}
+        {% endwith %}
+        <div class="table-toolbar">
+            <input type="text" id="search-id" placeholder="Tìm theo TLQ-ID..." oninput="searchID()">
+        </div>
         <div class="table-wrap">
         <table>
             <tr>
+                <th>TLQ-ID</th>
+                <th>Report No</th>
                 <th>Requestor</th>
-                <th>Department</th>
-                <th>Request Date</th>
+                <th>Dept.</th>
+                <th>Date</th>
                 <th>Status</th>
+                <th>ETD</th>
                 <th>Reason</th>
                 <th></th>
             </tr>
             {% for r in requests %}
             <tr>
+                <td>{{ r.tlq_id }}</td>
+                <td>{{ r.report_no }}</td>
                 <td>{{ r.requestor }}</td>
                 <td>{{ r.department }}</td>
-                <td style="min-width:75px;">{{ r.request_date }}</td>
-                <td class="status {{ r.status }}" style="min-width:95px;">
+                <td style="min-width:66px;">{{ r.request_date }}</td>
+                <td class="status {{ r.status }}" style="min-width:78px;">
                     {{ r.status }}
+                </td>
+                <!-- CỘT ETD RIÊNG BIỆT -->
+                <td>
                     {% if is_admin and r.status == "Submitted" %}
-                    <div class="action-cell">
-                        <form method="post" action="/tfr_request_status" style="display:inline;">
+                        <form method="post" action="/tfr_request_status" style="margin:0;display:inline-flex;align-items:center;gap:2px;">
                             <input type="hidden" name="idx" value="{{ loop.index0 }}">
-                            <button type="submit" name="action" value="approve" class="btn-action btn-approve">Approve</button>
+                            <input type="date" name="etd" value="{{ r.etd or '' }}" required style="padding:4px; font-size:13px; min-width:108px;">
+                            <button type="submit" name="action" value="approve" class="btn-action btn-approve" style="margin-left:2px;">Approve</button>
+                            <button type="button" class="btn-action btn-decline" onclick="showDecline({{ loop.index0 }})" style="margin-left:2px;">Decline</button>
                         </form>
-                        <button type="button" class="btn-action btn-decline" onclick="showDecline({{ loop.index0 }})">Decline</button>
-                    </div>
+                    {% else %}
+                        {{ r.etd or "N/A" }}
                     {% endif %}
                 </td>
                 <td class="reason" id="reason-{{ loop.index0 }}">
@@ -240,12 +298,19 @@
                 <td>
                     {% if r.pdf_path %}
                         <button class="btn-pdf" onclick="showPDF('{{ url_for('static', filename=r.pdf_path) }}')">
-                            <i class="fa fa-file-pdf"></i> Xem PDF
+                            <i class="fa fa-file-pdf"></i> PDF
                         </button>
                     {% else %}
                         <button class="btn-details" onclick="showDetail({{ loop.index0 }})"><i class="fa fa-eye"></i></button>
                     {% endif %}
                     {% if is_admin %}
+                    <!-- Nút duplicate luôn hiển thị cho tất cả user -->
+                    <form method="post" action="/tfr_request_status" style="display:inline;">
+                        <input type="hidden" name="idx" value="{{ loop.index0 }}">
+                        <button type="submit" name="action" value="duplicate" class="btn-details" style="background:#e3f7fa; color:#289abf; border-color:#8be4fc; margin-left:3px;">
+                            <i class="fa fa-copy"></i> Dup
+                        </button>
+                    </form>
                     <form method="post" action="/tfr_request_status" style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn xóa request này?');">
                         <input type="hidden" name="idx" value="{{ loop.index0 }}">
                         <button type="submit" name="action" value="delete" class="btn-details" style="background:#fff3e0; color:#df2323; border-color:#df2323; margin-left:3px;">
@@ -321,6 +386,15 @@
         function hidePDF() {
             document.getElementById("pdf-frame").src = "";
             document.getElementById("modal-pdf").style.display = "none";
+        }
+        function searchID() {
+            const val = document.getElementById("search-id").value.toUpperCase();
+            const rows = document.querySelectorAll("table tr");
+            for (let i = 1; i < rows.length; i++) {
+                const td = rows[i].querySelector("td:first-child");
+                const match = td && td.textContent.toUpperCase().includes(val);
+                rows[i].style.display = match ? "" : "none";
+            }
         }
     </script>
 </body>

@@ -8,7 +8,7 @@ from docx2pdf import convert
 from config import local_main
 
 WORD_TEMPLATE = "FORM-QAD-011-TEST REQUEST FORM (TRF).docx"
-PDF_OUTPUT_FOLDER = "TFR"
+PDF_OUTPUT_FOLDER = os.path.join("static", "TFR")
 
 def get_first_empty_report_all_blank(excel_path):
     wb = load_workbook(excel_path)
@@ -28,73 +28,74 @@ def get_first_empty_report_all_blank(excel_path):
             return report_no
     return None
 
-def get_label_to_tick(data):
-    # Tập hợp tất cả các lựa chọn có thể của từng nhóm
+def build_label_value_map(data):
     label_groups = {
-        "sample_type": ["Material", "Carcass", "Finished Item", "Others"],
-        "test_status": ["1st", "2nd", "3rd", "...th"],
-        "furniture_testing": ["Indoor", "Outdoor"],
+        "sample_type": ["MATERIAL", "CARCASS", "FINISHED ITEM", "OTHERS"],
+        "test_status": ["1ST", "2ND", "3RD", "...TH"],
+        "furniture_testing": ["INDOOR", "OUTDOOR"],
         "test_groups": [
             "CONSTRUCTION TEST",
             "PACKAGING TEST (TRANSIT TEST)",
             "MATERIAL AND FINISHING TEST"
         ]
     }
-    label_to_tick = {}
-
-    # Tick từng nhóm, nếu có dữ liệu thì tick đúng lựa chọn, các lựa chọn khác tick False
+    label_value_map = {}
     for group, labels in label_groups.items():
-        val = data.get(group, None)
-        if val is None or (isinstance(val, str) and not val.strip()) or (isinstance(val, list) and len(val) == 0):
-            # Không điền -> tick False tất cả
+        value = data.get(group, None)
+        if value is None or (isinstance(value, str) and not value.strip()) or (isinstance(value, list) and len(value) == 0):
             for label in labels:
-                label_to_tick[label] = False
+                label_value_map[label] = False
         else:
-            if not isinstance(val, list):
-                val_list = [val]
+            if not isinstance(value, list):
+                value_list = [value]
             else:
-                val_list = val
-            val_list = [str(v).strip().lower() for v in val_list]
+                value_list = value
+            value_list = [str(v).strip().upper() for v in value_list]
             for label in labels:
-                if group == "test_status":
-                    if label == "...th":
-                        label_to_tick[label] = any("nth" in v for v in val_list)
-                    else:
-                        label_to_tick[label] = (label.lower() in val_list)
+                if group == "test_status" and label == "...TH":
+                    label_value_map[label] = any("NTH" in v for v in value_list)
                 else:
-                    label_to_tick[label] = (label.lower() in val_list)
+                    label_value_map[label] = (label in value_list)
+    return label_value_map
 
-    return label_to_tick
-
-def tick_checkbox_by_label(docx_path, out_path, label_to_tick):
+def tick_unicode_checkbox_by_label(docx_path, out_path, label_value_map):
     temp_dir = 'temp_unzip_docx'
     if os.path.exists(temp_dir):
         shutil.rmtree(temp_dir)
     with zipfile.ZipFile(docx_path, 'r') as zip_ref:
         zip_ref.extractall(temp_dir)
-
     xml_path = os.path.join(temp_dir, 'word', 'document.xml')
     tree = etree.parse(xml_path)
     root = tree.getroot()
     ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
 
-    for checkbox in root.xpath(".//w:checkBox", namespaces=ns):
-        node = checkbox.getparent()
-        label_full = ""
-        # Tìm label gần checkbox (lấy ancestor có text)
-        for ancestor in [node] + list(node.iterancestors()):
-            text_list = ancestor.xpath(".//w:t/text()", namespaces=ns)
-            if text_list:
-                label_full = " ".join([t.strip() for t in text_list if t.strip()])
-                for label_key in label_to_tick:
-                    # Fuzzy match (label_key nằm trong text)
-                    if label_key.lower() in label_full.lower():
-                        checked = checkbox.find(".//w:checked", namespaces=ns)
-                        if checked is not None:
-                            checked.attrib["{http://schemas.openxmlformats.org/wordprocessingml/2006/main}val"] = "1" if label_to_tick[label_key] else "0"
-                            print(f"[DEBUG] Tick '{label_key}': {label_to_tick[label_key]} (found in: '{label_full}')")
-                        break
-                break
+    for cell in root.xpath(".//w:tc", namespaces=ns):
+        texts = cell.xpath(".//w:t", namespaces=ns)
+        i = 0
+        while i < len(texts):
+            t = texts[i]
+            if '☐' in t.text or '☑' in t.text:
+                # Lấy label ngay sau tick (ghép 1-2 block nếu cần)
+                label_parts = []
+                # Lấy block ngay sau tick
+                if i+1 < len(texts):
+                    label_parts.append(texts[i+1].text or "")
+                # Có thể ghép thêm block nữa nếu label bị tách nhỏ
+                if i+2 < len(texts):
+                    label_parts.append(texts[i+2].text or "")
+                label = ''.join(label_parts).strip().replace(" ", "").replace("\n", "").upper()
+                # So khớp label duy nhất với từng key, nếu đúng thì chỉ tick đúng 1 lần
+                for label_key, value in label_value_map.items():
+                    key_norm = label_key.replace(" ", "").replace("_", "").replace(".", "").upper()
+                    if label.startswith(key_norm):
+                        old = t.text
+                        if value:
+                            t.text = t.text.replace('☐', '☑')
+                        else:
+                            t.text = t.text.replace('☑', '☐')
+                        print(f"[DEBUG] Tick {label_key}: {old} → {t.text} (tick next to: '{label}')")
+                        break  # Đã tick đúng, không tick lại tick này nữa
+            i += 1
 
     tree.write(xml_path, xml_declaration=True, encoding='utf-8', standalone=True)
     shutil.make_archive("output_docx", 'zip', temp_dir)
@@ -103,10 +104,15 @@ def tick_checkbox_by_label(docx_path, out_path, label_to_tick):
 
 def try_convert_to_pdf(docx_path, pdf_path):
     try:
+        import pythoncom
+        pythoncom.CoInitialize()  # <--- Thêm dòng này!
+        from docx2pdf import convert
         convert(docx_path, pdf_path)
     except Exception as e:
-        print("Không thể convert PDF, có thể do chưa cài MS Word hoặc chạy trên Linux/Mac. Bỏ qua PDF. Lý do:", e)
-
+        import traceback
+        print("Không thể convert PDF:", e)
+        traceback.print_exc()
+        
 def fill_docx_and_export_pdf(data):
     report_no = get_first_empty_report_all_blank(local_main)
     if not report_no:
@@ -114,7 +120,6 @@ def fill_docx_and_export_pdf(data):
     data = dict(data)
     data["report_no"] = report_no
 
-    # Ghi text như cũ
     doc = Document(WORD_TEMPLATE)
     mapping = {
         "requestor": "requestor",
@@ -146,20 +151,20 @@ def fill_docx_and_export_pdf(data):
                             if target_cell.text.strip() == "" or "lab test report no." in label:
                                 target_cell.text = str(data[key])
 
-    # Save file docx (chưa tick)
     if not os.path.exists(PDF_OUTPUT_FOLDER):
         os.makedirs(PDF_OUTPUT_FOLDER)
     output_docx = os.path.join(PDF_OUTPUT_FOLDER, f"{report_no}.docx")
     doc.save(output_docx)
 
-    # Tick theo label (auto từng nhóm)
-    label_to_tick = get_label_to_tick(data)
-    tick_checkbox_by_label(output_docx, output_docx, label_to_tick)
+    label_value_map = build_label_value_map(data)
+    tick_unicode_checkbox_by_label(output_docx, output_docx, label_value_map)
 
-    # Convert pdf nếu cần
     output_pdf = os.path.join(PDF_OUTPUT_FOLDER, f"{report_no}.pdf")
     try_convert_to_pdf(output_docx, output_pdf)
-    return output_pdf, report_no
+
+    # Đường dẫn trả về để dùng cho url_for('static', ...)
+    pdf_path = f"TFR/{report_no}.pdf"
+    return pdf_path, report_no
 
 def approve_request_fill_docx_pdf(data_dict):
     return fill_docx_and_export_pdf(data_dict)
