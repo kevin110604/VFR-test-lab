@@ -466,9 +466,76 @@
             background: #c49c48 !important;
             color: #232826 !important;
         }
+        .btn-more {
+        background: #c49c48;
+        color: #fff;
+        border: none;
+        border-radius: 100px;
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 18px #a3936840, 0 1.5px 8px #c49c4822;
+        transition: background 0.15s, color 0.12s, box-shadow 0.13s;
+        cursor: pointer;
+        outline: none;
+        }
+        .btn-more:hover {
+        background: #35523A;
+        color: #ffe082;
+        }
+        .dropdown-content {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 52px;
+        min-width: 175px;
+        background: #fff;
+        border-radius: 13px;
+        box-shadow: 0 4px 16px #bca04044;
+        font-size: 15.5px;
+        overflow: hidden;
+        z-index: 1001;
+        border: 1.5px solid #f3e1a2;
+        }
+        .dropdown-content a {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #333;
+        padding: 12px 19px 12px 14px;
+        text-decoration: none;
+        border-bottom: 1px solid #eee2b8;
+        font-weight: 500;
+        transition: background 0.16s, color 0.13s;
+        }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover {
+        background: #ffe082;
+        color: #35523A;
+        }
+        .show { display: block; }
     </style>
 </head>
 <body>
+    <!-- Nút tròn request ở góc phải -->
+    <div style="position: fixed; top: 22px; right: 28px; z-index: 2001;">
+      <div class="dropdown">
+        <button class="btn-more" onclick="toggleRequestDropdown()" title="Test Request">
+          <i class="fa fa-list-ul"></i>
+        </button>
+        <div id="requestDropdownMenu" class="dropdown-content">
+          <a href="/tfr_request_form">
+            <i class="fa fa-file-circle-plus"></i> Tạo Request
+          </a>
+          <a href="/tfr_request_status">
+            <i class="fa fa-search"></i> Trạng thái Request
+          </a>
+        </div>
+      </div>
+    </div>
     <div class="center-form">
         <h2>TRA CỨU SẢN PHẨM</h2>
         <form method="GET" action="/go_report">
@@ -716,6 +783,18 @@
                 }
             };
         }
+    });
+    function toggleRequestDropdown() {
+      var menu = document.getElementById('requestDropdownMenu');
+      menu.classList.toggle('show');
+    }
+    // Ẩn dropdown khi click ngoài
+    document.addEventListener('click', function(event) {
+      var menu = document.getElementById('requestDropdownMenu');
+      var btn = document.querySelector('.btn-more');
+      if (!btn.contains(event.target) && !menu.contains(event.target)) {
+          menu.classList.remove('show');
+      }
     });
     </script>
 </body>

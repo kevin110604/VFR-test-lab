@@ -38,21 +38,15 @@
         color: var(--color-text-light);
     }
     .report-banner {
-        /* Font Merriweather giống item */
-        font-family: 'Merriweather', serif;
-        color: var(--color-beige-bg);
+        color: #d6c49d;
         font-size: 21px;
         font-weight: bold;
         text-align: center;
-        /* Giảm khoảng cách xuống */
         margin-top: 6px;
-        margin-bottom: 6px;
+        margin-bottom: 14px;
         letter-spacing: 1px;
         text-shadow: 0 2px 14px #c49c484a;
-    }
-    /* Giữ nguyên sáng cho mã report khi dark mode */
-    body.dark .report-banner {
-        color: var(--color-beige-bg) !important;
+        font-family: 'Merriweather', serif;
     }
     .box {
         background: #fffdfccf;
@@ -384,7 +378,7 @@
                             </div>
                         {% endif %}
                     {% elif group in transit_step_groups %}
-                        <a class="test-btn" href="{{ url_for('transit_item_page', report=report, group=group, step_key=key) }}">
+                        <a class="test-btn" href="{{ url_for('test_group_item_dynamic', report=report, group=group, test_key=key) }}">
                             {% if value.full %}
                                 <b>{{ value.full.split(":")[0] }}:</b> {{ value.full.split(":", 1)[1]|default('', true) }}
                             {% else %}

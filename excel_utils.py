@@ -1,7 +1,9 @@
 import pandas as pd
 import re
 from config import local_main
+from openpyxl import load_workbook
 
+# Hàm tìm chỉ số cột theo tên cột
 def get_col_idx(ws, target):
     for col in range(1, ws.max_column+1):
         v = ws.cell(row=1, column=col).value
@@ -9,12 +11,14 @@ def get_col_idx(ws, target):
             return col
     return None
 
+# Đảm bảo tồn tại cột, nếu chưa có thì thêm mới vào cuối
 def ensure_column(ws, col_name):
     header = [cell.value for cell in ws[1]]
     if col_name not in header:
         ws.cell(row=1, column=ws.max_column+1, value=col_name)
     return [cell.value for cell in ws[1]].index(col_name) + 1
 
+# Copy nguyên một dòng có cả style giữa 2 sheet
 def copy_row_with_style(ws_from, ws_to, row_idx, to_row=None):
     if to_row is None:
         to_row = ws_to.max_row + 1
@@ -32,6 +36,7 @@ def copy_row_with_style(ws_from, ws_to, row_idx, to_row=None):
         except Exception:
             pass
 
+# Kiểm tra có hình tại cell không
 def is_img_at_cell(img, row, col):
     try:
         anchor = getattr(img, "anchor", None)
@@ -44,18 +49,19 @@ def is_img_at_cell(img, row, col):
         return False
     return False
 
+# Chuẩn hóa tên cột: chữ thường, loại bỏ ký tự đặc biệt trừ dấu #
 def clean_col(s):
-    # Đưa về chữ thường, loại bỏ khoảng trắng, bỏ ký tự đặc biệt trừ dấu #
     s = str(s).lower()
     s = re.sub(r'[^a-z0-9#]+', '', s)  # giữ lại chữ, số, dấu #
     return s
 
+# Đọc file QAD_EXCEL thành DataFrame pandas (đã chuẩn hóa tên cột)
 QAD_DF = pd.read_excel(local_main)
 QAD_DF.columns = [clean_col(c) for c in QAD_DF.columns]
 
+# Lấy item code theo report code
 def get_item_code(report):
-    # Chuẩn hóa tên cột ở đây
-    # 'report#' (không khoảng trắng, không phân biệt hoa/thường)
+    # report# (không khoảng trắng, không phân biệt hoa/thường)
     row = QAD_DF.loc[QAD_DF['report#'] == str(report)]
     if not row.empty:
         return str(row.iloc[0]['item#'])  # item#

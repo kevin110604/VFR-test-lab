@@ -135,7 +135,12 @@
         .state-btn.pass {background: #43a047; color:white;}
         .state-btn.fail {background: #df2323; color:white;}
         .state-btn.data {background: #c49c48; color:white;}
-        .state-btn.selected { box-shadow: 0 0 0 3px #93e5a0; background: #35733a; color: #fff;}
+        .state-btn.pass.selected { box-shadow: 0 0 0 3px #93e5a0; background: #35733a; color: #fff;}
+        .state-btn.fail.selected {
+            background: #df2323 !important;
+            color: #fff !important;
+            box-shadow: 0 0 0 3px #ffc3c3;
+        }
         .state-btn:hover, .state-btn:focus { filter: brightness(1.11); }
         .section-label {
             font-size: 15px; font-weight: 600; color: #c49c48;
@@ -230,7 +235,7 @@
             margin-right: auto;
         }
         .img-time-label:before {
-            content: '\\f017  ';
+            content: '\f017  ';
             font-family: "Font Awesome 6 Free";
             font-weight: 900;
             margin-right: 3px;
@@ -307,10 +312,27 @@
             background: #28321b;
             color: #ffe082;
         }
+        .report-banner {
+            color: #d6c49d;
+            font-size: 21px;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 6px;
+            margin-bottom: 14px;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 14px #c49c484a;
+            font-family: 'Merriweather', serif;
+        }
     </style>
 </head>
 <body>
     <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
+    
+    <!-- MÃ REPORT rõ ràng ở đầu trang -->
+    <div class="report-banner">
+        📝 MÃ REPORT: {{ report }}
+    </div>
+    
     <div class="box animate__animated animate__fadeInDown centered-block">
         <a href="{{ url_for('test_group_page', report=report, group=group) }}"
            class="back-btn"
@@ -319,7 +341,7 @@
             <i class="fa fa-arrow-left"></i> <span>Quay lại mục kiểm tra</span>
         </a>
         <h2>Hot &amp; Cold Cycle Test</h2>
-        <div class="header-sub">Report: <b>{{ report }}</b> &mdash; Group: <b>{{ group.upper() }}</b></div>
+        <div class="header-sub">Group: <b>{{ group.upper() }}</b></div>
         {% if imgs_mo_ta %}
         <div class="section">
             <div class="test-desc">Mô tả kiểm thử (nhấp vào ảnh mẫu để phóng to xem chi tiết)</div>
@@ -332,15 +354,34 @@
         </div>
         {% endif %}
         <form method="POST" class="state-btn-group" style="justify-content:center;margin-bottom:14px;">
+            <input type="hidden" name="group" value="{{ group }}">
             <button name="status" value="PASS" type="submit" class="state-btn pass {% if status == 'PASS' %}selected{% endif %}"><i class="fa fa-check"></i><span>PASS</span></button>
             <button name="status" value="FAIL" type="submit" class="state-btn fail {% if status == 'FAIL' %}selected{% endif %}"><i class="fa fa-times"></i><span>FAIL</span></button>
             <button name="status" value="DATA" type="submit" class="state-btn data {% if status == 'DATA' %}selected{% endif %}"><i class="fa fa-database"></i><span>DATA</span></button>
         </form>
+        {% if status %}
+        <div class="status-block" style="margin-top:8px;text-align:center;">
+            {% if status == "PASS" %}
+                <span class="inline-status pass" style="color:#43a047;font-weight:700;font-size:1.12em;">
+                    <i class="fa fa-check-circle"></i> PASS
+                </span>
+            {% elif status == "FAIL" %}
+                <span class="inline-status fail" style="color:#df2323;font-weight:700;font-size:1.12em;">
+                    <i class="fa fa-times-circle"></i> FAIL
+                </span>
+            {% elif status == "DATA" %}
+                <span class="inline-status data" style="color:#c49c48;font-weight:700;font-size:1.12em;">
+                    <i class="fa fa-database"></i> DATA
+                </span>
+            {% endif %}
+        </div>
+        {% endif %}
         <!-- PHẦN UP ẢNH BEFORE -->
         <div style="width:100%;">
             <div class="section-label"><i class="fa fa-arrow-up"></i> Ảnh Before</div>
             {% if before_upload_time %}
-            <div class="img-time-label">Thời gian bắt đầu: {{ before_upload_time }}</div>
+                <div class="img-time-label">Thời gian bắt đầu: {{ before_upload_time }}</div>
+                <div id="counter-hotcold"></div>
             {% endif %}
             <form method="POST" enctype="multipart/form-data" style="margin-bottom:9px;text-align:center;">
                 <input type="file" name="hotcold_before_{{ group }}_imgs" multiple accept="image/*" style="display:none;" id="before-upload"
@@ -362,35 +403,11 @@
             {% endfor %}
             </div>
         </div>
-        {% if before_upload_time %}
-          <div id="counter-hotcold"></div>
-          <script>
-            var parts = "{{ before_upload_time }}".match(/(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4}) (\\d{1,2}):(\\d{1,2})/);
-            var uploadTime = new Date(parts[3], parts[2]-1, parts[1], parts[4], parts[5], 0);
-            function updateCounter() {
-              var now = new Date();
-              var elapsed = (now - uploadTime) / (1000 * 60 * 60); // giờ
-              var remain = {{ so_gio_test }} - elapsed;
-              var el = document.getElementById('counter-hotcold');
-              if (remain <= 0) {
-                el.innerHTML = "&#10004; Đã hoàn thành hot &amp; cold cycle test (đủ {{ so_gio_test }} tiếng)";
-              } else {
-                var totalSec = Math.floor(remain * 3600);
-                var h = Math.floor(totalSec / 3600);
-                var m = Math.floor((totalSec % 3600) / 60);
-                var s = totalSec % 60;
-                el.innerHTML = "Còn " + h + " giờ " + m + " phút " + s + " giây là đủ {{ so_gio_test }} tiếng";
-              }
-            }
-            updateCounter();
-            setInterval(updateCounter, 1000); // cập nhật mỗi giây
-          </script>
-        {% endif %}
         <!-- PHẦN UP ẢNH AFTER -->
         <div style="width:100%;margin-top:16px;">
             <div class="section-label"><i class="fa fa-arrow-down"></i> Ảnh After</div>
             {% if after_upload_time %}
-            <div class="img-time-label">Thời gian kết thúc: {{ after_upload_time }}</div>
+                <div class="img-time-label">Thời gian kết thúc: {{ after_upload_time }}</div>
             {% endif %}
             <form method="POST" enctype="multipart/form-data" style="margin-bottom:8px;text-align:center;">
                 <input type="file" name="hotcold_after_{{ group }}_imgs" multiple accept="image/*" style="display:none;" id="after-upload"
@@ -414,6 +431,7 @@
         </div>
         <!-- COMMENT -->
         <form method="POST" class="comment-block">
+            <input type="hidden" name="group" value="{{ group }}">
             <label class="cmt-label" for="comment_input"
                 style="display:block;text-align:center;font-size:15px;font-weight:600;margin-bottom:10px;">
                 Ghi chú/Comment:
@@ -447,6 +465,33 @@
             document.body.classList.add('dark');
         }
         syncDarkModeBtn();
+
+        // --- Countdown hot & cold (nếu có before_upload_time) ---
+        {% if before_upload_time %}
+            var parts = "{{ before_upload_time }}".match(/(\d{1,2})\/(\d{1,2})\/(\d{4}) (\d{1,2}):(\d{1,2})/);
+            if (parts) {
+                var uploadTime = new Date(parts[3], parts[2]-1, parts[1], parts[4], parts[5], 0);
+                var soGio = {{ so_gio_test }};
+                function updateCounter() {
+                  var now = new Date();
+                  var elapsed = (now - uploadTime) / (1000 * 60 * 60); // giờ
+                  var remain = soGio - elapsed;
+                  var el = document.getElementById('counter-hotcold');
+                  if (!el) return;
+                  if (remain <= 0) {
+                    el.innerHTML = "<span style='color:#3cb464;font-weight:600;'><i class='fa fa-check-circle'></i> Đã hoàn thành Hot &amp; Cold cycle (đủ " + soGio + " tiếng)</span>";
+                  } else {
+                    var totalSec = Math.floor(remain * 3600);
+                    var h = Math.floor(totalSec / 3600);
+                    var m = Math.floor((totalSec % 3600) / 60);
+                    var s = totalSec % 60;
+                    el.innerHTML = "⏳ Còn " + h + " giờ " + m + " phút " + s + " giây là đủ <b>" + soGio + "</b> tiếng";
+                  }
+                }
+                updateCounter();
+                setInterval(updateCounter, 1000);
+            }
+        {% endif %}
     });
 
     function triggerUpload(inputId) {

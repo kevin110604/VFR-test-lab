@@ -60,7 +60,7 @@
     }
 
     .report-banner {
-        color: var(--color-beige-bg);
+        color: #d6c49d;
         font-size: 21px;
         font-weight: bold;
         text-align: center;
@@ -182,10 +182,6 @@
     }
 
     /* === NEW OVERRIDES === */
-    /* Keep report code bright in dark mode */
-    body.dark .report-banner {
-        color: var(--color-beige-bg) !important;
-    }
     /* Keep status badges bright in dark mode */
     body.dark .inline-status {
         background: #f8fff8 !important;
@@ -394,6 +390,7 @@
             <small>Nhấp vào ảnh mẫu để phóng to xem chi tiết</small>
         </div>
         <form method="POST" class="state-btn-group" aria-label="Chọn trạng thái kiểm thử">
+            <input type="hidden" name="group" value="{{ group }}">
             <button name="status" value="PASS" type="submit"
                 class="state-btn pass {% if status == 'PASS' %}selected{% endif %}" aria-pressed="{{ 'true' if status == 'PASS' else 'false' }}">PASS</button>
             <button name="status" value="FAIL" type="submit"
@@ -424,6 +421,7 @@
         {% endif %}
         </div>
         <form method="POST" class="comment-block" aria-label="Thêm ghi chú hoặc comment">
+            <input type="hidden" name="group" value="{{ group }}">
             <label class="cmt-label" for="comment_input">Thêm ghi chú/comment:</label><br>
             <textarea name="comment_input" id="comment_input" rows="2" style="width:97%;max-width:380px;border-radius:8px;padding:7px;font-size:16px;">{{comment or ''}}</textarea>
             <br>

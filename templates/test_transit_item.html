@@ -353,21 +353,35 @@
         box-shadow: 0 4px 18px #d4b44b44;
     }
     .state-btn:hover { background: #f5ecc2; }
-    </style>
+    .report-banner {
+        color: #d6c49d;
+        font-size: 21px;
+        font-weight: bold;
+        text-align: center;
+        margin-top: 6px;
+        margin-bottom: 14px;
+        letter-spacing: 1px;
+        text-shadow: 0 2px 14px #c49c484a;
+        font-family: 'Merriweather', serif;
+    }
+        </style>
 </head>
 <body>
     <!-- Nút darkmode -->
-    <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
+    <<button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
+    <div class="report-banner">
+        📝 MÃ REPORT: {{ report }}
+    </div>
     <div class="box" role="main">
         <div class="back-btn-container">
-            <a href="{{ url_for('test_group_page', report=report, group=group) }}" class="back-btn" tabindex="0" aria-label="Quay lại menu bước">
+            <a href="{{ url_for('test_group_page', report=report, group=group) }}" class="back-btn" tabindex="0" aria-label="Quay lại chọn mục kiểm tra">
                 <svg width="19" height="19" style="vertical-align:middle;margin-right:4px;" fill="#fff" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M12.293 16.293a1 1 0 010-1.414L8.414 11H17a1 1 0 100-2H8.414l3.879-3.879a1 1 0 00-1.414-1.414l-5 5a1 1 0 000 1.414l5 5a1 1 0 001.414-1.414z" clip-rule="evenodd"/>
                 </svg>
-                Quay lại chọn bước
+                Quay lại chọn mục kiểm tra
             </a>
         </div>
-        <h2>{{ name }}</h2>
+        <h2>{{ title['short'] }}</h2>
         <div class="section">
             <b>Mô tả kiểm thử:</b><br>
             {% for img in title['img'] %}
@@ -495,6 +509,49 @@
                                     <div style="position:relative;display:inline-block;">
                                         <img src="{{ img }}" class="img-thumb" style="max-width:78px;max-height:78px;border-radius:8px;border:2px solid #4d665c;margin:2px;" onclick="showPopup(this)">
                                         <form method="POST" style="display:inline;position:absolute;top:6px;left:8px;" onsubmit="return deleteSpecialImgAjax(event, '{{ img.split('/')[-1] }}', 'rh_second_impact', '{{zone}}')">
+                                            <input type="hidden" name="delete_img" value="{{ img.split('/')[-1] }}">
+                                            <button type="submit" class="del-img-btn" title="Xóa ảnh này">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% elif is_rh_np and key == 'step12' %}
+                <div class="drop-upload-group" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    {% for zone, label in rh_step12_zones %}
+                        <div class="drop-upload-zone" style="border:1px solid #c49c48;padding:8px 14px 11px 14px;border-radius:10px;margin-bottom:8px;">
+                            <label class="drop-upload-label">{{ label }}</label>
+                            <input type="file" name="rh_step12_img_{{ zone }}" multiple accept="image/*"
+                                style="display:none;" id="rh-step12-upload-{{zone}}"
+                                onchange="uploadSpecialImgsAjax(this, 'rh_step12', '{{zone}}')">
+                            <button type="button"
+                                    class="gold-upload-btn {% if zone_imgs[zone]|length > 0 %}btn-mini{% endif %}"
+                                    onclick="triggerUpload('rh-step12-upload-{{zone}}')"
+                                    style="width:{{ '105px' if zone_imgs[zone]|length > 0 else '100%' }};
+                                        font-size:{{ '13px' if zone_imgs[zone]|length > 0 else '15px' }};
+                                        padding:{{ '5px 12px' if zone_imgs[zone]|length > 0 else '10px 32px' }};
+                                        margin-bottom:7px;">
+                                <i class="fa fa-upload"></i>
+                                {% if zone_imgs[zone]|length == 0 %}
+                                    Chọn và tải ảnh
+                                {% else %}
+                                    Thêm ảnh
+                                {% endif %}
+                                <span id="rh-step12-upload-fake-btn-{{zone}}" style="font-size:12px;color:#333;padding-left:7px;">Chưa chọn file</span>
+                            </button>
+                            <div class="upload-loading" id="loading-rh_step12-{{zone}}">
+                                <i class="fa fa-spinner fa-spin" id="loading-spinner-rh_step12-{{zone}}"></i>
+                                <span id="loading-text-rh_step12-{{zone}}">Đang tải ảnh...</span>
+                            </div>
+                            <div class="img-grid" id="rh_step12-img-list-{{zone}}" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:5px;justify-content:left;">
+                                {% for img in zone_imgs[zone] %}
+                                    <div style="position:relative;display:inline-block;">
+                                        <img src="{{ img }}" class="img-thumb" style="max-width:78px;max-height:78px;border-radius:8px;border:2px solid #4d665c;margin:2px;" onclick="showPopup(this)">
+                                        <form method="POST" style="display:inline;position:absolute;top:6px;left:8px;" onsubmit="return deleteSpecialImgAjax(event, '{{ img.split('/')[-1] }}', 'rh_step12', '{{zone}}')">
                                             <input type="hidden" name="delete_img" value="{{ img.split('/')[-1] }}">
                                             <button type="submit" class="del-img-btn" title="Xóa ảnh này">
                                                 <i class="fa fa-trash"></i>

@@ -570,7 +570,7 @@
         <div class="info-title">THÔNG TIN SẢN PHẨM</div>
         {% if last_test_type %}
         <div class="test-type-notify" style="text-align:center;color:#b68b22;font-size:18px;font-weight:600;margin-bottom:13px;">
-          Loại test: {{ last_test_type }}
+               <b>Loại test:</b> {{ last_test_type }}
         </div>
         {% endif %}
         {% if img_overview and img_overview|length > 0 %}
@@ -721,8 +721,8 @@
             <a href="{{ url_for('test_group_page', report=report_id, group='transit_2c_np') }}" class="test-btn" style="margin-bottom:6px;">2C</a>
             <a href="{{ url_for('test_group_page', report=report_id, group='transit_RH_np') }}" class="test-btn" style="margin-bottom:6px;">RH</a>
             <a href="{{ url_for('test_group_page', report=report_id, group='transit_nonpallet') }}" class="test-btn" style="margin-bottom:6px;">181 (&lt;68kg)</a>
-            <a href="{{ url_for('test_group_page', report=report_id, group='transit_nonpallet') }}" class="test-btn" style="margin-bottom:6px;">3A</a>
             <a href="{{ url_for('test_group_page', report=report_id, group='transit_nonpallet') }}" class="test-btn" style="margin-bottom:6px;">3B</a>
+            <a href="{{ url_for('test_group_page', report=report_id, group='transit_nonpallet') }}" class="test-btn" style="margin-bottom:6px;">3A</a>
             </div>
             <!-- Pallet column -->
             <div style="min-width:120px; flex:1 1 140px;">

@@ -185,15 +185,18 @@
         .img-time-label {
             text-align: center;
             font-size: 13px;
-            color: #3b3b3b;
-            background: #fffbe5;
-            padding: 3px 11px;
-            border-radius: 8px;
+            color: #705e27;
+            background: #fff9e0;
+            padding: 4px 17px 4px 11px;
+            border-radius: 17px;
             font-style: italic;
             margin-bottom: 5px;
             margin-top: 3px;
-            display: inline-block;
-            box-shadow: 0 2px 7px #0001;
+            display: block;
+            box-shadow: 0 1px 5px #dec89317;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
         }
         .img-time-label:before {
             content: '\f017  ';
@@ -256,6 +259,25 @@
             box-shadow: 0 2px 12px #2226; transition: background 0.13s;
         }
         #img-popup-close:hover {background:rgba(220,40,40,0.22);}
+        .counter-done, .counter-waiting {
+            font-size: 0.97em;    /* nhỏ hơn mặc định */
+            padding: 4.5px 13px;  /* padding nhỏ lại */
+            margin: 7px auto 7px auto;
+            border-radius: 12px;
+            max-width: 97vw;
+        }
+        .counter-done {
+            color: #21a750;
+            background: #e8ffe8;
+            border: 1.2px solid #c8eccb;
+            font-weight: 600;
+        }
+        .counter-waiting {
+            color: #b68b22;
+            background: #fffbe0;
+            border: 1.2px solid #f7e5b1;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -295,30 +317,32 @@
             </div>
         </div>
         {% if before_upload_time %}
-          <div id="counter-line" style="color:#b68b22;font-size:15px;font-weight:600;margin-top:8px;"></div>
-          <script>
-            // before_upload_time dạng "dd/mm/yyyy HH:MM"
+            <div id="counter-line"></div>
+            <script>
             var parts = "{{ before_upload_time }}".match(/(\d{1,2})\/(\d{1,2})\/(\d{4}) (\d{1,2}):(\d{1,2})/);
             var uploadTime = new Date(parts[3], parts[2]-1, parts[1], parts[4], parts[5], 0);
-        
+            var soGio = {{ so_gio_test }};
             function updateCounter() {
-              var now = new Date();
-              var elapsed = (now - uploadTime) / (1000 * 60 * 60); // giờ
-              var remain = {{ so_gio_test }} - elapsed;
-              var el = document.getElementById('counter-line');
-              if (remain <= 0) {
-                el.innerHTML = "&#10004; Đã hoàn thành line test (đủ 50 tiếng)";
-              } else {
+            var now = new Date();
+            var elapsed = (now - uploadTime) / (1000 * 60 * 60); // giờ
+            var remain = soGio - elapsed;
+            var el = document.getElementById('counter-line');
+            if (!el) return;
+            if (remain <= 0) {
+                el.className = "counter-done";
+                el.innerHTML = "<i class='fa fa-check-circle'></i> Đã hoàn thành line test (đủ <b>" + soGio + "</b> tiếng)";
+            } else {
                 var totalSec = Math.floor(remain * 3600);
                 var h = Math.floor(totalSec / 3600);
                 var m = Math.floor((totalSec % 3600) / 60);
                 var s = totalSec % 60;
-                el.innerHTML = "Còn " + h + " giờ " + m + " phút " + s + " giây là đủ 50 tiếng";
-              }
+                el.className = "counter-waiting";
+                el.innerHTML = "⏳ Còn " + h + " giờ " + m + " phút " + s + " giây là đủ <b>" + soGio + "</b> tiếng";
+            }
             }
             updateCounter();
-            setInterval(updateCounter, 1000); // cập nhật mỗi giây
-          </script>
+            setInterval(updateCounter, 1000);
+            </script>
         {% endif %}
         <!-- PHẦN UP ẢNH AFTER -->
         <div style="width:100%;margin-top:16px;">

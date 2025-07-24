@@ -912,7 +912,7 @@ TRANSIT_RH_NP_TEST_TITLES = {
         "img": ["/static/images/buoc 9 RH.png"]
     },
     "step10": {
-        "full": "Bước 10: Stability – Kiểm tra nghiêng 22°",
+        "full": "Bước 10: Stability – Kiểm tra nghiêng 22° hoặc 15°",
         "short": "Kiểm tra nghiêng 22°",
         "img": ["/static/images/buoc 10 RH.png"]
     },
@@ -950,7 +950,7 @@ TRANSIT_RH_PALLET_TEST_TITLES = {
         "img": ["/static/images/buoc 3 RH pal.png"]
     },
     "step4": {
-        "full": "Bước 4: Stability – Kiểm tra nghiêng 22°",
+        "full": "Bước 4: Stability – Kiểm tra nghiêng 22° hoặc 15°",
         "short": "Kiểm tra nghiêng 22°",
         "img": ["/static/images/buoc 4 RH pal.png"]
     },
@@ -1043,6 +1043,11 @@ RH_SECOND_IMPACT_ZONES = [
     ("goc_1_4_5", "Góc 1-4-5"),
     ("mat_1", "Mặt 1"),
     ("mat_3", "Mặt 3")
+]
+
+RH_STEP12_ZONES = [
+    ("lan1", "Lần 1"),
+    ("lan2", "Lần 2"),
 ]
 
 for group_dict in TEST_GROUP_TITLES.values():
