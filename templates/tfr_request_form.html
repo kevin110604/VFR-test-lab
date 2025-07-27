@@ -340,28 +340,24 @@
                 <input type="date" name="request_date" required value="{{ form_data.get('request_date', '') }}" class="input-date-mobile" autocomplete="off" inputmode="none">
                 {% if 'request_date' in missing_fields %}<div class="error-msg">Bắt buộc nhập</div>{% endif %}
             </div>
-            <div class="form-group {% if 'sample_type' in missing_fields %}has-error{% endif %}">
-                <label>Test Sample Type <span class="required">*</span></label>
+
+            <!-- Chọn loại test: đổi từ checkbox sang radio -->
+            <div class="form-group {% if 'test_group' in missing_fields %}has-error{% endif %}">
+                <label>Chọn loại test <span class="required">*</span></label>
                 <div class="radio-row">
-                    <label>
-                        <input type="radio" name="sample_type" value="Material" required
-                            {% if form_data.get('sample_type') == 'Material' %}checked{% endif %}> Material
-                    </label>
-                    <label>
-                        <input type="radio" name="sample_type" value="Carcass" required
-                            {% if form_data.get('sample_type') == 'Carcass' %}checked{% endif %}> Carcass
-                    </label>
-                    <label>
-                        <input type="radio" name="sample_type" value="Finished Item" required
-                            {% if form_data.get('sample_type') == 'Finished Item' %}checked{% endif %}> Finished Item
-                    </label>
-                    <label>
-                        <input type="radio" name="sample_type" value="Other" required
-                            {% if form_data.get('sample_type') == 'Other' %}checked{% endif %}> Other
-                    </label>
+                    <label><input type="radio" name="test_group" value="CONSTRUCTION TEST"
+                        {% if form_data.get('test_group') == 'CONSTRUCTION TEST' %}checked{% endif %}>
+                        CONSTRUCTION TEST</label>
+                    <label><input type="radio" name="test_group" value="PACKAGING TEST (TRANSIT TEST)"
+                        {% if form_data.get('test_group') == 'PACKAGING TEST (TRANSIT TEST)' %}checked{% endif %}>
+                        PACKAGING TEST (TRANSIT TEST)</label>
+                    <label><input type="radio" name="test_group" value="MATERIAL AND FINISHING TEST"
+                        {% if form_data.get('test_group') == 'MATERIAL AND FINISHING TEST' %}checked{% endif %}>
+                        MATERIAL AND FINISHING TEST</label>
                 </div>
-                {% if 'sample_type' in missing_fields %}<div class="error-msg">Bắt buộc chọn</div>{% endif %}
+                {% if 'test_group' in missing_fields %}<div class="error-msg">Bắt buộc chọn</div>{% endif %}
             </div>
+
             <div class="form-group {% if 'sample_description' in missing_fields %}has-error{% endif %}">
                 <label>Sample description <span class="required">*</span></label>
                 <div class="input-na-wrap">
@@ -425,13 +421,14 @@
                 </div>
                 {% if 'test_status' in missing_fields %}<div class="error-msg">Bắt buộc chọn</div>{% endif %}
             </div>
+            <!-- Furniture testing: đổi từ checkbox sang radio -->
             <div class="form-group {% if 'furniture_testing' in missing_fields %}has-error{% endif %}">
                 <label>Furniture testing <span class="required">*</span></label>
-                <div class="checkbox-row">
-                    <label><input type="checkbox" name="furniture_testing" value="Indoor"
-                        {% if 'Indoor' in form_data.get('furniture_testing', []) %}checked{% endif %}> Indoor</label>
-                    <label><input type="checkbox" name="furniture_testing" value="Outdoor"
-                        {% if 'Outdoor' in form_data.get('furniture_testing', []) %}checked{% endif %}> Outdoor</label>
+                <div class="radio-row">
+                    <label><input type="radio" name="furniture_testing" value="Indoor"
+                        {% if form_data.get('furniture_testing') == 'Indoor' %}checked{% endif %}> Indoor</label>
+                    <label><input type="radio" name="furniture_testing" value="Outdoor"
+                        {% if form_data.get('furniture_testing') == 'Outdoor' %}checked{% endif %}> Outdoor</label>
                 </div>
                 {% if 'furniture_testing' in missing_fields %}<div class="error-msg">Bắt buộc chọn</div>{% endif %}
             </div>
@@ -439,21 +436,6 @@
                 <label>Quantity <span class="required">*</span></label>
                 <input type="number" name="quantity" min="1" required value="{{ form_data.get('quantity','') }}">
                 {% if 'quantity' in missing_fields %}<div class="error-msg">Bắt buộc nhập</div>{% endif %}
-            </div>
-            <div class="form-group {% if 'test_group' in missing_fields %}has-error{% endif %}">
-                <label>Chọn loại test <span class="required">*</span></label>
-                <div class="checkbox-row">
-                    <label><input type="checkbox" name="test_group" value="CONSTRUCTION TEST"
-                        {% if 'CONSTRUCTION TEST' in form_data.get('test_group', []) %}checked{% endif %}>
-                        CONSTRUCTION TEST</label>
-                    <label><input type="checkbox" name="test_group" value="PACKAGING TEST (TRANSIT TEST)"
-                        {% if 'PACKAGING TEST (TRANSIT TEST)' in form_data.get('test_group', []) %}checked{% endif %}>
-                        PACKAGING TEST (TRANSIT TEST)</label>
-                    <label><input type="checkbox" name="test_group" value="MATERIAL AND FINISHING TEST"
-                        {% if 'MATERIAL AND FINISHING TEST' in form_data.get('test_group', []) %}checked{% endif %}>
-                        MATERIAL AND FINISHING TEST</label>
-                </div>
-                {% if 'test_group' in missing_fields %}<div class="error-msg">Bắt buộc chọn</div>{% endif %}
             </div>
             <button type="submit"><i class="fa fa-file-export"></i> Xuất TFR</button>
         </form>

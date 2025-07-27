@@ -1,13 +1,13 @@
 # app.py
 from flask import Flask, request, render_template, session, redirect, url_for
-from config import SECRET_KEY, PASSWORD, local_main, SAMPLE_STORAGE, UPLOAD_FOLDER, TEST_GROUPS, local_complete, qr_folder, SO_GIO_TEST, ALL_SLOTS, TEAMS_WEBHOOK_URL
+from config import SECRET_KEY, local_main, SAMPLE_STORAGE, UPLOAD_FOLDER, TEST_GROUPS, local_complete, qr_folder, SO_GIO_TEST, ALL_SLOTS, TEAMS_WEBHOOK_URL
 from excel_utils import get_item_code, get_col_idx, copy_row_with_style, is_img_at_cell, write_tfr_to_excel
 from image_utils import allowed_file, safe_filename, get_img_urls
-from auth import login, logout, is_logged_in
+from auth import login, logout, is_logged_in, get_user_type
 from test_logic import load_group_notes, get_group_test_status, is_drop_test, is_impact_test, is_rotational_test,  TEST_GROUP_TITLES, TEST_TYPE_VI, DROP_ZONES, DROP_LABELS
 from test_logic import IMPACT_ZONES, IMPACT_LABELS, ROT_LABELS, ROT_ZONES, RH_IMPACT_ZONES, RH_VIB_ZONES, RH_SECOND_IMPACT_ZONES, RH_STEP12_ZONES, update_group_note_file, get_group_note_value
 from notify_utils import send_teams_message, notify_when_enough_time
-from counter_utils import update_counter, log_order_complete, check_and_reset_counter, log_report_complete
+from counter_utils import update_counter, check_and_reset_counter, log_report_complete
 from openpyxl import load_workbook, Workbook
 from flask import send_from_directory
 from datetime import datetime
@@ -47,71 +47,123 @@ def home():
     # Đăng nhập
     if request.method == "POST":
         if request.form.get("action") == "login":
-            if request.form.get("password") == PASSWORD:
-                session["auth_ok"] = True
+            password_input = request.form.get("password")
+            if login(password_input):
                 return redirect(url_for("home"))
             else:
                 message = "Sai mật khẩu. Vui lòng thử lại."
+        elif request.form.get("action") == "set_staff_id":
+            staff_id = request.form.get("staff_id", "").strip()
+            if staff_id:
+                session["staff_id"] = staff_id
+                return redirect(url_for("home"))
+            else:
+                message = "Vui lòng nhập mã số nhân viên!"
 
     # ==== Load danh sách report từ file ====
     full_report_list = []
     type_of_set = set()
-    if session.get("auth_ok"):
-        try:
-            wb = load_workbook(local_main)
-            ws = wb.active
+    all_statuses = ['LATE', 'MUST', 'DUE', 'ACTIVE', 'COMPLETE', 'DONE']
+    raw_status_set = set()
+    user_type = get_user_type() if session.get("auth_ok") else None
 
-            def clean_col(s):
-                s = str(s).lower().strip()
-                s = re.sub(r'[^a-z0-9#]+', '', s)
-                return s
+    try:
+        wb = load_workbook(local_main)
+        ws = wb.active
 
-            headers = {}
-            for col in range(1, ws.max_column + 1):
-                name = ws.cell(row=1, column=col).value
-                if name:
-                    clean = clean_col(name)
-                    headers[clean] = col
+        def clean_col(s):
+            s = str(s).lower().strip()
+            s = re.sub(r'[^a-z0-9#]+', '', s)
+            return s
 
-            report_col    = headers.get("report#")
-            item_col      = headers.get("item#")
-            status_col    = headers.get("status")
-            test_date_col = headers.get("logindate")
-            type_of_col   = headers.get("typeof")
+        headers = {}
+        for col in range(1, ws.max_column + 1):
+            name = ws.cell(row=1, column=col).value
+            if name:
+                clean = clean_col(name)
+                headers[clean] = col
 
-            if None in (report_col, item_col, status_col, test_date_col):
-                message = f"Thiếu cột trong file Excel! Đã đọc: {headers}"
-            else:
-                for row in range(2, ws.max_row + 1):
-                    status_raw = ws.cell(row=row, column=status_col).value
-                    status = str(status_raw).strip().upper() if status_raw else ""
-                    if status not in ("LATE", "MUST", "DUE", "ACTIVE"):
-                        continue
+        report_col    = headers.get("report#")
+        item_col      = headers.get("item#")
+        status_col    = headers.get("status")
+        test_date_col = headers.get("logindate")
+        type_of_col   = headers.get("typeof")
 
-                    report = ws.cell(row=row, column=report_col).value
-                    item = ws.cell(row=row, column=item_col).value
-                    type_of = ws.cell(row=row, column=type_of_col).value if type_of_col else ""
-                    log_date = ws.cell(row=row, column=test_date_col).value
-                    log_date_str = str(log_date).strip() if log_date else ""
-                    if log_date_str:
-                        log_date_str = log_date_str.split()[0]
+        if None in (report_col, item_col, status_col, test_date_col):
+            message = f"Thiếu cột trong file Excel! Đã đọc: {headers}"
+        else:
+            for row in range(2, ws.max_row + 1):
+                status_raw = ws.cell(row=row, column=status_col).value
+                status = str(status_raw).strip().upper() if status_raw else ""
+                report = ws.cell(row=row, column=report_col).value
+                item = ws.cell(row=row, column=item_col).value
+                type_of = ws.cell(row=row, column=type_of_col).value if type_of_col else ""
+                log_date = ws.cell(row=row, column=test_date_col).value
+                log_date_str = str(log_date).strip() if log_date else ""
+                if log_date_str:
+                    log_date_str = log_date_str.split()[0]
 
-                    r_dict = {
-                        "report": str(report).strip() if report else "",
-                        "item": str(item).strip() if item else "",
-                        "status": status,
-                        "type_of": str(type_of).strip() if type_of else "",
-                        "log_date": log_date_str
-                    }
-                    full_report_list.append(r_dict)
-                    if r_dict["type_of"]:
-                        type_of_set.add(r_dict["type_of"])
+                r_dict = {
+                    "report": str(report).strip() if report else "",
+                    "item": str(item).strip() if item else "",
+                    "status": status,
+                    "type_of": str(type_of).strip() if type_of else "",
+                    "log_date": log_date_str
+                }
+                full_report_list.append(r_dict)
+                if r_dict["type_of"]:
+                    type_of_set.add(r_dict["type_of"])
+                if status:
+                    raw_status_set.add(status)
+        type_of_set = sorted(type_of_set)
+    except Exception as e:
+        message = f"Lỗi khi đọc danh sách: {e}"
 
-                type_of_set = sorted(type_of_set)
-        except Exception as e:
-            message = f"Lỗi khi đọc danh sách: {e}"
+    # ==== Chuẩn bị status_set cho filter (dropdown) ====
+    status_set = []
+    for s in all_statuses:
+        if s in raw_status_set:
+            status_set.append(s)
+    for s in sorted(raw_status_set):
+        if s not in status_set:
+            status_set.append(s)
 
-    # ==== Tổng hợp status toàn bộ ====
+    # ==== Lấy giá trị filter ====
+    selected_status = request.args.getlist("status")
+    if not selected_status or selected_status == [""]:
+        selected_status = []  # "All" tức là không filter gì
+    selected_type = request.args.get("type_of", "")
+
+    # ==== Lọc report_list theo filter ====
+    report_list = full_report_list
+    if selected_type:
+        report_list = [r for r in report_list if r["type_of"] == selected_type]
+    if selected_status:
+        report_list = [r for r in report_list if r["status"] in selected_status]
+    # Nếu selected_status là [] thì show all
+
+    # ==== PHÂN TRANG ====
+    try:
+        page = int(request.args.get("page", "1"))
+    except:
+        page = 1
+    try:
+        page_size = int(request.args.get("page_size", "10"))
+    except:
+        page_size = 10
+    if page_size not in [10, 15, 20]:
+        page_size = 10
+
+    total_reports = len(report_list)
+    total_pages = max((total_reports + page_size - 1) // page_size, 1)
+    if page < 1: page = 1
+    if page > total_pages: page = total_pages
+
+    start_idx = (page - 1) * page_size
+    end_idx = start_idx + page_size
+    report_list_page = report_list[start_idx:end_idx]
+
+    # ==== Tổng hợp status toàn bộ (không thay đổi) ====
     type_shortname = {
         "CONSTRUCTION": "CON",
         "FINISHING": "FIN",
@@ -137,13 +189,6 @@ def home():
             "total": total,
         })
 
-    # ==== Lọc report_list theo loại nếu có ====
-    selected_type = request.args.get("type_of", "")
-    if selected_type:
-        report_list = [r for r in full_report_list if r["type_of"] == selected_type]
-    else:
-        report_list = full_report_list
-
     # Đọc số liệu đếm để truyền vào home.html
     counter = {"office": 0, "ot": 0}
     path = "counter_stats.json"
@@ -151,16 +196,22 @@ def home():
         with open(path, "r", encoding="utf-8") as f:
             counter = json.load(f)
 
-    # ==== Trả về template ====
     return render_template(
         "home.html",
         message=message,
         type_of_set=type_of_set,
         selected_type=selected_type,
+        status_set=status_set,
+        selected_status=selected_status,
         session=session,
-        report_list=report_list,             # TRẢ VỀ FULL LIST SAU KHI LỌC!
-        summary_by_type=summary_by_type,     # Vẫn có nếu template cần hiển thị tổng hợp
+        report_list=report_list,
+        summary_by_type=summary_by_type,
         counter=counter,
+        page=page,
+        total_pages=total_pages,
+        page_size=page_size,
+        total_reports=total_reports,
+        request=request,
     )
 
 TFR_LOG_FILE = "tfr_requests.json"  # Dùng file json cho đơn giản
@@ -195,21 +246,21 @@ def tfr_request_form():
 
         # Validate các trường bắt buộc
         required_fields = [
-            "requestor", "department", "request_date", "sample_type",
+            "requestor", "department", "request_date",
             "sample_description", "test_status", "quantity"
         ]
         for field in required_fields:
-            if not form.get(field):
+            if not form.get(field) and not form.get(f"{field}_na"):
                 missing_fields.append(field)
 
-        # Validate nhóm test tối thiểu 1
-        test_groups = request.form.getlist("test_group")
-        if not test_groups:
+        # Validate nhóm test (radio)
+        test_group = form.get("test_group", "")
+        if not test_group:
             missing_fields.append("test_group")
-            error = "Phải chọn ít nhất 1 loại test!"
+            error = "Phải chọn loại test!"
 
-        # Validate Furniture testing
-        furniture_testing = request.form.getlist("furniture_testing")
+        # Validate Furniture testing (radio)
+        furniture_testing = form.get("furniture_testing", "")
         if not furniture_testing:
             missing_fields.append("furniture_testing")
             error = "Phải chọn Indoor hoặc Outdoor!"
@@ -221,14 +272,9 @@ def tfr_request_form():
                 return "N/A"
             return form.get(key, "").strip()
 
-        form_data = form.to_dict(flat=False)  # Lưu lại tất cả đã nhập (kể cả multi checkbox)
-        for k, v in form_data.items():
-            if isinstance(v, list) and len(v) == 1:
-                form_data[k] = v[0]
-        form_data["test_group"] = test_groups
+        form_data = form.to_dict(flat=False)
+        form_data["test_group"] = test_group
         form_data["furniture_testing"] = furniture_testing
-
-        # Giữ lại ID để hiển thị khi có lỗi
         form_data["tlq_id"] = request.form.get("tlq_id", default_tlq_id)
 
         if missing_fields:
@@ -249,21 +295,20 @@ def tfr_request_form():
         if test_status == "nth":
             nth = form.get("test_status_nth", "").strip()
             test_status = nth + "th" if nth.isdigit() else "nth"
-        furniture_testing_str = ", ".join(furniture_testing)
+
         new_request = {
             "tlq_id": form.get("tlq_id", default_tlq_id),
             "requestor": form.get("requestor"),
             "department": form.get("department"),
             "request_date": form.get("request_date"),
-            "sample_type": form.get("sample_type"),
-            "sample_description": form.get("sample_description"),
+            "sample_description": na_or_value("sample_description"),
             "item_code": item_code,
             "supplier": supplier,
             "subcon": subcon,
             "test_status": test_status,
-            "furniture_testing": furniture_testing_str,
+            "furniture_testing": furniture_testing,
             "quantity": form.get("quantity"),
-            "test_groups": test_groups,
+            "test_group": test_group,
             "status": "Submitted",
             "decline_reason": "",
             "report_no": ""
@@ -320,14 +365,11 @@ def tfr_request_status():
 
                 # === GHI THÔNG TIN VÀO EXCEL DS ===
                 try:
-                    # Load file Excel DS
                     wb = load_workbook(local_main)
                     ws = wb.active
-
-                    # Tìm dòng có mã report đúng (so sánh với report_no vừa gán)
-                    report_col = get_col_idx(ws, "report")
+                    report_col = get_col_idx(ws, "report#")
                     row_idx = None
-                    for row in range(2, ws.max_row + 1):
+                    for row in range(1, ws.max_row + 1):
                         v = ws.cell(row=row, column=report_col).value
                         if v and str(v).strip() == str(report_no):
                             row_idx = row
@@ -336,22 +378,15 @@ def tfr_request_status():
                         def set_val(col_name, value):
                             col_idx = get_col_idx(ws, col_name)
                             if col_idx:
-                                ws.cell(row=row_idx, column=col_idx).value = value
+                                ws.cell(row=row_idx, column=col_idx).value = value.upper() if isinstance(value, str) else value
 
                         set_val("item#", tfr_requests[idx].get("item_code", ""))
-                        # Nếu test_groups là list thì join lại, hoặc chỉ lấy 1 nhóm tùy bạn muốn
-                        groups = tfr_requests[idx].get("test_groups", [])
-                        if isinstance(groups, list):
-                            groups_val = ", ".join(groups)
-                        else:
-                            groups_val = groups or ""
-                        set_val("type of", groups_val)
+                        set_val("type of", tfr_requests[idx].get("test_group", ""))
                         set_val("item name/ description", tfr_requests[idx].get("sample_description", ""))
                         set_val("furniture testing", tfr_requests[idx].get("furniture_testing", ""))
                         set_val("submiter in", tfr_requests[idx].get("requestor", ""))
                         set_val("submited", tfr_requests[idx].get("department", ""))
                         set_val("remark", tfr_requests[idx].get("test_status", ""))
-                        # Không đổi format file Excel, chỉ ghi value
                         wb.save(local_main)
                 except Exception as e:
                     print("Ghi vào Excel bị lỗi:", e)
@@ -364,7 +399,6 @@ def tfr_request_status():
             elif action == "duplicate":
                 old_req = tfr_requests[idx]
                 new_req = old_req.copy()
-                # Khi duplicate sẽ KHÔNG COPY report_no, chỉ clear nó để approve sẽ tự sinh
                 new_req["report_no"] = ""
                 new_req["status"] = "Submitted"
                 new_req["pdf_path"] = ""
@@ -372,7 +406,6 @@ def tfr_request_status():
                 new_req["etd"] = ""
                 tfr_requests.append(new_req)
 
-            # Không còn action save_etd nữa!
             with open(TFR_LOG_FILE, "w", encoding="utf-8") as f:
                 json.dump(tfr_requests, f, ensure_ascii=False, indent=2)
         return redirect(url_for('tfr_request_status'))
@@ -409,6 +442,7 @@ def delete_test_group_image(report, group, key, imgfile):
 @app.route("/logout")
 def logout():
     session.pop("auth_ok", None)
+    session.pop("staff_id", None)  # Đăng xuất thì xóa luôn staff_id
     return "<h3 style='text-align:center;margin-top:80px;'>Đã đăng xuất!<br><a href='/' style='color:#4d665c;'>Về trang chọn sản phẩm</a></h3>"
 
 @app.route("/update", methods=["GET", "POST"])
@@ -423,19 +457,36 @@ def update():
     try:
         wb = load_workbook(local_main)
         ws = wb.active
-        report_col = get_col_idx(ws, "report")
-        row_idx = None
+        report_col = get_col_idx(ws, "report#")
+        if report_col is None:
+            report_col = get_col_idx(ws, "report")
+        if report_col is None:
+            return "❌ Không tìm thấy cột REPORT# hoặc REPORT trong file Excel!", 500
 
-        for row in range(2, ws.max_row + 1):
+        row_idx = None
+        for row in range(1, ws.max_row + 1):
             v = ws.cell(row=row, column=report_col).value
             if v and str(v).strip() == str(report):
                 row_idx = row
                 break
 
+        if row_idx is None:
+            return f"❌ Không tìm thấy mã report {report} trong file Excel!", 404
+
+        # ==== PHÂN QUYỀN: chỉ kiểm tra khi ĐÃ ĐĂNG NHẬP ====
+        if session.get("auth_ok"):
+            user_type = get_user_type()
+            status_col = get_col_idx(ws, "status")
+            status_val = ws.cell(row=row_idx, column=status_col).value if status_col else ""
+            status_val = str(status_val).strip().upper() if status_val else ""
+            if user_type == "wtl" and status_val not in ("LATE", "MUST", "DUE", "ACTIVE"):
+                return "Bạn không có quyền truy cập report này!", 403
+
+        # --- lấy data info_line như cũ...
         if not session.get("auth_ok"):
             summary_keys = [
-                ('report', 'REPORT#'),
-                ('item', 'ITEM#'),
+                ('report#', 'REPORT#'),
+                ('item#', 'ITEM#'),
                 ('type of', 'TYPE OF'),
                 ('furniture testing', 'FURNITURE TESTING'),
                 ('remark', 'REMARK'),
@@ -444,22 +495,22 @@ def update():
             ]
             for key, label in summary_keys:
                 idx_col = get_col_idx(ws, key)
-                if idx_col:
-                    value = ws.cell(row=row_idx, column=idx_col).value if row_idx else ""
-                    if key == "rating":
-                        show_value = str(value).strip() if value not in ("", None) else ""
-                        lines.append((label, show_value))
-                    else:
-                        lines.append((label, value if value is not None else ""))
+                value = ws.cell(row=row_idx, column=idx_col).value if idx_col else ""
+                show_value = str(value).strip() if value not in ("", None) else ""
+                lines.append((label, show_value))
         else:
-            if row_idx:
-                for col in range(1, ws.max_column + 1):
-                    label = ws.cell(row=1, column=col).value
-                    value = ws.cell(row=row_idx, column=col).value
-                    if label and value not in (None, ""):
-                        lines.append((str(label).upper(), str(value)))
-    except Exception:
+            for col in range(1, ws.max_column + 1):
+                label = ws.cell(row=1, column=col).value
+                value = ws.cell(row=row_idx, column=col).value
+                if label and value not in (None, ""):
+                    lines.append((str(label).upper(), str(value)))
+
+    except Exception as e:
+        import traceback
+        print("Lỗi khi đọc file excel:", e)
+        print(traceback.format_exc())
         lines = []
+        return f"Lỗi khi xử lý file: {e}", 500
 
     message = ""
     is_logged_in = session.get("auth_ok", False)
@@ -467,8 +518,8 @@ def update():
 
     if not is_logged_in:
         if request.method == "POST" and request.form.get("action") == "login":
-            if request.form.get("password") == PASSWORD:
-                session["auth_ok"] = True
+            password_input = request.form.get("password")
+            if login(password_input):
                 return redirect(url_for("update", report=report))
             else:
                 message = "Sai mật khẩu!"
@@ -638,7 +689,13 @@ def update():
                 ws_c.row_dimensions[1].height = ws.row_dimensions[1].height
                 wb_c.save(local_complete)
 
-            report_idx_in_c = get_col_idx(ws_c, "report")
+            # --- Sửa CHỐT: luôn kiểm tra cột mã report ---
+            report_idx_in_c = get_col_idx(ws_c, "report#")
+            if report_idx_in_c is None:
+                report_idx_in_c = get_col_idx(ws_c, "report")
+            if report_idx_in_c is None:
+                report_idx_in_c = 1  # fallback về cột 1 (A)
+
             found_row = None
             for r in range(2, ws_c.max_row + 1):
                 v = ws_c.cell(row=r, column=report_idx_in_c).value
@@ -658,7 +715,6 @@ def update():
             from counter_utils import log_report_complete
             type_of_col = get_col_idx(ws, "type of")
             type_of = ws.cell(row=row_idx, column=type_of_col).value if type_of_col else ""
-            # Xác định ca
             vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
             now = datetime.now(vn_tz)
             tval = now.hour * 60 + now.minute
@@ -671,8 +727,9 @@ def update():
                 ca = "ot"
             else:
                 ca = ""
-
-            log_report_complete(report, type_of, ca)
+            # Lấy employee_id từ session
+            employee_id = session.get("staff_id", "")
+            log_report_complete(report, type_of, ca, employee_id)  # Ghi cả ID người thao tác
             # ==== HẾT PHẦN BỔ SUNG ====
 
             message = f"Đã cập nhật đánh giá: <b>{value}</b> cho {report}!"

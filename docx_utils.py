@@ -13,24 +13,24 @@ PDF_OUTPUT_FOLDER = os.path.join("static", "TFR")
 def get_first_empty_report_all_blank(excel_path):
     wb = load_workbook(excel_path)
     ws = wb.active
-    for row in ws.iter_rows(min_row=2, values_only=True):
-        report_no = str(row[0]).strip() if row[0] else None
-        if not report_no:
-            continue
+    for row in range(2, ws.max_row + 1):
         is_blank = True
-        for idx, cell in enumerate(row):
-            if idx == 0 or idx == 20:
-                continue
+        # Duyệt cột từ B (2) tới T (20), bỏ cột A(1) và U(21)
+        for col in range(2, 21):  # B=2, T=20
+            cell = ws.cell(row=row, column=col).value
             if cell not in (None, "", " "):
                 is_blank = False
                 break
         if is_blank:
-            return report_no
+            # Lấy mã report ở cột A
+            report_no = ws.cell(row=row, column=1).value
+            if report_no:
+                return str(report_no).strip()
     return None
 
 def build_label_value_map(data):
     label_groups = {
-        "sample_type": ["MATERIAL", "CARCASS", "FINISHED ITEM", "OTHERS"],
+        # "sample_type": ["MATERIAL", "CARCASS", "FINISHED ITEM", "OTHERS"],  # ĐÃ LOẠI BỎ
         "test_status": ["1ST", "2ND", "3RD", "...TH"],
         "furniture_testing": ["INDOOR", "OUTDOOR"],
         "test_groups": [
@@ -75,16 +75,12 @@ def tick_unicode_checkbox_by_label(docx_path, out_path, label_value_map):
         while i < len(texts):
             t = texts[i]
             if '☐' in t.text or '☑' in t.text:
-                # Lấy label ngay sau tick (ghép 1-2 block nếu cần)
                 label_parts = []
-                # Lấy block ngay sau tick
                 if i+1 < len(texts):
                     label_parts.append(texts[i+1].text or "")
-                # Có thể ghép thêm block nữa nếu label bị tách nhỏ
                 if i+2 < len(texts):
                     label_parts.append(texts[i+2].text or "")
                 label = ''.join(label_parts).strip().replace(" ", "").replace("\n", "").upper()
-                # So khớp label duy nhất với từng key, nếu đúng thì chỉ tick đúng 1 lần
                 for label_key, value in label_value_map.items():
                     key_norm = label_key.replace(" ", "").replace("_", "").replace(".", "").upper()
                     if label.startswith(key_norm):
@@ -94,7 +90,7 @@ def tick_unicode_checkbox_by_label(docx_path, out_path, label_value_map):
                         else:
                             t.text = t.text.replace('☑', '☐')
                         print(f"[DEBUG] Tick {label_key}: {old} → {t.text} (tick next to: '{label}')")
-                        break  # Đã tick đúng, không tick lại tick này nữa
+                        break
             i += 1
 
     tree.write(xml_path, xml_declaration=True, encoding='utf-8', standalone=True)
@@ -105,18 +101,22 @@ def tick_unicode_checkbox_by_label(docx_path, out_path, label_value_map):
 def try_convert_to_pdf(docx_path, pdf_path):
     try:
         import pythoncom
-        pythoncom.CoInitialize()  # <--- Thêm dòng này!
+        pythoncom.CoInitialize()
         from docx2pdf import convert
         convert(docx_path, pdf_path)
     except Exception as e:
         import traceback
         print("Không thể convert PDF:", e)
         traceback.print_exc()
-        
-def fill_docx_and_export_pdf(data):
-    report_no = get_first_empty_report_all_blank(local_main)
-    if not report_no:
-        raise Exception("Không còn mã report trống trong Excel.")
+
+def fill_docx_and_export_pdf(data, fixed_report_no=None):
+    # ==== CHỈNH SỬA: nếu đã có report_no thì dùng đúng report_no đó ====
+    if fixed_report_no and str(fixed_report_no).strip():
+        report_no = str(fixed_report_no).strip()
+    else:
+        report_no = get_first_empty_report_all_blank(local_main)
+        if not report_no:
+            raise Exception("Không còn mã report trống trong Excel.")
     data = dict(data)
     data["report_no"] = report_no
 
@@ -137,6 +137,7 @@ def fill_docx_and_export_pdf(data):
         "dimension": "dimension",
         "sales code": "sales_code",
         "weight": "weight",
+        # KHÔNG còn "sample type"
     }
     for table in doc.tables:
         nrows = len(table.rows)
@@ -162,9 +163,14 @@ def fill_docx_and_export_pdf(data):
     output_pdf = os.path.join(PDF_OUTPUT_FOLDER, f"{report_no}.pdf")
     try_convert_to_pdf(output_docx, output_pdf)
 
-    # Đường dẫn trả về để dùng cho url_for('static', ...)
     pdf_path = f"TFR/{report_no}.pdf"
     return pdf_path, report_no
 
 def approve_request_fill_docx_pdf(data_dict):
-    return fill_docx_and_export_pdf(data_dict)
+    report_no = data_dict.get("report_no", "").strip()
+    if not report_no:
+        report_no = get_first_empty_report_all_blank(local_main)
+        if not report_no:
+            raise Exception("Không còn mã report trống trong Excel.")
+        data_dict["report_no"] = report_no
+    return fill_docx_and_export_pdf(data_dict, fixed_report_no=report_no)
