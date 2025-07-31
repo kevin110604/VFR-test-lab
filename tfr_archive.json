@@ -1,0 +1,92 @@
+[
+  {
+    "tlq_id": "TL-261052",
+    "report_no": "25-4957",
+    "requestor": "Mai Trần Tiến",
+    "department": "VFR5",
+    "request_date": "2025-07-29",
+    "status": "Approved",
+    "pdf_path": null,
+    "docx_path": "TFR/25-4957.docx"
+  },
+  {
+    "tlq_id": "TL-761915",
+    "report_no": "25-4958",
+    "requestor": "Mai Trần Tiến",
+    "department": "VFR5",
+    "request_date": "2025-07-29",
+    "status": "Approved",
+    "pdf_path": null,
+    "docx_path": "TFR/25-4958.docx"
+  },
+  {
+    "trq_id": "TL-2559677",
+    "report_no": "25-4979",
+    "requestor": "dưa",
+    "department": "ưada",
+    "request_date": "2025-07-30",
+    "status": "Approved",
+    "pdf_path": "TFR/25-4979.pdf",
+    "docx_path": null
+  },
+  {
+    "trq_id": "TL-2563759",
+    "report_no": "25-4980",
+    "requestor": "dưa",
+    "department": "ădaw",
+    "request_date": "2025-07-30",
+    "status": "Approved",
+    "pdf_path": "TFR/25-4980.pdf",
+    "docx_path": null
+  },
+  {
+    "trq_id": "TL-2565993",
+    "report_no": "25-4981",
+    "requestor": "dưa",
+    "department": "ădaw",
+    "request_date": "2025-07-23",
+    "status": "Approved",
+    "pdf_path": "TFR/25-4981.pdf",
+    "docx_path": null
+  },
+  {
+    "trq_id": "TL-2518789",
+    "report_no": "25-4979",
+    "requestor": "adad",
+    "department": "ădaw",
+    "request_date": "2025-07-30",
+    "status": "Approved",
+    "pdf_path": "TFR/25-4979.pdf",
+    "docx_path": null
+  },
+  {
+    "trq_id": "TL-2565971",
+    "report_no": "25-4980",
+    "requestor": "ưadwa",
+    "department": "đưaawdaa",
+    "request_date": "2025-07-30",
+    "status": "Approved",
+    "pdf_path": "TFR/25-4980.pdf",
+    "docx_path": null
+  },
+  {
+    "trq_id": "TL-2560681",
+    "report_no": "25-4983",
+    "requestor": "Phạm Minh Toàn",
+    "department": "ASSY",
+    "request_date": "2025-07-31",
+    "status": "Approved",
+    "pdf_path": "TFR/25-4983.pdf",
+    "docx_path": null
+  },
+  {
+    "trq_id": "TL-2560681",
+    "report_no": "25-4984",
+    "requestor": "Phạm Minh Toàn",
+    "department": "ASSY",
+    "request_date": "2025-07-31",
+    "status": "Approved",
+    "pdf_path": "TFR/25-4984.pdf",
+    "docx_path": null
+  }
+]

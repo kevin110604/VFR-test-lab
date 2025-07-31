@@ -574,49 +574,57 @@ TU_EU_TEST_TITLES = {
 
 GIUONG_TEST_TITLES = {
     "muc2": {
-        "full": "Distributed load capacity",
+        "full": "Mục 2: Distributed load capacity",
         "short": "Distributed load",
         "img": ["/static/images/buoc 2 giuong.png"]
     },
     "muc3": {
-        "full": "Impact durability",
+        "full": "Mục 3: Impact durability",
         "short": "Impact durability",
         "img": ["/static/images/buoc 3 giuong.png"]
     },
     "muc4": {
-        "full": "Bed - vertical static load test (EN 1725-98 Cl. 7.6 Mod)",
+        "full": "Mục 4: Bed - vertical static load test (EN 1725-98 Cl. 7.6 Mod)",
         "short": "Vertical static load test (center)",
         "img": ["/static/images/buoc 4 giuong.png"]
     },
     "muc5": {
-        "full": "Bed - vertical static load test of the edge of the bed (EN 1725-98 Cl. 7.7 Mod)",
+        "full": "Mục 5: Bed - vertical static load test of the edge of the bed (EN 1725-98 Cl. 7.7 Mod)",
         "short": "Vertical static load test (edge)",
         "img": ["/static/images/buoc 5 giuong.png"]
     },
     "muc6": {
-        "full": "Headboard Pull test",
+        "full": "Mục 6: Headboard Pull test",
         "short": "Headboard Pull test",
         "img": ["/static/images/buoc 6 giuong.png"]
     },
     "muc7": {
-        "full": "End drop test (ANSI/BIFMA X5.5-21 Sec. 7 Mod)",
+        "full": "Mục 7: End drop test (ANSI/BIFMA X5.5-21 Sec. 7 Mod)",
         "short": "End drop test",
         "img": ["/static/images/buoc 7 giuong.png"]
     },
     "muc8": {
-        "full": "Canopy frame static load test (khung màn che - không có rèm)",
+        "full": "Mục 8: Canopy frame static load test (khung màn che - không có rèm)",
         "short": "Canopy frame static load (no curtain)",
         "img": ["/static/images/buoc 8 giuong.png"]
     },
     "muc9": {
-        "full": "Canopy frame static load test (khung màn che - có rèm)",
+        "full": "Mục 9: Canopy frame static load test (khung màn che - có rèm)",
         "short": "Canopy frame static load (with curtain)",
         "img": ["/static/images/buoc 9 giuong.png"]
     },
     "muc10": {
-        "full": "Hanging strength",
+        "full": "Mục 10: Hanging strength",
         "short": "Hanging strength",
         "img": ["/static/images/buoc 10 giuong.png"]
+    }
+}
+
+GUONG_TEST_TITLES = {
+    "muc1": {
+        "full": "Mục 1: Hanging strength",
+        "short": "Hanging strength",
+        "img": ["/static/images/buoc 1 guong.png"]   # Cần tạo ảnh mô tả, hoặc bỏ nếu chưa có
     }
 }
 
@@ -712,19 +720,23 @@ INDOOR_STONE_TEST_TITLES = {
             "/static/images/buoc 3.1 indoor.png",  # Ảnh 1
             "/static/images/buoc 3.2 indoor.png"   # Ảnh 2
         ]
+    },"standing_water": {
+        "full": "3: Standing water test",
+        "short": "Standing water",
+        "img": ["/static/images/buoc 5 indoor.png"]
     },
     "hot_cold": {
-        "full": "3: Hot and cold cycle test",
+        "full": "4: Hot and cold cycle test",
         "short": "Hot and cold",
         "img": ["/static/images/buoc 6 indoor.png"]
     },
     "impact": {
-        "full": "4: Impact resistance test",
+        "full": "5: Impact resistance test",
         "short": "Impact",
         "img": ["/static/images/buoc 7 indoor.png"]
     },
     "stain": {
-        "full": "5: Stain test",
+        "full": "6: Stain test",
         "short": "Stain",
         "img": ["/static/images/buoc 8 indoor.png"]
     },
@@ -971,6 +983,62 @@ TRANSIT_RH_PALLET_TEST_TITLES = {
     }
 }
 
+TRANSIT_181_LT68_TEST_TITLES = {
+    "step1": {
+        "full": "Bước 1: Kiểm tra thông tin sản phẩm",
+        "short": "Thông tin sản phẩm",
+        "img": ["/static/images/buoc 1 181 lt68.png"]
+    },
+    "step2": {
+        "full": "Bước 2: Identification of Faces, Edge and Corners",
+        "short": "Nhận diện mặt, cạnh, góc",
+        "img": ["/static/images/buoc 2 181 lt68.png"]
+    },
+    "step3": {
+        "full": "Bước 3: Section II. Compression/ Vibration Test",
+        "short": "Compression/ Vibration",
+        "img": ["/static/images/buoc 3 181 lt68.png"]
+    },
+    "step4": {
+        "full": "Bước 4: Section III. Impact/Handling Test Procedure (A)",
+        "short": "Impact/Handling (A)",
+        "img": ["/static/images/buoc 4 181 lt68.png"]
+    },
+    "step5": {
+        "full": "Bước 5: Kiểm tra lại trong quá trình test",
+        "short": "Kiểm tra lại",
+        "img": ["/static/images/buoc 5 181 lt68.png"]
+    }
+}
+
+TRANSIT_181_GT68_TEST_TITLES = {
+    "step1": {
+        "full": "Bước 1: Kiểm tra thông tin sản phẩm",
+        "short": "Thông tin sản phẩm",
+        "img": ["/static/images/buoc 1 181 lt68.png"]  # dùng lại ảnh của nhóm <68kg
+    },
+    "step2": {
+        "full": "Bước 2: Identification of Faces, Edge and Corners",
+        "short": "Nhận diện mặt, cạnh, góc",
+        "img": ["/static/images/buoc 2 181 lt68.png"]
+    },
+    "step3": {
+        "full": "Bước 3: Section II. Compression/ Vibration Test",
+        "short": "Compression/ Vibration",
+        "img": ["/static/images/buoc 3 181 lt68.png"]
+    },
+    "step4": {
+        "full": "Bước 4: Section III. Impact/Handling Tests Procedure (B)",
+        "short": "Impact/Handling (B)",
+        "img": ["/static/images/buoc 4 181 gt68.png"]
+    },
+    "step5": {
+        "full": "Bước 5: Kiểm tra lại trong quá trình test",
+        "short": "Kiểm tra lại",
+        "img": ["/static/images/buoc 5 181 lt68.png"]
+    }
+}
+
 TEST_GROUP_TITLES = {
     'ban_us': BAN_US_TEST_TITLES,
     'ban_eu': BAN_EU_TEST_TITLES,
@@ -979,6 +1047,7 @@ TEST_GROUP_TITLES = {
     'tu_us' : TU_US_TEST_TITLES,
     'tu_eu' : TU_EU_TEST_TITLES,
     'giuong': GIUONG_TEST_TITLES,
+    'guong': GUONG_TEST_TITLES,
     'outdoor_finishing': OUTDOOR_FINISHING_TEST_TITLES,
     'indoor_chuyen': INDOOR_CHUYEN_TEST_TITLES,
     'indoor_thuong':INDOOR_THUONG_TEST_TITLES,
@@ -988,6 +1057,9 @@ TEST_GROUP_TITLES = {
     'transit_2c_pallet': TRANSIT_2C_PALLET_TEST_TITLES,
     'transit_RH_np': TRANSIT_RH_NP_TEST_TITLES,
     'transit_RH_pallet': TRANSIT_RH_PALLET_TEST_TITLES,
+    "transit_181_lt68": TRANSIT_181_LT68_TEST_TITLES,
+    "transit_181_gt68": TRANSIT_181_GT68_TEST_TITLES,
+
     # Thêm các nhóm khác nếu cần
 }
 
@@ -1048,6 +1120,13 @@ RH_SECOND_IMPACT_ZONES = [
 RH_STEP12_ZONES = [
     ("lan1", "Lần 1"),
     ("lan2", "Lần 2"),
+]
+
+GT68_FACE_LABELS = [
+    "Face 1", "Face 2", "Face 3", "Face 4", "Face 5", "Face 6"
+]
+GT68_FACE_ZONES = [
+    "face_1", "face_2", "face_3", "face_4", "face_5", "face_6"
 ]
 
 for group_dict in TEST_GROUP_TITLES.values():

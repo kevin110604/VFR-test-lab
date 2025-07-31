@@ -1,11 +1,8 @@
 import requests
 import os
 import pytz
-from datetime import datetime,  timedelta
+from datetime import datetime, timedelta
 from config import UPLOAD_FOLDER
-from image_utils import allowed_file
-
-UPLOAD_FOLDER = "images"
 
 def send_teams_message(webhook_url, message):
     payload = {"text": message}
@@ -16,7 +13,13 @@ def send_teams_message(webhook_url, message):
     except Exception as e:
         print("Teams webhook error:", e)
         return False
-    
+
+def atomic_write(filepath, text):
+    tmp_path = filepath + ".tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        f.write(text)
+    os.replace(tmp_path, filepath)  # atomic trên hầu hết OS
+
 def notify_when_enough_time(
     report,
     so_gio_test,
@@ -28,11 +31,8 @@ def notify_when_enough_time(
     force_send=False,
     pending_notify_name=None
 ):
-    import os
-    from datetime import datetime, timedelta
     from image_utils import allowed_file
 
-    UPLOAD_FOLDER = "images"
     folder = os.path.join(UPLOAD_FOLDER, str(report))
     time_file = os.path.join(folder, time_file_name)
     elapsed_time = None
@@ -66,7 +66,6 @@ def notify_when_enough_time(
     # Kiểm tra thời gian hiện tại (giờ local)
     now = datetime.now()
     cur_hour = now.hour
-    # Chỉ gửi trong khoảng 8h - 21h (bao gồm 8:00, tới trước 21:00)
     ALLOWED_HOUR_START = 8
     ALLOWED_HOUR_END = 21
 
@@ -75,11 +74,9 @@ def notify_when_enough_time(
         send_now = ALLOWED_HOUR_START <= cur_hour < ALLOWED_HOUR_END
         # Nếu ngoài giờ gửi thì tạo pending
         if not send_now:
-            # Lưu thông tin pending vào file
             if pending_notify_name:
                 pending_path = os.path.join(folder, pending_notify_name)
-                with open(pending_path, "w", encoding="utf-8") as f:
-                    f.write(notify_msg)
+                atomic_write(pending_path, notify_msg)
             return {"show_notice": True, "sent": False}
         # Gửi bình thường nếu trong giờ cho phép
         if force_send or (flag_file_name is None) or (flag_file_name and not os.path.exists(flag_path)):
@@ -87,13 +84,15 @@ def notify_when_enough_time(
             sent = True
             # Đánh dấu đã gửi lần đầu nếu dùng flag
             if flag_path and not os.path.exists(flag_path):
-                with open(flag_path, "w", encoding="utf-8") as f:
-                    f.write(now.strftime("%Y-%m-%d %H:%M:%S"))
+                atomic_write(flag_path, now.strftime("%Y-%m-%d %H:%M:%S"))
             # Xóa pending notify nếu có
             if pending_notify_name:
                 pending_path = os.path.join(folder, pending_notify_name)
                 if os.path.exists(pending_path):
-                    os.remove(pending_path)
+                    try:
+                        os.remove(pending_path)
+                    except Exception:
+                        pass  # Có thể file đã bị xóa bởi request khác, không sao
 
-    # Nếu đang ở vòng lặp lại (force_send=True) mà vẫn ngoài giờ, thì sẽ không gửi (đã pending rồi)
     return {"show_notice": enough_time and not after_img_exists, "sent": sent}
+

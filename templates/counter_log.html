@@ -10,284 +10,220 @@
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
     :root {
-      --color-bg: #F5F1E6;
-      --color-box: #FFF8E7;
-      --color-dark: #25312b;
-      --color-accent: #C49C48;
-      --color-green: #35523A;
-      --color-bronze: #8B6B1E;
-      --color-red: #A32121;
-      --color-pass: #2E7D32;
-      --color-fail: #A32121;
-      --color-na: #666;
-      --color-text-dark: #25312b;
-      --color-text-light: #F9F7F0;
-      --shadow-light: rgba(0,0,0,0.10);
-      --shadow-dark: rgba(255,255,255,0.15);
+        --main-bg: #fffdfc;
+        --main-card: #fffdfccf;
+        --main-text: #25312b;
+        --main-th: #ffe082;
+        --main-th-bright: #fff9d1;
+        --main-border: #d8d8cc;
+        --color-green: #4e8573;
+        --color-pass: #38b430;
+        --color-fail: #df2323;
+        --shadow-light: rgba(0,0,0,0.10);
     }
-    html, body {
+    body {
         min-height: 100vh;
-        background: url('/static/bg_grass.png') repeat;
-        background-size: 420px 420px;
-        color: var(--color-text-dark);
+        background: var(--main-bg);
+        color: var(--main-text);
         font-family: 'Open Sans', Arial, sans-serif;
         margin:0;padding:0;
+        display: flex; align-items: center; justify-content: center;
+        transition: background 0.22s, color 0.18s;
     }
     .info-box {
-        background: #fffdfccf;
-        max-width: 570px;
-        margin: 46px auto 0 auto;
-        border-radius: 18px;
-        box-shadow: 0 4px 30px var(--shadow-light);
-        padding: 34px 20px 32px 20px;
-        animation: fadeGrow 0.7s;
-        position:relative;
-        font-family: 'Open Sans', Arial, sans-serif;
-        color: var(--color-text-dark);
-        transition: background 0.28s, color 0.18s, box-shadow 0.22s;
+        background: var(--main-card);
+        color: var(--main-text);
+        border-radius: 20px;
+        max-width: 900px;
+        margin: 28px auto 32px auto;
+        padding: 32px 28px 33px 28px;
+        box-shadow: 0 8px 40px var(--shadow-light), 0 1.5px 13px #c49c4850;
+        transition: background 0.22s, color 0.17s;
+        width: 100%;
     }
-    @keyframes fadeGrow {
-        0% { opacity: 0; transform: scale(0.98);}
-        100% { opacity: 1; transform: scale(1);}
-    }
-    .info-box.dark {
-        background: #293528e9 !important;
-        color: var(--color-text-light) !important;
-        box-shadow: 0 4px 38px #2227;
-    }
-    .info-box.dark .log-title { color: #ffe07a; text-shadow: 0 2px 9px #c49c4833;}
     .log-title {
-        text-align: center;
         color: var(--color-green);
-        font-size: 27px;
-        font-weight: 900;
-        margin-bottom: 16px;
-        letter-spacing: 0.08em;
-        font-family: 'Merriweather', serif;
-        text-shadow: 0 2px 11px #c49c483a;
-    }
-    .table-wrap {
-        overflow-x: auto;
-        width: 100%;
-        margin-bottom: 22px;
-    }
-    table {
-        border-collapse: collapse;
-        width: 100%;
-        background: var(--color-box);
-        font-size: 18px;
-        margin-bottom: 10px;
-        border-radius: 15px 15px 12px 12px;
-        overflow: hidden;
-        box-shadow: 0 2px 14px #7c6e4844;
-        min-width: 400px;
-    }
-    th, td {
-        border: 1.2px solid #ddd7bc;
-        padding: 8px 5px;
-        text-align: center;
-        min-width: 55px;
-        max-width: 210px;
-        word-break: break-word;
-        color: var(--color-dark);
-    }
-    th {
-        background: var(--color-accent);
-        color: #222;
-        font-weight: bold;
-        font-size: 14px;
-        letter-spacing: 0.03em;
-    }
-    @media (max-width: 700px) {
-        th { font-size: 12px; }
-    }
-    @media (max-width: 420px) {
-        th { font-size: 11px; }
-    }
-    tr:nth-child(even) td { background: #f8f5e4;}
-    tr:nth-child(odd) td { background: #fff8e9;}
-    .info-box.dark table {background: #23281d;}
-    .info-box.dark th {background: #b4943c; color: #fff;}
-    .info-box.dark td {background: #2a2c21; color: #fff;}
-    .main-btn, .btn-back {
-        display: inline-block;
-        background: var(--color-green);
-        color: #ffe07a;
-        border-radius: 50%;
+        text-shadow: 0 2px 11px #4e857348;
         font-size: 26px;
-        width: 54px; height: 54px; min-width:54px; min-height:54px;
-        font-weight: 700;
-        border: none;
-        box-shadow: 0 3px 16px #2226;
-        cursor: pointer;
-        text-decoration: none;
-        margin: 10px 7px 0 7px;
-        transition: background 0.22s, color 0.18s, box-shadow 0.14s;
-        font-family: 'Inter', sans-serif;
-        align-items: center;
-        justify-content: center;
         text-align: center;
-        line-height: 54px;
-    }
-    .main-btn:hover, .btn-back:hover {
-        background: var(--color-accent);
-        color: #222;
-        box-shadow: 0 2px 20px #b4943c66;
-    }
-    .info-box .btn-action-back {
-        display:inline-block; margin:24px auto 0 auto; width:auto; min-width:120px; border-radius: 11px; font-size:17px; font-weight:600; padding: 9px 33px; line-height:unset; height:unset; color:#fff; background:#35523A;
-    }
-    .btn-action-back:hover {background: #c49c48; color:#222;}
-    .counter-block {
-        background: #f6f3e9;
-        border-radius: 11px;
-        padding: 10px 0 7px 0;
-        margin: 15px 0 18px 0;
-        font-size: 17px;
+        margin-bottom: 14px;
         font-weight: bold;
+        letter-spacing: 0.04em;
     }
-    .info-box.dark .counter-block {background: #272917; color: #ffe07a;}
-    /* Mobile responsive */
-    @media (max-width: 700px) {
-        .info-box {
-            padding: 16px 4vw 21px 4vw;
-            margin: 18px 2vw 0 2vw;
-            max-width: 100vw;
-        }
-        .log-title {font-size: 19px; padding-top: 10px;}
-        .main-btn, .btn-back {font-size: 20px; width: 44px; height: 44px; min-width:44px; min-height:44px;}
-        table {font-size:15px; min-width: 360px;}
-        th, td {padding: 7px 5px; min-width: 75px;}
+    .table-responsive {
+        width:100%;
+        overflow-x:auto;
+        margin-bottom: 24px;
     }
-    @media (max-width: 420px) {
-        .info-box {padding: 7px 1vw 12px 1vw;}
-        .log-title {font-size: 16.5px;}
-        .main-btn, .btn-back {font-size: 16px; width: 36px; height:36px; min-width:36px; min-height:36px;}
-        table {font-size:13px; min-width: 230px;}
-        th, td {padding: 5px 3px; min-width: 55px;}
-    }
-    #theme-btn {
-      position: fixed; right: 24px; bottom: 26px; z-index: 11001;
-      background: var(--color-bronze); color: #fff;
-      border-radius: 100px; font-size: 17px;
-      padding: 6px 11px; border:none; box-shadow: 0 2px 10px var(--shadow-light);
-      cursor:pointer; height: 38px; width: 38px; min-width:36px;
-      display:flex;align-items:center;justify-content:center;opacity:0.96;
-      transition: background 0.16s, color 0.16s;
-      font-family: 'Inter', sans-serif;
-    }
-    #theme-btn:hover { background: var(--color-accent); color: #fff; opacity:1; }
-    #theme-btn i {font-size: 23px; line-height: 1; display: block; margin:0 auto;}
-    .table-wrap {
-        width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        background: transparent;
-        /* Có thể thêm border nhẹ nếu thích */
-    }
-
     table {
         width: 100%;
-        min-width: 560px;      /* Giữ đủ cho desktop, đủ nhỏ cho mobile cuộn */
+        background: var(--main-card);
+        border-radius: 14px;
         border-collapse: collapse;
-        background: var(--color-box);
-        font-size: 16px;
-        margin-bottom: 10px;
-        border-radius: 15px 15px 12px 12px;
-        box-shadow: 0 2px 14px #7c6e4844;
-        transition: font-size 0.2s;
+        box-shadow: 0 2.5px 11px #25312b10;
     }
-
     th, td {
-        border: 1.2px solid #ddd7bc;
-        padding: 10px 7px;
+        border: 1.2px solid var(--main-border);
+        padding: 9px 8px;
+        font-size: 15.2px;
         text-align: center;
-        min-width: 55px;
-        max-width: 110px;
-        word-break: break-word;
-        color: var(--color-dark);
+        color: var(--main-text);
         background: transparent;
+        transition: background 0.17s, color 0.17s;
     }
     th {
-        background: var(--color-accent);
-        color: #222;
-        font-weight: bold;
-        font-size: 18px;
-        letter-spacing: 0.03em;
+        background: var(--main-th);
+        color: #25312b;
+        font-weight: 700;
+        font-size: 16px;
     }
-
-    @media (max-width: 1020px) {
-        table { font-size: 15px; min-width: 420px;}
-        th, td { padding: 7px 5px; min-width: 70px;}
+    tr:nth-child(even) { background: #faf6ea;}
+    tr:nth-child(odd) { background: #fffdfc;}
+    .bold { font-weight: bold; }
+    .total-cell {
+        font-weight:900; color:var(--color-green);
     }
-    @media (max-width: 700px) {
-        table { font-size: 13px; min-width: 350px;}
-        th, td { padding: 7px 4px; min-width: 60px;}
+    .btn-action-back {
+        background: var(--color-green);
+        color: var(--main-th-bright);
+        border: none;
+        border-radius: 11px;
+        font-size:17px;
+        font-weight:600;
+        padding: 9px 33px;
+        margin: 24px auto 0 auto;
+        display: block;
+        text-decoration: none;
+        box-shadow: 0 2.5px 13px #25312b23;
+        transition: background 0.18s, color 0.18s;
+        letter-spacing: 0.01em;
     }
-    @media (max-width: 500px) {
-        .log-title { font-size: 14px; }
-        .info-box { padding: 7px 1vw 12px 1vw;}
-        table { font-size: 11px; min-width: 290px;}
-        th, td { padding: 4px 2px; min-width: 42px;}
+    .btn-action-back:hover {
+        background: var(--main-th);
+        color: #25312b;
     }
-    thead th {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-        background: var(--color-accent);
+    .ca-hc { color: var(--color-pass); font-weight: bold; }
+    .ca-ot { color: var(--color-fail); font-weight: bold; }
+    @media (max-width: 800px) {
+        .info-box {
+            padding: 5vw 2vw 6vw 2vw;
+            max-width: 100vw;
+            border-radius: 11px;
+        }
+        .log-title {
+            font-size: 17.5px;
+            margin-bottom: 8px;
+        }
+        th, td {
+            font-size: 12.8px;
+            padding: 6px 3px;
+        }
     }
+    /* Dark mode biến màu */
+    body.dark, .info-box.dark {
+        --main-bg: #2b3938;
+        --main-card: #374B4A;
+        --main-text: #f6f6ef;
+        --main-th: #ffe082;
+        --main-th-bright: #fffbe6;
+        --main-border: #263d3a;
+        --color-green: #91b8a2;
+        --color-pass: #93e5a0;
+        --color-fail: #e68282;
+        --shadow-light: rgba(255,255,255,0.07);
+    }
+    body.dark .info-box, .info-box.dark {
+        background: #334c47 !important;
+        color: #f6f6ef !important;
+    }
+    body.dark .log-title, .info-box.dark .log-title {
+        color: var(--main-th);
+    }
+    body.dark table, .info-box.dark table { background: #374B4A !important; }
+    body.dark th, .info-box.dark th {
+        background: var(--main-th) !important;
+        color: #25312b !important;
+    }
+    body.dark tr:nth-child(even), body.dark tr:nth-child(odd), .info-box.dark tr:nth-child(even), .info-box.dark tr:nth-child(odd) {
+        background: #334c47 !important;
+    }
+    body.dark td, .info-box.dark td {
+        color: #f6f6ef !important;
+        background: #334c47;
+    }
+    body.dark .btn-action-back, .info-box.dark .btn-action-back {
+        background: var(--main-th);
+        color: #25312b;
+    }
+    body.dark .btn-action-back:hover, .info-box.dark .btn-action-back:hover {
+        background: #bfa87b;
+        color: #374B4A;
+    }
+    body.dark .ca-hc { color: #72e2b5 !important; font-weight: bold; }
+    body.dark .ca-ot { color: #ff6b81 !important; font-weight: bold; }
+    /* Theme button darkmode nếu có */
+    #theme-btn {
+        position:fixed; right:22px; bottom:21px; z-index:11001;
+        background: var(--main-th);
+        color: #344833;
+        border-radius: 100px;
+        font-size: 19px;
+        padding: 7px 13px;
+        border:none;
+        box-shadow: 0 2px 10px #4d665c35;
+        cursor:pointer;
+        height: 42px; width: 42px; min-width:38px;
+        display:flex;align-items:center;justify-content:center;opacity:0.96;
+        transition: background 0.16s, color 0.16s;
+    }
+    #theme-btn:hover { background: var(--color-green); color: #fff; }
+    body.dark #theme-btn { background: #6c837f; color: #ffe082; }
+    body.dark td[style*="color:var(--color-pass)"] { color: #93e5a0 !important; }
+    body.dark td[style*="#bbb"] { color: #bbb !important; }
+    body.dark .total-cell { color: #93e5a0 !important; }
     </style>
 </head>
 <body>
-    <!-- Nút darkmode tròn nổi, icon căn giữa -->
-    <button id="theme-btn" title="Chuyển Dark/Light mode">
-        <i class="fa fa-moon"></i>
-    </button>
-    <div class="info-box animate__animated animate__fadeInDown" id="box-stat">
-        <div class="log-title"><i class="fa fa-table"></i> Thống kê số đơn hoàn thành từng ngày</div>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        {% for h in header %}
-                            <th>{{ h }}</th>
-                        {% endfor %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in rows %}
-                    <tr>
-                        <td>{% if row.date %}<b>{{ row.date }}</b>{% endif %}</td>
-                        <td style="color:{{ 'green' if row.ca=='HC' else 'red' }}; font-weight:bold;">{{ row.ca }}</td>
-                        {% for n in row.types %}
-                            <td style="font-weight:700; color:{{ 'green' if n else '#bbb' }};">{{ n if n else "" }}</td>
-                        {% endfor %}
-                        <td style="font-weight:900; color:#C49C48;">{{ row.total if row.total else "" }}</td>
-                    </tr>
+    <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
+    <div class="info-box{% if darkmode %} dark{% endif %}">
+        <div class="log-title"><i class="fa fa-calendar"></i> Bảng thống kê số đơn hoàn thành từng ngày</div>
+        <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    {% for h in header %}
+                    <th>{{ h }}</th>
                     {% endfor %}
-                </tbody>
-            </table>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>{{ row.date }}</td>
+                    <td class="{{ 'ca-hc' if row.ca=='HC' else 'ca-ot' }}">{{ row.ca }}</td>
+                    {% for n in row.types %}
+                    <td style="font-weight:700; color:{{ 'var(--color-pass)' if n else '#bbb' }};">{{ n if n else "" }}</td>
+                    {% endfor %}
+                    <td class="total-cell">{{ row.total if row.total else "" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
         </div>
-        <div style="text-align:center;">
-            <a href="{{ url_for('home') }}" class="btn-action-back"><i class="fa fa-arrow-left"></i> Quay về Home</a>
-        </div>
+        <a href="/" class="btn-action-back"><i class="fa fa-chevron-left"></i> Quay về trang chính</a>
     </div>
     <script>
-        // Nút darkmode chỉ đổi class .dark trên .info-box và lưu trạng thái localStorage
-        document.addEventListener("DOMContentLoaded", function() {
-            var infoBox = document.getElementById('box-stat');
-            var themeBtn = document.getElementById('theme-btn');
-            // Nếu từng bật darkmode trước đó
-            if (localStorage.getItem("darkmode_stat") === "true") {
-                infoBox.classList.add("dark");
-                themeBtn.innerHTML = '<i class="fa fa-sun"></i>';
-            }
-            themeBtn.onclick = function() {
-                var d = infoBox.classList.toggle('dark');
-                localStorage.setItem("darkmode_stat", d ? "true" : "false");
-                themeBtn.innerHTML = d ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
-            };
-        });
+        // Darkmode toggle
+        let dark = localStorage.getItem("vfr-darkmode") === "1";
+        function applyDark(b) {
+            document.body.classList.toggle("dark", b);
+            localStorage.setItem("vfr-darkmode", b ? "1" : "0");
+        }
+        applyDark(dark);
+        document.getElementById('theme-btn').onclick = () => {
+            dark = !dark;
+            applyDark(dark);
+        };
     </script>
 </body>
 </html>

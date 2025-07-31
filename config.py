@@ -6,11 +6,13 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 local_main = "ds sản phẩm test với qr.xlsx"
 local_complete = "completed_items.xlsx"
 qr_folder = "qr_labels"
-TEAMS_WEBHOOK_URL = "https://mphcmiuedu.webhook.office.com/webhookb2/11e4d9d9-a3bf-4f77-9947-4c790d2c90e0@a7380202-eb54-415a-9b66-4d9806cfab42/IncomingWebhook/69ca9bf67d3342c1984109a9f3073faf/81e98e9d-7a3f-492d-9f99-3ac5a5ecbbf3/V2ou84tjRa9HGhGQHzzzaVkzig_fT-ACqaRCaq11ertlo1"
+TEAMS_WEBHOOK_URL_TRF = "https://jonathancharles.webhook.office.com/webhookb2/c1820b56-e3c0-4435-b1a6-1630c0f8da85@064944f6-1e04-4050-b3e1-e361758625ec/IncomingWebhook/09c95cb9a4d5487c8b8aac5ef36f6d1d/169de55a-0196-4de6-b160-7a456bce2292/V2me37ZNeF3_Z1CnaOm4naD_tJ0TptNjr_rJRwga6qBSg1"
+TEAMS_WEBHOOK_URL_RATE = "https://jonathancharles.webhook.office.com/webhookb2/c1820b56-e3c0-4435-b1a6-1630c0f8da85@064944f6-1e04-4050-b3e1-e361758625ec/IncomingWebhook/b4e8f13a441b4d7cbd7470253710b107/169de55a-0196-4de6-b160-7a456bce2292/V2oi3fuDogcw1BlJSoJgFc5XVn4xPpWv3eZKCAFjThbkI1"
+TEAMS_WEBHOOK_URL_COUNT = "https://jonathancharles.webhook.office.com/webhookb2/c1820b56-e3c0-4435-b1a6-1630c0f8da85@064944f6-1e04-4050-b3e1-e361758625ec/IncomingWebhook/b344a6ce0fbe4f60bbfe8b16ba0d203c/169de55a-0196-4de6-b160-7a456bce2292/V2pE_UIJyO6XQrj7OFUSvU8xKKGS8IzOdwmz8LjLsWT501"
 PASSWORD_STL = "stl"
 PASSWORD_WTL = "wtl"
 SECRET_KEY = "vfr_secret_key_123"
-SO_GIO_TEST = 0.02
+SO_GIO_TEST = 50
 ALL_SLOTS = (
     [f"Ke1-A{i}" for i in range(1, 9)] + [f"Ke1-B{i}" for i in range(1, 9)] +
     [f"Ke2-A{i}" for i in range(1, 4)] + [f"Ke2-B{i}" for i in range(1, 4)] +

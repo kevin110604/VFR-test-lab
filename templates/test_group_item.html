@@ -7,12 +7,16 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
     <style>
     :root {
-        --color-bg: #F5F1E6;
-        --color-box: #FFF8E7;
-        --color-green: #35523A;
+        --main-bg: #fffdfc;               /* nền sáng */
+        --main-card: #fffdfccf;           /* thẻ box/card */
+        --main-text: #25312b;             /* chữ mặc định */
+        --main-th: #ffe082;               /* vàng nhấn */
+        --main-th-bright: #fff9d1;        /* vàng sáng nhất cho chữ trên nút */
+        --main-border: #d8d8cc;
+        --color-green: #4e8573;           /* xanh nút mới */
         --color-bronze: #8B6B1E;
-        --color-accent: #C49C48;
         --color-brown: #6B4F1A;
+        --color-red-metallic: #A32121;
         --color-pass: #38b430;
         --color-fail: #df2323;
         --color-na: #666;
@@ -23,12 +27,36 @@
         --dark-pass: #2a4e20;
         --dark-fail: #6a1b1b;
         --color-beige-bg: #F5F1E6;
+        --color-accent: #4e8573;  
+    }
+
+    body.dark, .dark {
+        --main-bg: #2b3938;               /* nền tối */
+        --main-card: #374B4A;             /* box/card tối */
+        --main-text: #f6f6ef;             /* chữ trắng sữa */
+        --main-th: #ffe082;               /* vàng nhấn (giữ nguyên) */
+        --main-th-bright: #fffbe6;        /* vàng sáng nhất */
+        --main-border: #263d3a;
+        --color-green: #91b8a2;           /* xanh nhạt dùng cho dark mode */
+        --color-bronze: #ffc970;
+        --color-brown: #bfa87b;
+        --color-red-metallic: #ef7373;
+        --color-pass: #93e5a0;
+        --color-fail: #e68282;
+        --color-na: #aaa;
+        --color-text-dark: #f6f6ef;
+        --color-text-light: #f6f6ef;
+        --shadow-light: rgba(255,255,255,0.07);
+        --shadow-dark: rgba(0,0,0,0.13);
+        --dark-pass: #4e7763;
+        --dark-fail: #ce4343;
+        --color-beige-bg: #374B4A;
+        --color-accent: #91b8a2; 
     }
     html, body {
         min-height: 100vh;
-        background: url('/static/bg_grass.png') repeat;
-        background-size: 420px 420px;
-        color: var(--color-text-dark);
+        background: var(--main-bg);
+        color: var(--main-text);
         font-family: 'Open Sans', Arial, sans-serif;
         margin:0;padding:0;
         transition: background 0.27s, color 0.21s;
@@ -38,14 +66,14 @@
         transition: background 0.27s, color 0.21s;
     }
     body.dark .box {
-        background: #344833e8 !important;
-        color: var(--color-text-light) !important;
+        background: var(--main-card) !important;
+        color: var(--main-text) !important;
         box-shadow: 0 4px 32px var(--shadow-dark);
     }
     body.dark h2,
     body.dark .cmt-label,
     body.dark .section b {
-        color: var(--color-accent) !important;
+        color: var(--main-th) !important;
     }
     body.dark .img-thumb, body.dark .sample-img {
         border-color: var(--color-accent) !important;
@@ -54,11 +82,10 @@
     body.dark .back-btn,
     body.dark .gold-upload-btn,
     body.dark .del-btn {
-        background: var(--color-brown) !important;
-        color: #fff !important;
-        box-shadow: 0 2px 10px var(--shadow-dark);
+        background: var(--main-th) !important;
+        color: #25312b !important;
+        border-color: var(--main-th);
     }
-
     .report-banner {
         color: #d6c49d;
         font-size: 21px;
@@ -69,6 +96,11 @@
         letter-spacing: 1px;
         text-shadow: 0 2px 14px #c49c484a;
         font-family: 'Merriweather', serif;
+    }
+    .back-btn,
+    .gold-upload-btn,
+    .del-btn {
+        color: #fff !important;
     }
     #theme-btn {
         position: fixed; right: 24px; bottom: 26px; z-index: 11001;
@@ -214,7 +246,7 @@
         display: inline-block;
     }
     .section { margin-bottom:28px; text-align:center;}
-    .section b { color: var(--color-bronze); font-size:18px; font-weight:700; letter-spacing: 0.06em;}
+    .section b { color: var(--color-green); font-size:18px; font-weight:700; letter-spacing: 0.06em;}
     .sample-img {
         border-radius: 13px;
         border: 3px solid var(--color-green);
@@ -228,7 +260,10 @@
     }
     .sample-img:hover {box-shadow: 0 12px 38px var(--color-accent);transform: scale(1.08) rotate(-1.5deg);}
     .state-btn-group {display:flex;gap:10px;justify-content:center;align-items:center;margin-bottom:6px;}
-    .state-btn {font-size:18px; padding:7px 18px; border:none; border-radius:9px; font-weight:bold;}
+    .state-btn {
+        font-size:18px; padding:7px 18px; border:none; border-radius:9px; font-weight:bold;
+        color: var(--main-th-bright);
+    }
     .pass {background: var(--color-pass); color:white;}
     .fail {background: var(--color-fail); color:white;}
     .na {background:#7a7a7a; color:white;}
@@ -285,7 +320,7 @@
     }
     .del-btn:hover {opacity: 1; background:#760212;}
     .comment-block {text-align:center;margin:18px 0 7px 0;}
-    .cmt-label {font-size:17px;color:var(--color-bronze);}
+    .cmt-label {font-size:17px;color: var(--color-green);}
     .center {text-align:center;}
     .gold-upload-btn {
         background: var(--color-accent);
@@ -304,7 +339,8 @@
         position: relative;
         overflow: hidden;
     }
-    .gold-upload-btn:hover {background: var(--color-bronze);}
+    .gold-upload-btn:hover { background: var(--color-brown); color: #fff; }
+    body.dark .gold-upload-btn:hover { background: #ffe082; color: #25312b; }
     #img-popup {
         display: none;
         position: fixed;
@@ -351,6 +387,27 @@
       background: rgba(255,255,255,0.29); pointer-events: none; z-index: 10; opacity: 0.77;
     }
     @keyframes ripple { to { transform: scale(1.5); opacity: 0; } }
+    textarea {
+        width: 97%;
+        max-width: 380px;
+        border-radius: 8px;
+        padding: 7px;
+        font-size: 16px;
+        border: 1.2px solid var(--main-th);
+        background: #fffbe5;
+        color: var(--main-text);
+        transition: background 0.17s, color 0.16s, border-color 0.14s;
+    }
+    body.dark textarea {
+        background: #3f5250;
+        color: #f6f6ef;
+        border-color: #91b8a2;
+    }
+    body.dark textarea:focus {
+        border-color: #ffe082;
+        background: #405e59;
+        color: #fff;
+    }
     </style>
 </head>
 <body>
@@ -423,9 +480,9 @@
         <form method="POST" class="comment-block" aria-label="Thêm ghi chú hoặc comment">
             <input type="hidden" name="group" value="{{ group }}">
             <label class="cmt-label" for="comment_input">Thêm ghi chú/comment:</label><br>
-            <textarea name="comment_input" id="comment_input" rows="2" style="width:97%;max-width:380px;border-radius:8px;padding:7px;font-size:16px;">{{comment or ''}}</textarea>
+            <textarea name="comment_input" id="comment_input" rows="2">{{comment or ''}}</textarea>
             <br>
-            <button type="submit" name="save_comment" style="background:#325a4a;color:white;font-size:15px;border-radius:7px;padding:4px 15px;margin-top:7px;">Lưu comment</button>
+            <button type="submit" name="save_comment" class="gold-upload-btn" style="margin-top:7px; font-size:15px;">Lưu comment</button>
         </form>
     </div>
     <div id="img-popup" role="dialog" aria-modal="true" aria-label="Ảnh kiểm thử phóng to">

@@ -33,11 +33,8 @@ def update_counter(ca=None):
     ot_end = 23 * 60 + 59
 
     counter = read_counter()
-    # Reset nếu qua ngày mới
     if counter.get("date") != today_str:
         counter = {"date": today_str, "office": 0, "ot": 0}
-
-    # Xác định ca nếu không truyền vào
     if not ca:
         if office_start <= tval < office_end:
             ca = "office"
@@ -45,16 +42,13 @@ def update_counter(ca=None):
             ca = "ot"
         else:
             ca = None
-
     if ca in ("office", "ot"):
         counter[ca] += 1
-
     write_counter_json(counter)
     return counter
 
 def log_report_complete(report_number, type_of, ca, employee_id=""):
     from openpyxl import load_workbook, Workbook
-    import os
 
     excel_path = DETAIL_XLSX
     vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")

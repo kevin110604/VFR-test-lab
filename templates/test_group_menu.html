@@ -10,9 +10,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
     <style>
     :root {
+        --main-bg: #fffdfc;
+        --main-card: #fffdfccf;
+        --main-text: #25312b;
+        --main-th: #c49c48;
+        --main-border: #d8d8cc;
+        --color-green: #4e8573;
         --color-bronze: #8B6B1E;
-        --color-forest-green: #35523A;
-        --color-beige-bg: #F5F1E6;
         --color-brown: #6B4F1A;
         --color-red-metallic: #A32121;
         --color-pass: #2E7D32;
@@ -25,14 +29,25 @@
         --warn-bg-dark: #f3d5d5;
         --warn-text-dark: #db4545;
     }
-    /* Nền cỏ không đổi */
+    body.dark, .dark {
+        --main-bg: #2b3938;
+        --main-card: #374B4A;
+        --main-text: #f6f6ef;
+        --main-th: #ffe082;
+        --main-border: #263d3a;
+        --color-green: #91b8a2;
+        --color-bronze: #ffc970;
+        --color-brown: #bfa87b;
+        --color-na: #aaa;
+        --color-text-dark: #f6f6ef;
+        --color-text-light: #f6f6ef;
+    }
     html, body {
         height: 100%; margin: 0; padding: 0;
-        background: url('/static/bg_grass.png') repeat;
-        background-size: 420px 420px;
-        color: var(--color-text-dark);
+        background: var(--main-bg);
+        color: var(--main-text);
         font-family: 'Open Sans', Arial, sans-serif;
-        transition: color 0.2s;
+        transition: color 0.2s, background 0.22s;
     }
     /* Dark mode chỉ đổi chữ, box, nút, không đổi background */
     body.dark, .dark {
@@ -50,7 +65,8 @@
         font-family: 'Merriweather', serif;
     }
     .box {
-        background: #fffdfccf;
+        background: var(--main-card);
+        color: var(--main-text);
         max-width: 540px;
         /* Giảm margin-top để nó gần banner hơn */
         margin: 10px auto 0 auto;
@@ -61,17 +77,16 @@
         transition: background 0.22s, color 0.2s;
         /* Font Open Sans giống item */
         font-family: 'Open Sans', Arial, sans-serif;
-        color: var(--color-text-dark);
     }
     body.dark .box {
-        background: #344833e8;
+        background: var(--main-card);
         box-shadow: 0 4px 24px var(--shadow-dark);
-        color: var(--color-text-light);
+        color: var(--main-text);
     }
     h2 {
         /* Font Merriweather giống item */
         font-family: 'Merriweather', serif;
-        color: var(--color-forest-green);
+        color: var(--color-green);
         text-align: center;
         margin-bottom: 32px;
         font-size: 26px;
@@ -81,7 +96,7 @@
         text-shadow: none;
     }
     body.dark h2 {
-        color: var(--color-beige-bg);
+         color: var(--main-th);
         text-shadow: 1px 1px 5px rgba(0,0,0,0.6);
     }
     .back-btn {
@@ -114,8 +129,7 @@
     }
     .test-group-menu > div { width: 100%; }
     .test-btn {
-        background: var(--color-forest-green);
-        color: var(--color-beige-bg);
+        background: var(--color-green); color: #fff8b0;
         border: none;
         border-radius: 12px;
         font-size: 17px;
@@ -142,7 +156,7 @@
         font-family: 'Inter', sans-serif;
     }
     body.dark .test-btn {
-        background: var(--color-brown);
+        background: var(--color-green); color: #25312b; 
         box-shadow: 0 2px 10px var(--shadow-dark);
     }
     .test-btn:hover {
@@ -154,17 +168,17 @@
         white-space: nowrap;
         /* Font Merriweather cho phần b */
         font-family: 'Merriweather', serif;
-        color: var(--color-beige-bg);
+        color: #fff8b0;
         transition: color 0.22s;
     }
     body.dark .test-btn b {
-        color: var(--color-text-light);
+        color: #25312b;
     }
     .status-block {
         font-size: 14px;
         text-align: left;
         padding-left: 12px;
-        color: var(--color-forest-green);
+        color: var(--color-green);
         user-select: none;
         margin-top: 6px;
         font-family: 'Open Sans', Arial, sans-serif;
@@ -172,7 +186,7 @@
         font-style: italic;
     }
     body.dark .status-block {
-        color: var(--color-beige-bg);
+        color: var(--main-th);
     }
     .result-pass, .result-fail, .result-na, .comment {
         padding: 4px 8px;
@@ -189,14 +203,10 @@
         box-shadow: 0 3px 8px var(--shadow-dark);
     }
     .result-pass {
-        color: var(--color-beige-bg);
-        border: 1.6px solid var(--color-pass);
-        background: #2E7D32;
+        background: var(--color-green); border: 1.6px solid var(--color-pass); color: #fff;
     }
     body.dark .result-pass {
-        background: #3c6f42;
-        border-color: #3c6f42;
-        color: var(--color-beige-bg);
+        background: var(--color-green); border-color: var(--color-green); color: var(--main-th);
     }
     .result-fail {
         color: var(--color-beige-bg);
@@ -303,6 +313,8 @@
       opacity:0.96;
     }
     #theme-btn:hover { background: var(--color-brown); color: #fff; opacity:1; }
+    body.dark #theme-btn { background: #6c837f; color: #ffe082; }
+    body.dark #theme-btn:hover { background: #b78e24; color: #fff; }
     </style>
 <!DOCTYPE html>
 <html>

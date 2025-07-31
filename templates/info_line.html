@@ -9,27 +9,55 @@
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
     :root {
-      --color-bg: #F5F1E6;
-      --color-box: #FFF8E7;
-      --color-dark: #25312b;
-      --color-accent: #C49C48;
-      --color-green: #35523A;
-      --color-bronze: #8B6B1E;
-      --color-brown: #6B4F1A;
-      --color-red: #A32121;
-      --color-pass: #2E7D32;
-      --color-fail: #A32121;
-      --color-na: #666;
-      --color-text-dark: #25312b;
-      --color-text-light: #F9F7F0;
-      --shadow-light: rgba(0,0,0,0.10);
-      --shadow-dark: rgba(255,255,255,0.15);
+        --main-bg: #fffdfc;
+        --main-card: #fffdfccf;
+        --main-text: #25312b;
+        --main-th: #c49c48;
+        --main-border: #d8d8cc;
+        --color-bg: var(--main-bg);
+        --color-box: var(--main-card);
+        --color-dark: #25312b;
+        --color-accent: #C49C48;
+        --color-green: #4e8573;
+        --color-bronze: #8B6B1E;
+        --color-brown: #6B4F1A;
+        --color-red: #A32121;
+        --color-pass: #2E7D32;
+        --color-fail: #A32121;
+        --color-na: #666;
+        --color-text-dark: #25312b;
+        --color-text-light: #F9F7F0;
+        --shadow-light: rgba(0,0,0,0.10);
+        --shadow-dark: rgba(255,255,255,0.15);
     }
+    button:hover,
+    .btn:hover {
+        background-color: #3d6d60;  /* darker shade of --color-green */
+    }
+    body.dark, .dark {
+        --main-bg: #2b3938;           /* nền tổng thể */
+        --main-card: #374B4A;         /* thẻ hiển thị */
+        --main-text: #f6f6ef;         /* chữ chính */
+        --main-th: #ffe082;           /* tiêu đề bảng */
+        --main-border: #263d3a;       /* viền */
+
+        --color-bg: var(--main-bg);
+        --color-box: var(--main-card);
+        --color-text-dark: #f6f6ef;
+        --color-text-light: #f6f6ef;
+        --color-bronze: #ffc970;
+        --color-accent: #ffe082;
+        --color-green: #91b8a2;
+        --color-brown: #bfa87b;
+        --color-na: #aaa;
+        --shadow-light: rgba(255, 255, 255, 0.07);
+        --shadow-dark: rgba(255,255,255,0.15);
+        }
     html, body {
         min-height: 100vh;
-        background: url('/static/bg_grass.png') repeat;
+        background-color: var(--main-bg);
         background-size: 420px 420px;
-        color: var(--color-text-dark);
+        color: var(--main-text);
         font-family: 'Open Sans', Arial, sans-serif;
         margin:0;padding:0;
         transition: background 0.27s, color 0.21s;
@@ -39,8 +67,8 @@
         transition: background 0.27s, color 0.21s;
     }
     body.dark .info-box {
-        background: #344833e8 !important;
-        color: var(--color-text-light) !important;
+        background: var(--main-card);
+        color: var(--main-text);
         box-shadow: 0 4px 32px var(--shadow-dark);
         transition: background 0.27s, color 0.21s, box-shadow 0.22s;
     }
@@ -108,8 +136,8 @@
         transition: background 0.23s, box-shadow 0.23s;
     }
     body.dark #theme-btn {
-        background: var(--color-bronze) !important;
-        color: #fff !important;
+        background: #6c837f;
+        color: #fff;
         transition: background 0.23s, color 0.23s;
     }
     .logout-btn {
@@ -455,7 +483,7 @@
         color: #382900; 
     }
     .btn-green { 
-        background: #35523A; 
+        background: var(--color-green); 
         color: #fff; 
         font-weight: 600;
         letter-spacing: 0.01em;
@@ -479,7 +507,7 @@
     .btn-gold { background: #c49c48 !important; }
     .btn-gold:hover { background: #b4943c !important; }
     
-    .btn-green { background: #35523A !important; }
+    .btn-green { var(--color-green) !important; }
     .btn-green:hover { background: #53795d !important; }
     .btn-more {
     background: #fff;
@@ -721,7 +749,7 @@
             <div style="font-weight:bold; color:#4d665c; font-size:17px; margin-bottom:7px; text-align:center;">Non-Pallet</div>
             <a href="{{ url_for('test_group_page', report=report_id, group='transit_2c_np') }}" class="test-btn" style="margin-bottom:6px;">2C</a>
             <a href="{{ url_for('test_group_page', report=report_id, group='transit_RH_np') }}" class="test-btn" style="margin-bottom:6px;">RH</a>
-            <a href="{{ url_for('test_group_page', report=report_id, group='transit_nonpallet') }}" class="test-btn" style="margin-bottom:6px;">181 (&lt;68kg)</a>
+            <a href="{{ url_for('test_group_page', report=report_id, group='transit_181_lt68') }}" class="test-btn" style="margin-bottom:6px;">181 (&lt;68kg)</a>
             <a href="{{ url_for('test_group_page', report=report_id, group='transit_nonpallet') }}" class="test-btn" style="margin-bottom:6px;">3B</a>
             <a href="{{ url_for('test_group_page', report=report_id, group='transit_nonpallet') }}" class="test-btn" style="margin-bottom:6px;">3A</a>
             </div>
@@ -730,7 +758,7 @@
             <div style="font-weight:bold; color:#4d665c; font-size:17px; margin-bottom:7px; text-align:center;">Pallet</div>
             <a href="{{ url_for('test_group_page', report=report_id, group='transit_2c_pallet') }}" class="test-btn" style="margin-bottom:6px;">2C</a>
             <a href="{{ url_for('test_group_page', report=report_id, group='transit_RH_pallet') }}" class="test-btn" style="margin-bottom:6px;">RH</a>
-            <a href="{{ url_for('test_group_page', report=report_id, group='transit_pallet') }}" class="test-btn" style="margin-bottom:6px;">181 (&gt;68kg)</a>
+            <a href="{{ url_for('test_group_page', report=report_id, group='transit_181_gt68') }}" class="test-btn" style="margin-bottom:6px;">181 (&gt;68kg)</a>
             <a href="{{ url_for('test_group_page', report=report_id, group='transit_pallet') }}" class="test-btn" style="margin-bottom:6px;">3B</a>
             </div>
         </div>
@@ -796,7 +824,7 @@
         </div>
         <form method="POST" class="testdone-row">
             <button name="action" value="test_done" class="testdone-btn">
-                TEST DONE
+                COMPLETE
             </button>
         </form>
         <form method="POST" class="rating-row">
@@ -814,7 +842,7 @@
           </form>
           <a href="{{ url_for('home') }}"
              class="main-btn action-btn btn-green"
-             style="background:#35523A;">
+             style="background:var(--color-green)">
             <i class="fa fa-arrow-left"></i> Nhập mã report khác
           </a>
         </div>

@@ -9,23 +9,54 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
     <style>
     :root {
-        --color-bg: #F5F1E6;
-        --color-box: #FFF8E7;
-        --color-green: #35523A;
+        --main-bg: #fffdfc;
+        --main-card: #fffdfccf;
+        --main-text: #25312b;
+        --main-th: #ffe082;
+        --main-th-bright: #fff9d1;
+        --main-border: #d8d8cc;
+        --color-green: #4e8573;
         --color-bronze: #8B6B1E;
-        --color-accent: #C49C48;
         --color-brown: #6B4F1A;
+        --color-red-metallic: #A32121;
+        --color-pass: #38b430;
+        --color-fail: #df2323;
+        --color-na: #666;
         --color-text-dark: #25312b;
         --color-text-light: #F9F7F0;
         --shadow-light: rgba(0,0,0,0.10);
         --shadow-dark: rgba(255,255,255,0.15);
+        --dark-pass: #2a4e20;
+        --dark-fail: #6a1b1b;
+        --color-beige-bg: #F5F1E6;
+    }
+    body.dark, .dark {
+        --main-bg: #2b3938;
+        --main-card: #374B4A;
+        --main-text: #f6f6ef;
+        --main-th: #ffe082;
+        --main-th-bright: #fffbe6;
+        --main-border: #263d3a;
+        --color-green: #91b8a2;
+        --color-bronze: #ffc970;
+        --color-brown: #bfa87b;
+        --color-red-metallic: #ef7373;
+        --color-pass: #93e5a0;
+        --color-fail: #e68282;
+        --color-na: #aaa;
+        --color-text-dark: #f6f6ef;
+        --color-text-light: #f6f6ef;
+        --shadow-light: rgba(255,255,255,0.07);
+        --shadow-dark: rgba(0,0,0,0.13);
+        --dark-pass: #4e7763;
+        --dark-fail: #ce4343;
+        --color-beige-bg: #374B4A;
     }
     html, body {
         min-height: 100vh;
-        background: url('/static/bg_grass.png') repeat;
-        background-size: 420px 420px;
-        color: var(--color-text-dark);
-        font-family: 'Open Sans', Arial, sans-serif;
+        background: var(--main-bg);
+        color: var(--main-text);
+        font-family: 'Inter', 'Open Sans', Arial, sans-serif;
         margin:0;padding:0;
         transition: background 0.27s, color 0.21s;
     }
@@ -34,44 +65,62 @@
         transition: background 0.27s, color 0.21s;
     }
     body.dark .box {
-        background: #344833e8 !important;
-        color: var(--color-text-light) !important;
+        background: var(--main-card) !important;
+        color: var(--main-text) !important;
         box-shadow: 0 4px 32px var(--shadow-dark);
     }
-    body.dark h2, body.dark .cmt-label, body.dark .section b {
-        color: var(--color-accent) !important;
+    body.dark h2,
+    body.dark .cmt-label,
+    body.dark .section b {
+        color: var(--main-th) !important;
     }
     body.dark .img-thumb, body.dark .sample-img {
-        border-color: var(--color-accent) !important;
+        border-color: var(--color-green) !important;
         background: #222 !important;
     }
-    body.dark .back-btn, body.dark .gold-upload-btn, body.dark .del-btn, body.dark .del-img-btn {
-        background: var(--color-brown) !important;
-        color: #fff !important;
-        box-shadow: 0 2px 10px var(--shadow-dark);
+    body.dark .back-btn,
+    body.dark .gold-upload-btn,
+    body.dark .del-btn {
+        background: var(--main-th) !important;
+        color: #25312b !important;
+        border-color: var(--main-th);
+    }
+    .report-banner {
+        color: #d6c49d;
+        font-size: 21px;
+        font-weight: bold;
+        text-align: center;
+        margin-top: 6px;
+        margin-bottom: 14px;
+        letter-spacing: 1px;
+        text-shadow: 0 2px 14px #c49c484a;
+        font-family: 'Merriweather', serif;
+    }
+    .back-btn, .del-btn {
+        color: var(--color-green) !important;
     }
     #theme-btn {
-      position: fixed; right: 24px; bottom: 26px; z-index: 11001;
-      background: var(--color-bronze); color: #fff;
-      border-radius: 100px; font-size: 17px;
-      padding: 6px 11px; border:none; box-shadow: 0 2px 10px var(--shadow-light);
-      cursor:pointer; height: 38px; width: 38px; min-width:36px;
-      display:flex;align-items:center;justify-content:center;opacity:0.96;
-      transition: background 0.16s, color 0.16s;
-      font-family: 'Inter', sans-serif;
+        position: fixed; right: 24px; bottom: 26px; z-index: 11001;
+        background: var(--color-bronze); color: #fff;
+        border-radius: 100px; font-size: 17px;
+        padding: 6px 11px; border:none; box-shadow: 0 2px 10px var(--shadow-light);
+        cursor:pointer; height: 38px; width: 38px; min-width:36px;
+        display:flex;align-items:center;justify-content:center;opacity:0.96;
+        transition: background 0.16s, color 0.16s;
     }
-    #theme-btn:hover { background: var(--color-accent); color: #fff; opacity:1; }
+    #theme-btn:hover { background: var(--color-green); color: #fff; opacity:1; }
     .box {
-        background: #fffdfccf;
+        background: var(--main-card);
         max-width: 540px;
-        margin: 32px auto 34px auto;
+        margin: 0 auto 32px auto;
         border-radius: 18px;
         box-shadow: 0 4px 30px var(--shadow-light);
         padding: 34px 20px 32px 20px;
         animation: fadeGrow 0.7s;
         position:relative;
-        font-family: 'Open Sans', Arial, sans-serif;
+        font-family: 'Inter', 'Open Sans', Arial, sans-serif;
         color: var(--color-text-dark);
+        transition: background 0.38s, color 0.36s, box-shadow 0.22s;
     }
     @keyframes fadeGrow {
         0% { opacity: 0; transform: scale(0.98);}
@@ -79,7 +128,8 @@
     }
     .back-btn-container {
         text-align: left;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
+        margin-top: 0;
     }
     .back-btn {
         background: var(--color-bronze);
@@ -96,22 +146,75 @@
         text-decoration: none !important;
     }
     .back-btn:hover {
-        background: var(--color-accent);
+        background: var(--color-green);
         color: #fff !important;
     }
     h2 {
         color: var(--color-green);
         margin-bottom: 12px;
         text-align:center;
-        font-size: 24px;
+        font-size: 25px;
         font-weight: bold;
         letter-spacing: 1.1px;
         margin-top: 0;
         text-shadow: 0 2px 14px #c49c484a;
         font-family: 'Merriweather', serif;
     }
+    .status-block {text-align:center;margin-bottom:14px;}
+    .inline-status {
+        font-size: 22px;
+        font-weight: bold;
+        margin: 0 auto 7px auto;
+        border-radius: 10px;
+        padding: 5px 22px;
+        display: inline-block;
+        letter-spacing: 0.08em;
+        box-shadow: 0 2px 13px #0002;
+        background: #f8fff8;
+        color: var(--color-pass);
+        border: 2px solid var(--color-pass);
+        transition: background 0.38s, color 0.36s, border-color 0.36s;
+    }
+    .inline-status.fail {
+        background: #fff5f7;
+        color: var(--color-fail) !important;
+        border: 2px solid var(--color-fail);
+    }
+    .inline-status.na {
+        background: #f1f1f1;
+        color: var(--color-na);
+        border: 2px solid #b8b8b8;
+    }
+    body.dark .inline-status {
+        background: #f8fff8 !important;
+        color: var(--color-pass) !important;
+        border-color: var(--color-pass) !important;
+    }
+    body.dark .inline-status.fail {
+        background: #fff5f7 !important;
+        color: var(--color-fail) !important;
+        border-color: var(--color-fail) !important;
+    }
+    body.dark .inline-status.na {
+        background: #f1f1f1 !important;
+        color: var(--color-na) !important;
+        border-color: #b8b8b8 !important;
+    }
+    .missing-img-warn {color:#e33;font-size:16px;text-align:center;margin:4px auto 6px auto;font-weight:bold;}
+    .cmt-view {
+        border-radius:8px;
+        background:#f2f6f6;
+        padding:8px 13px;
+        margin:8px auto 0 auto;
+        font-size:17px;
+        color:#215d37;
+        min-height:25px;
+        max-width:95%;
+        border: 1.2px solid #b6c3c0;
+        display: inline-block;
+    }
     .section { margin-bottom:28px; text-align:center;}
-    .section b { color: var(--color-bronze); font-size:18px; font-weight:700; letter-spacing: 0.06em;}
+    .section b { color: var(--color-green); font-size:18px; font-weight:700; letter-spacing: 0.06em;}
     .sample-img {
         border-radius: 13px;
         border: 3px solid var(--color-green);
@@ -123,7 +226,17 @@
         transition: box-shadow 0.16s, transform 0.12s, background 0.23s, border-color 0.23s;
         cursor: zoom-in;
     }
-    .sample-img:hover {box-shadow: 0 12px 38px var(--color-accent);transform: scale(1.08) rotate(-1.5deg);}
+    .sample-img:hover {box-shadow: 0 12px 38px var(--color-green);transform: scale(1.08) rotate(-1.5deg);}
+    .state-btn-group {display:flex;gap:10px;justify-content:center;align-items:center;margin-bottom:6px;}
+    .state-btn {
+        font-size:18px; padding:7px 18px; border:none; border-radius:9px; font-weight:bold;
+        color: var(--main-th-bright);
+        transition: box-shadow 0.17s, background 0.19s;
+    }
+    .pass {background: var(--color-pass); color:white;}
+    .fail {background: var(--color-fail); color:white;}
+    .na {background:#7a7a7a; color:white;}
+    .selected { box-shadow: 0 0 0 3px #93e5a0;}
     .img-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -152,13 +265,38 @@
         display: block;
         margin: 0 auto;
     }
-    .img-thumb:hover {box-shadow:0 8px 26px var(--color-accent);filter:brightness(1.08) contrast(1.09);transform: scale(1.1);}
+    .img-thumb:hover {box-shadow:0 8px 26px var(--color-green);transform: scale(1.06);}
+    .del-btn {
+        position: absolute;
+        top: 8px;
+        right: 10px;
+        background: var(--color-fail);
+        color: #fff;
+        border: none;
+        border-radius: 100px;
+        width: 28px; height: 28px;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 10px #2225;
+        opacity: 0.91;
+        z-index: 2;
+        transition: opacity 0.18s, box-shadow 0.14s, background 0.18s;
+        outline: none;
+        cursor: pointer;
+        padding: 0;
+    }
+    .del-btn:hover {opacity: 1; background:#760212;}
+    .comment-block {text-align:center;margin:18px 0 7px 0;}
+    .cmt-label {font-size:17px;color: var(--color-green);}
+    .center {text-align:center;}
     .gold-upload-btn {
-        background: var(--color-accent);
+        background: var(--color-green);
         color: #fff;
         font-size: 17px;
         padding: 10px 32px;
-        border-radius: 9px;
+        border-radius: 999px;
         font-weight: bold;
         border: none;
         margin: 10px auto 0 auto;
@@ -169,122 +307,67 @@
         min-width:135px;
         position: relative;
         overflow: hidden;
+        transition: background 0.14s, color 0.14s;
     }
-    .gold-upload-btn:hover {background: var(--color-bronze);}
-    .gold-upload-btn.btn-mini {
-        min-width: 0 !important;
-        padding: 5px 12px !important;
-        font-size: 13px !important;
-        height: 32px !important;
-        line-height: 17px !important;
-        margin-top: 0 !important;
-    }
-    .del-img-btn, .del-btn {
-        position: absolute;
-        top: 6px; 
-        left: 8px;
-        background: #e74c3c;
-        color: #fff;
-        border: 2px solid #fff;
-        border-radius: 100px;
-        width: 28px; height: 28px;
-        font-size: 15px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 2px 10px #2223;
-        opacity: 0.92;
-        z-index: 2;
-        transition: background 0.15s, color 0.15s, transform 0.13s, box-shadow 0.13s;
-        outline: none;
-        cursor: pointer;
-        padding: 0;
-    }
-    .del-img-btn:hover, .del-btn:hover {
-        background: #c0392b;
-        color: #fff;
-        border-color: #ffd9d9;
-        opacity: 1;
-        transform: scale(1.13) rotate(-10deg);
-        box-shadow: 0 4px 20px #e74c3c33;
-    }
-    .del-img-btn i, .del-btn i {
-        font-size: 15px;
-        pointer-events: none;
-    }
-    .comment-block {text-align:center;margin:18px 0 7px 0;}
-    .cmt-label {font-size:17px;color:var(--color-bronze);}
+    .gold-upload-btn:hover { background: var(--color-brown); color: #fff; }
+    body.dark .gold-upload-btn { background: var(--color-green); color: #fff; }
+    body.dark .gold-upload-btn:hover { background: #ffe082; color: #25312b; }
+    /* Nút lưu comment (bo tròn đẹp như upload) */
     .main-btn.save-cmt {
-        margin-top:7px;
-        background:#35523A;
-        color:white;
-        font-size:15px;
-        border-radius:7px;
-        padding:8px 20px;
-        font-weight:600;
-        border:none;
-        transition:background 0.17s;
+        background: var(--color-green);
+        color: #fff;
+        font-size: 17px;
+        padding: 10px 32px;
+        border-radius: 999px;
+        font-weight: bold;
+        border: none;
+        margin: 10px auto 0 auto;
+        box-shadow: 0 2px 10px var(--shadow-light);
+        display: inline-block;
+        text-align:center;
+        cursor:pointer;
+        min-width:135px;
+        position: relative;
+        overflow: hidden;
+        transition: background 0.14s, color 0.14s;
     }
-    .main-btn.save-cmt:hover {
-        background: var(--color-accent);
+    .main-btn.save-cmt:hover { background: var(--color-brown); color: #fff; }
+    body.dark .main-btn.save-cmt { background: var(--color-green); color: #fff; }
+    body.dark .main-btn.save-cmt:hover { background: #ffe082; color: #25312b; }
+    textarea {
+        width: 97%;
+        max-width: 380px;
+        border-radius: 8px;
+        padding: 7px;
+        font-size: 16px;
+        border: 1.2px solid var(--main-th);
+        background: #fffbe5;
+        color: var(--main-text);
+        transition: background 0.17s, color 0.16s, border-color 0.14s;
+    }
+    body.dark textarea {
+        background: #3f5250;
+        color: #f6f6ef;
+        border-color: #91b8a2;
+    }
+    body.dark textarea:focus {
+        border-color: #ffe082;
+        background: #405e59;
         color: #fff;
     }
-    .sample-img {
-        min-width: 180px;
-        min-height: 80px;
-        max-width: 340px;
-        max-height: 220px;
-        object-fit: contain;
-        border-radius: 13px;
-        border: 3px solid #35523A;
-        box-shadow: 0 8px 24px #0001;
-        background: #fff;
-        margin: 8px;
-        cursor: zoom-in;
-    }
-    .drop-upload-label {
-        font-weight:bold;
-        font-size:15.2px;
-        color:#222;
-        display:block;
-        margin-bottom:6px;
-        transition: color 0.21s;
-    }
-    body.dark .drop-upload-label {
-        color: var(--color-accent) !important;
-    }
-    .preview-imgs img {
-        border: 1.5px solid #a49c62;
-        border-radius: 7px;
-        margin: 2px;
-        max-width: 70px;
-        max-height: 70px;
-        box-shadow: 0 2px 6px #5552;
-        cursor: zoom-in;
-    }
+    /* Loading */
     .upload-loading {
         display: none;
-        justify-content: center;
         align-items: center;
-        margin: 6px 0 6px 0;
-        font-size: 16px;
-        gap: 8px;
-        color: #c49c48;
-        font-weight: 500;
-        min-height: 26px;
-        min-width: 90px;
+        gap: 7px;
+        font-size: 15px;
+        color: #4e8573;
+        margin: 10px 0 0 0;
+        justify-content: center;
+        min-height: 27px;
+        transition: color 0.18s;
     }
-    .upload-loading .fa-spinner {
-        font-size: 19px;
-        color: #c49c48;
-        margin-right: 5px;
-    }
-    .upload-loading.success {
-        color: #3cb464;
-    }
-    .upload-loading.success .fa-check {
-        color: #3cb464;
-    }
+    .upload-loading.success { color: #38b430; }
     #img-popup {
         display: none;
         position: fixed;
@@ -324,51 +407,18 @@
         box-shadow: 0 2px 12px #2226;
         transition: background 0.13s;
     }
-    #img-popup-close:hover {background:rgba(220,40,40,0.22);} 
-    .state-btn-group {
-        margin-top: 18px;
-        display: flex;
-        gap: 16px;
-        justify-content: center;
+    #img-popup-close:hover {background:rgba(220,40,40,0.22);}
+    .ripple {
+        position: absolute; border-radius: 50%; transform: scale(0);
+        animation: ripple 0.32s cubic-bezier(0.39, 0.58, 0.57, 1);
+        background: rgba(255,255,255,0.29); pointer-events: none; z-index: 10; opacity: 0.77;
     }
-    .state-btn {
-        border: 2.2px solid #aaa;
-        border-radius: 10px;
-        font-size: 17px;
-        font-weight: bold;
-        padding: 8px 24px;
-        background: #fffbe8;
-        color: #4d665c;
-        cursor: pointer;
-        box-shadow: 0 2px 12px #eee4;
-        transition: background 0.17s, color 0.14s, border-color 0.16s;
-    }
-    .state-btn.pass { border-color: #3bb464; color: #286d37; }
-    .state-btn.fail { border-color: #df4343; color: #a82323; }
-    .state-btn.na   { border-color: #e9ba27; color: #ac8209; }
-    .state-btn.selected, .state-btn:active {
-        background: #f5ecbe !important;
-        color: #fff !important;
-        border-color: #c49c48 !important;
-        box-shadow: 0 4px 18px #d4b44b44;
-    }
-    .state-btn:hover { background: #f5ecc2; }
-    .report-banner {
-        color: #d6c49d;
-        font-size: 21px;
-        font-weight: bold;
-        text-align: center;
-        margin-top: 6px;
-        margin-bottom: 14px;
-        letter-spacing: 1px;
-        text-shadow: 0 2px 14px #c49c484a;
-        font-family: 'Merriweather', serif;
-    }
-        </style>
+    @keyframes ripple { to { transform: scale(1.5); opacity: 0; } }
+    </style>
 </head>
 <body>
     <!-- Nút darkmode -->
-    <<button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
+    <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
     <div class="report-banner">
         📝 MÃ REPORT: {{ report }}
     </div>
@@ -420,11 +470,11 @@
                             </div>
                             <div class="img-grid" id="rh_impact-img-list-{{zone}}" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:5px;justify-content:left;">
                                 {% for img in zone_imgs[zone] %}
-                                    <div style="position:relative;display:inline-block;">
+                                    <div class="img-thumb-wrap">
                                         <img src="{{ img }}" class="img-thumb" style="max-width:78px;max-height:78px;border-radius:8px;border:2px solid #4d665c;margin:2px;" onclick="showPopup(this)">
-                                        <form method="POST" style="display:inline;position:absolute;top:6px;left:8px;" onsubmit="return deleteSpecialImgAjax(event, '{{ img.split('/')[-1] }}', 'rh_impact', '{{zone}}')">
+                                        <form method="POST" style="display:inline;position:absolute;top:8px;right:10px;" onsubmit="return deleteSpecialImgAjax(event, '{{ img.split('/')[-1] }}', 'rh_impact', '{{zone}}')">
                                             <input type="hidden" name="delete_img" value="{{ img.split('/')[-1] }}">
-                                            <button type="submit" class="del-img-btn" title="Xóa ảnh này">
+                                            <button type="submit" class="del-btn" title="Xóa ảnh này">
                                                 <i class="fa fa-trash"></i>
                                             </button>
                                         </form>
@@ -463,11 +513,11 @@
                             </div>
                             <div class="img-grid" id="rh_vib-img-list-{{zone}}" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:5px;justify-content:left;">
                                 {% for img in zone_imgs[zone] %}
-                                    <div style="position:relative;display:inline-block;">
+                                    <div class="img-thumb-wrap">
                                         <img src="{{ img }}" class="img-thumb" style="max-width:78px;max-height:78px;border-radius:8px;border:2px solid #4d665c;margin:2px;" onclick="showPopup(this)">
-                                        <form method="POST" style="display:inline;position:absolute;top:6px;left:8px;" onsubmit="return deleteSpecialImgAjax(event, '{{ img.split('/')[-1] }}', 'rh_vib', '{{zone}}')">
+                                        <form method="POST" style="display:inline;position:absolute;top:8px;right:10px;" onsubmit="return deleteSpecialImgAjax(event, '{{ img.split('/')[-1] }}', 'rh_vib', '{{zone}}')">
                                             <input type="hidden" name="delete_img" value="{{ img.split('/')[-1] }}">
-                                            <button type="submit" class="del-img-btn" title="Xóa ảnh này">
+                                            <button type="submit" class="del-btn" title="Xóa ảnh này">
                                                 <i class="fa fa-trash"></i>
                                             </button>
                                         </form>
@@ -506,11 +556,11 @@
                             </div>
                             <div class="img-grid" id="rh_second_impact-img-list-{{zone}}" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:5px;justify-content:left;">
                                 {% for img in zone_imgs[zone] %}
-                                    <div style="position:relative;display:inline-block;">
+                                    <div class="img-thumb-wrap">
                                         <img src="{{ img }}" class="img-thumb" style="max-width:78px;max-height:78px;border-radius:8px;border:2px solid #4d665c;margin:2px;" onclick="showPopup(this)">
-                                        <form method="POST" style="display:inline;position:absolute;top:6px;left:8px;" onsubmit="return deleteSpecialImgAjax(event, '{{ img.split('/')[-1] }}', 'rh_second_impact', '{{zone}}')">
+                                        <form method="POST" style="display:inline;position:absolute;top:8px;right:10px;" onsubmit="return deleteSpecialImgAjax(event, '{{ img.split('/')[-1] }}', 'rh_second_impact', '{{zone}}')">
                                             <input type="hidden" name="delete_img" value="{{ img.split('/')[-1] }}">
-                                            <button type="submit" class="del-img-btn" title="Xóa ảnh này">
+                                            <button type="submit" class="del-btn" title="Xóa ảnh này">
                                                 <i class="fa fa-trash"></i>
                                             </button>
                                         </form>
@@ -549,11 +599,11 @@
                             </div>
                             <div class="img-grid" id="rh_step12-img-list-{{zone}}" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:5px;justify-content:left;">
                                 {% for img in zone_imgs[zone] %}
-                                    <div style="position:relative;display:inline-block;">
+                                    <div class="img-thumb-wrap">
                                         <img src="{{ img }}" class="img-thumb" style="max-width:78px;max-height:78px;border-radius:8px;border:2px solid #4d665c;margin:2px;" onclick="showPopup(this)">
-                                        <form method="POST" style="display:inline;position:absolute;top:6px;left:8px;" onsubmit="return deleteSpecialImgAjax(event, '{{ img.split('/')[-1] }}', 'rh_step12', '{{zone}}')">
+                                        <form method="POST" style="display:inline;position:absolute;top:8px;right:10px;" onsubmit="return deleteSpecialImgAjax(event, '{{ img.split('/')[-1] }}', 'rh_step12', '{{zone}}')">
                                             <input type="hidden" name="delete_img" value="{{ img.split('/')[-1] }}">
-                                            <button type="submit" class="del-img-btn" title="Xóa ảnh này">
+                                            <button type="submit" class="del-btn" title="Xóa ảnh này">
                                                 <i class="fa fa-trash"></i>
                                             </button>
                                         </form>
@@ -591,11 +641,11 @@
                             <div class="preview-imgs" id="drop-preview-{{i}}" style="display:flex;gap:7px;margin:4px 0 0 0;"></div>
                             <div class="img-grid" id="drop-img-list-{{i}}" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:5px;justify-content:left;">
                                 {% for img in drop_imgs[i] %}
-                                    <div style="position:relative;display:inline-block;">
+                                    <div class="img-thumb-wrap">
                                         <img src="{{ img }}" class="img-thumb" style="max-width:78px;max-height:78px;border-radius:8px;border:2px solid #4d665c;margin:2px;" onclick="showPopup(this)">
-                                        <form method="POST" style="display:inline;position:absolute;top:6px;left:8px;" onsubmit="return deleteSpecialImgAjax(event, '{{ img.split('/')[-1] }}', 'drop', {{i}})">
+                                        <form method="POST" style="display:inline;position:absolute;top:8px;right:10px;" onsubmit="return deleteSpecialImgAjax(event, '{{ img.split('/')[-1] }}', 'drop', {{i}})">
                                             <input type="hidden" name="delete_img" value="{{ img.split('/')[-1] }}">
-                                            <button type="submit" class="del-img-btn" title="Xóa ảnh này">
+                                            <button type="submit" class="del-btn" title="Xóa ảnh này">
                                                 <i class="fa fa-trash"></i>
                                             </button>
                                         </form>
@@ -633,11 +683,11 @@
                         <div class="preview-imgs" id="impact-preview-{{i}}" style="display:flex;gap:7px;margin:4px 0 0 0;"></div>
                         <div class="img-grid" id="impact-img-list-{{i}}" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:5px;justify-content:left;">
                             {% for img in impact_imgs[i] %}
-                            <div style="position:relative;display:inline-block;">
+                            <div class="img-thumb-wrap">
                                 <img src="{{ img }}" class="img-thumb" style="max-width:78px;max-height:78px;border-radius:8px;border:2px solid #4d665c;margin:2px;" onclick="showPopup(this)">
-                                <form method="POST" style="display:inline;position:absolute;top:6px;left:8px;" onsubmit="return deleteSpecialImgAjax(event, '{{ img.split('/')[-1] }}', 'impact', {{i}})">
+                                <form method="POST" style="display:inline;position:absolute;top:8px;right:10px;" onsubmit="return deleteSpecialImgAjax(event, '{{ img.split('/')[-1] }}', 'impact', {{i}})">
                                     <input type="hidden" name="delete_img" value="{{ img.split('/')[-1] }}">
-                                    <button type="submit" class="del-img-btn" title="Xóa ảnh này">
+                                    <button type="submit" class="del-btn" title="Xóa ảnh này">
                                         <i class="fa fa-trash"></i>
                                     </button>
                                 </form>
@@ -645,6 +695,47 @@
                             {% endfor %}
                         </div>
                     </div>
+                    {% endfor %}
+                </div>
+            {% elif group == 'transit_181_gt68' and key == 'step4' %}
+                <div class="drop-upload-group" style="display:grid;grid-template-columns:1fr 1fr;gap:18px 24px;justify-content:center;">
+                    {% for i in range(6) %}
+                        <div class="drop-upload-zone" style="border:1px solid #c49c48;padding:8px 14px 11px 14px;border-radius:10px;margin-bottom:8px;">
+                            <label class="drop-upload-label">{{ gt68_face_labels[i] }}</label>
+                            <input type="file" name="gt68_face_img_{{ gt68_face_zones[i] }}" multiple accept="image/*" style="display:none;" id="gt68-face-upload-{{i}}" onchange="uploadSpecialImgsAjax(this, 'gt68_face', {{i}})">
+                            <button type="button"
+                                    class="gold-upload-btn {% if gt68_face_imgs[i]|length > 0 %}btn-mini{% endif %}"
+                                    onclick="triggerUpload('gt68-face-upload-{{i}}')"
+                                    style="width:{{ '105px' if gt68_face_imgs[i]|length > 0 else '100%' }};
+                                        font-size:{{ '13px' if gt68_face_imgs[i]|length > 0 else '15px' }};
+                                        padding:{{ '5px 12px' if gt68_face_imgs[i]|length > 0 else '10px 32px' }};
+                                        margin-bottom:7px;">
+                                <i class="fa fa-upload"></i>
+                                {% if gt68_face_imgs[i]|length == 0 %}
+                                    Chọn và tải ảnh
+                                {% else %}
+                                    Thêm ảnh
+                                {% endif %}
+                                <span id="gt68-face-upload-fake-btn-{{i}}" style="font-size:12px;color:#333;padding-left:7px;">Chưa chọn file</span>
+                            </button>
+                            <div class="upload-loading" id="loading-gt68_face-{{i}}">
+                                <i class="fa fa-spinner fa-spin" id="loading-spinner-gt68_face-{{i}}"></i>
+                                <span id="loading-text-gt68_face-{{i}}">Đang tải ảnh...</span>
+                            </div>
+                            <div class="img-grid" id="gt68_face-img-list-{{i}}" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:5px;justify-content:left;">
+                                {% for img in gt68_face_imgs[i] %}
+                                    <div class="img-thumb-wrap">
+                                        <img src="{{ img }}" class="img-thumb" style="max-width:78px;max-height:78px;border-radius:8px;border:2px solid #4d665c;margin:2px;" onclick="showPopup(this)">
+                                        <form method="POST" style="display:inline;position:absolute;top:8px;right:10px;" onsubmit="return deleteSpecialImgAjax(event, '{{ img.split('/')[-1] }}', 'gt68_face', {{i}})">
+                                            <input type="hidden" name="delete_img" value="{{ img.split('/')[-1] }}">
+                                            <button type="submit" class="del-btn" title="Xóa ảnh này">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
                     {% endfor %}
                 </div>
             {% elif is_rot %}
@@ -675,11 +766,11 @@
                         <div class="preview-imgs" id="rot-preview-{{i}}" style="display:flex;gap:7px;margin:4px 0 0 0;"></div>
                         <div class="img-grid" id="rot-img-list-{{i}}" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:5px;justify-content:left;">
                             {% for img in rot_imgs[i] %}
-                            <div style="position:relative;display:inline-block;">
+                            <div class="img-thumb-wrap">
                                 <img src="{{ img }}" class="img-thumb" style="max-width:78px;max-height:78px;border-radius:8px;border:2px solid #4d665c;margin:2px;" onclick="showPopup(this)">
-                                <form method="POST" style="display:inline;position:absolute;top:6px;left:8px;" onsubmit="return deleteSpecialImgAjax(event, '{{ img.split('/')[-1] }}', 'rot', {{i}})">
+                                <form method="POST" style="display:inline;position:absolute;top:8px;right:10px;" onsubmit="return deleteSpecialImgAjax(event, '{{ img.split('/')[-1] }}', 'rot', {{i}})">
                                     <input type="hidden" name="delete_img" value="{{ img.split('/')[-1] }}">
-                                    <button type="submit" class="del-img-btn" title="Xóa ảnh này">
+                                    <button type="submit" class="del-btn" title="Xóa ảnh này">
                                         <i class="fa fa-trash"></i>
                                     </button>
                                 </form>
@@ -702,11 +793,11 @@
                 </div>
                 <div class="img-grid" id="img-list-normal" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;">
                     {% for img in imgs %}
-                        <div style="position:relative;display:inline-block;">
+                        <div class="img-thumb-wrap">
                             <img src="{{ img }}" class="img-thumb" style="max-width:90px;max-height:90px;border-radius:8px;border:2px solid #4d665c;margin:2px;" onclick="showPopup(this)">
-                            <form method="POST" class="img-del-form" style="display:inline;position:absolute;top:6px;left:8px;" onsubmit="return deleteImgAjax(this, '{{ img.split('/')[-1] }}')">
+                            <form method="POST" class="img-del-form" style="display:inline;position:absolute;top:8px;right:10px;" onsubmit="return deleteImgAjax(this, '{{ img.split('/')[-1] }}')">
                                 <input type="hidden" name="delete_img" value="{{ img.split('/')[-1] }}">
-                                <button type="submit" class="del-img-btn" title="Xóa ảnh này">
+                                <button type="submit" class="del-btn" title="Xóa ảnh này">
                                     <i class="fa fa-trash"></i>
                                 </button>
                             </form>
@@ -748,7 +839,6 @@
             </div>
             {% endif %}
         </form>
-
         <form method="POST" class="comment-block" aria-label="Thêm ghi chú hoặc comment">
             <label class="cmt-label" for="comment_input">Thêm ghi chú/comment:</label><br>
             <textarea name="comment_input" id="comment_input" rows="2" style="width:97%;max-width:380px;border-radius:8px;padding:7px;font-size:16px;">{{comment or ''}}</textarea>
@@ -763,13 +853,15 @@
         <img id="img-popup-inner" src="" alt="Ảnh kiểm thử lớn"/>
     </div>
     <script>
-        // ========== UPLOAD ẢNH AJAX VỚI MỤC THƯỜNG ==========
+        // UPLOAD ẢNH AJAX
         function uploadImgsAjax(input) {
             var files = input.files;
             var btn = document.getElementById('test-imgs-fake-btn');
             var loading = document.getElementById('loading-indicator');
             var spinner = document.getElementById('loading-spinner');
             var loadingText = document.getElementById('loading-text');
+            // Luôn ẩn loading ban đầu
+            loading.style.display = 'none';
             btn.innerText = files.length ? Array.from(files).map(f=>f.name).join(', ') : "Chưa chọn file";
             if (!files.length) return;
             loading.style.display = 'flex';
@@ -800,15 +892,72 @@
             };
             xhr.send(formData);
         }
+        function uploadSpecialImgsAjax(input, type, zone) {
+            var files = input.files;
+            var fakeBtn = document.getElementById(`${type}-upload-fake-btn-${zone}`);
+            var loading = document.getElementById(`loading-${type}-${zone}`);
+            var spinner = document.getElementById(`loading-spinner-${type}-${zone}`);
+            var loadingText = document.getElementById(`loading-text-${type}-${zone}`);
+            // Reset loading
+            if (loading) loading.style.display = 'none';
+            if (fakeBtn) fakeBtn.innerText = files.length ? Array.from(files).map(f=>f.name).join(', ') : "Chưa chọn file";
+            if (!files.length) return;
+            if (loading) loading.style.display = 'flex';
+            if (spinner) spinner.className = 'fa fa-spinner fa-spin';
+            if (loadingText) loadingText.innerText = 'Đang tải ảnh...';
+            if (loading) loading.classList.remove('success');
+            var formData = new FormData();
+            // Lấy đúng tên field file gửi lên backend
+            var field = `${type}_img_${zone}`;
+            for (var i = 0; i < files.length; i++) formData.append(field, files[i]);
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", window.location.href, true);
+            xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+            xhr.onload = function() {
+                if (spinner) spinner.className = 'fa fa-check';
+                if (loadingText) loadingText.innerText = 'Đã upload ảnh xong!';
+                if (loading) loading.classList.add('success');
+                setTimeout(function() {
+                    if (loading) loading.style.display = 'none';
+                    if (loading) loading.classList.remove('success');
+                    if (spinner) spinner.className = 'fa fa-spinner fa-spin';
+                    if (loadingText) loadingText.innerText = 'Đang tải ảnh...';
+                }, 1200);
+                if (xhr.status == 200) {
+                    var data = JSON.parse(xhr.responseText);
+                    // Update đúng vùng zone vừa upload
+                    var imgGrid = document.getElementById(`${type}-img-list-${zone}`);
+                    if (imgGrid) {
+                        var html = '';
+                        (data.imgs[zone] || []).forEach(function(img) {
+                            html += `
+                            <div class="img-thumb-wrap">
+                                <img src="${img}" class="img-thumb" onclick="showPopup(this)" alt="Ảnh kiểm thử">
+                                <form method="POST" style="display:inline;position:absolute;top:8px;right:10px;" onsubmit="return deleteSpecialImgAjax(event, '${img.split('/').pop()}', '${type}', '${zone}')">
+                                    <input type="hidden" name="delete_img" value="${img.split('/').pop()}">
+                                    <button type="submit" class="del-btn" title="Xóa ảnh này">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>`;
+                        });
+                        imgGrid.innerHTML = html;
+                    }
+                }
+                input.value = "";
+                if (fakeBtn) fakeBtn.innerText = "Chưa chọn file";
+            };
+            xhr.send(formData);
+        }
         function updateNormalImgList(imgs) {
             var html = "";
             imgs.forEach(function(img) {
                 html += `
-                <div style="position:relative;display:inline-block;">
-                    <img src="${img}" class="img-thumb" style="max-width:90px;max-height:90px;border-radius:8px;border:2px solid #4d665c;margin:2px;" onclick="showPopup(this)">
-                    <form method="POST" class="img-del-form" style="display:inline;position:absolute;top:6px;left:8px;" onsubmit="return deleteImgAjax(this, '${img.split('/').pop()}')">
+                <div class="img-thumb-wrap">
+                    <img src="${img}" class="img-thumb" onclick="showPopup(this)" alt="Ảnh kiểm thử">
+                    <form method="POST" class="img-del-form" style="display:inline;position:absolute;top:8px;right:10px;" onsubmit="return deleteImgAjax(this, '${img.split('/').pop()}')">
                         <input type="hidden" name="delete_img" value="${img.split('/').pop()}">
-                        <button type="submit" class="del-img-btn" title="Xóa ảnh này">
+                        <button type="submit" class="del-btn" title="Xóa ảnh này">
                             <i class="fa fa-trash"></i>
                         </button>
                     </form>
@@ -847,96 +996,55 @@
             xhr.send(formData);
             return false;
         }
-
-        // ========== UPLOAD ẢNH AJAX CHO DROP/IMPACT/ROTATION ==========
-        function uploadSpecialImgsAjax(input, kind, idx) {
-            var btn = document.getElementById(kind + "-upload-fake-btn-" + idx);
-            var loading = document.getElementById('loading-' + kind + '-' + idx);
-            var spinner = document.getElementById('loading-spinner-' + kind + '-' + idx);
-            var loadingText = document.getElementById('loading-text-' + kind + '-' + idx);
-
-            btn.innerText = input.files.length ? Array.from(input.files).map(f=>f.name).join(', ') : "Chưa chọn file";
-            if (!input.files.length) return;
-            loading.style.display = 'flex';
-            spinner.className = 'fa fa-spinner fa-spin';
-            loadingText.innerText = 'Đang tải ảnh...';
-            loading.classList.remove('success');
-            var formData = new FormData();
-            for (var i = 0; i < input.files.length; i++) formData.append(input.name, input.files[i]);
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", window.location.href, true);
-            xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-            xhr.onload = function() {
-                spinner.className = 'fa fa-check';
-                loadingText.innerText = 'Đã upload ảnh xong!';
-                loading.classList.add('success');
-                setTimeout(function() {
-                    loading.style.display = 'none';
-                    loading.classList.remove('success');
-                    spinner.className = 'fa fa-spinner fa-spin';
-                    loadingText.innerText = 'Đang tải ảnh...';
-                }, 1800);
-                if (xhr.status == 200) {
-                    var data = JSON.parse(xhr.responseText);
-                    updateSpecialImgList(kind, idx, data.imgs[idx]);
-                }
-                input.value = "";
-                btn.innerText = "Chưa chọn file";
-            };
-            xhr.send(formData);
-        }
-        function updateSpecialImgList(kind, idx, imgs) {
-            var html = "";
-            imgs.forEach(function(img) {
-                html += `
-                <div style="position:relative;display:inline-block;">
-                    <img src="${img}" class="img-thumb" style="max-width:78px;max-height:78px;border-radius:8px;border:2px solid #4d665c;margin:2px;" onclick="showPopup(this)">
-                    <form method="POST" style="display:inline;position:absolute;top:6px;left:8px;" onsubmit="return deleteSpecialImgAjax(event, '${img.split('/').pop()}', '${kind}', ${idx})">
-                        <input type="hidden" name="delete_img" value="${img.split('/').pop()}">
-                        <button type="submit" class="del-img-btn" title="Xóa ảnh này">
-                            <i class="fa fa-trash"></i>
-                        </button>
-                    </form>
-                </div>`;
-            });
-            document.getElementById(kind + '-img-list-' + idx).innerHTML = html;
-        }
-        function deleteSpecialImgAjax(e, fname, kind, idx) {
-            e.preventDefault();
+        function deleteSpecialImgAjax(event, fname, type, zone) {
+            event.preventDefault();
             var formData = new FormData();
             formData.append("delete_img", fname);
-            formData.append("kind", kind);
-            formData.append("zone_idx", idx);
-            var loading = document.getElementById('loading-' + kind + '-' + idx);
-            var spinner = document.getElementById('loading-spinner-' + kind + '-' + idx);
-            var loadingText = document.getElementById('loading-text-' + kind + '-' + idx);
-            loading.style.display = 'flex';
-            spinner.className = 'fa fa-spinner fa-spin';
-            loadingText.innerText = 'Đang tải ảnh...';
-            loading.classList.remove('success');
+            var loading = document.getElementById(`loading-${type}-${zone}`);
+            var spinner = document.getElementById(`loading-spinner-${type}-${zone}`);
+            var loadingText = document.getElementById(`loading-text-${type}-${zone}`);
+            if (loading) loading.style.display = 'flex';
+            if (spinner) spinner.className = 'fa fa-spinner fa-spin';
+            if (loadingText) loadingText.innerText = 'Đang xóa ảnh...';
+            if (loading) loading.classList.remove('success');
             var xhr = new XMLHttpRequest();
             xhr.open("POST", window.location.href, true);
             xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
             xhr.onload = function() {
-                spinner.className = 'fa fa-check';
-                loadingText.innerText = 'Đã upload ảnh xong!';
-                loading.classList.add('success');
+                if (spinner) spinner.className = 'fa fa-check';
+                if (loadingText) loadingText.innerText = 'Đã xóa ảnh!';
+                if (loading) loading.classList.add('success');
                 setTimeout(function() {
-                    loading.style.display = 'none';
-                    loading.classList.remove('success');
-                    spinner.className = 'fa fa-spinner fa-spin';
-                    loadingText.innerText = 'Đang tải ảnh...';
-                }, 1400);
+                    if (loading) loading.style.display = 'none';
+                    if (loading) loading.classList.remove('success');
+                    if (spinner) spinner.className = 'fa fa-spinner fa-spin';
+                    if (loadingText) loadingText.innerText = 'Đang tải ảnh...';
+                }, 1200);
                 if (xhr.status == 200) {
                     var data = JSON.parse(xhr.responseText);
-                    updateSpecialImgList(kind, idx, data.imgs[idx]);
+                    var imgGrid = document.getElementById(`${type}-img-list-${zone}`);
+                    if (imgGrid) {
+                        var html = '';
+                        (data.imgs[zone] || []).forEach(function(img) {
+                            html += `
+                            <div class="img-thumb-wrap">
+                                <img src="${img}" class="img-thumb" onclick="showPopup(this)" alt="Ảnh kiểm thử">
+                                <form method="POST" style="display:inline;position:absolute;top:8px;right:10px;" onsubmit="return deleteSpecialImgAjax(event, '${img.split('/').pop()}', '${type}', '${zone}')">
+                                    <input type="hidden" name="delete_img" value="${img.split('/').pop()}">
+                                    <button type="submit" class="del-btn" title="Xóa ảnh này">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>`;
+                        });
+                        imgGrid.innerHTML = html;
+                    }
                 }
             };
             xhr.send(formData);
             return false;
         }
-
-        // ========== UI/UX ==========
+        // PHÓNG TO ẢNH
         function showPopup(img) {
             var popup = document.getElementById('img-popup');
             var popupImg = document.getElementById('img-popup-inner');
@@ -963,6 +1071,7 @@
                 document.getElementById('img-popup-inner').src = '';
             }
         });
+        // Trigger upload file dialog
         function triggerUpload(inputId) {
             document.getElementById(inputId).click();
         }

@@ -7,14 +7,47 @@
     <link href="https://fonts.googleapis.com/css?family=Inter:400,600&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --main-bg: #fffdfc;
+            --main-card: #fffdfccf;
+            --main-text: #25312b;
+            --main-th: #ffe082;
+            --main-th-bright: #fff9d1;
+            --main-border: #d8d8cc;
+            --color-green: #4e8573;
+            --color-bronze: #8B6B1E;
+            --color-brown: #6B4F1A;
+            --color-red-metallic: #A32121;
+            --color-pass: #38b430;
+            --color-fail: #df2323;
+            --color-na: #666;
+            --shadow-light: rgba(0,0,0,0.10);
+            --shadow-dark: rgba(255,255,255,0.15);
+        }
+        body.dark, .dark {
+            --main-bg: #2b3938;
+            --main-card: #374B4A;
+            --main-text: #f6f6ef;
+            --main-th: #ffe082;
+            --main-th-bright: #fffbe6;
+            --main-border: #263d3a;
+            --color-green: #91b8a2;
+            --color-bronze: #ffc970;
+            --color-brown: #bfa87b;
+            --color-red-metallic: #ef7373;
+            --color-pass: #93e5a0;
+            --color-fail: #e68282;
+            --color-na: #aaa;
+            --shadow-light: rgba(255,255,255,0.07);
+            --shadow-dark: rgba(0,0,0,0.13);
+        }
         body {
             min-height: 100vh;
-            background: url('/static/bg_grass.png') repeat, linear-gradient(120deg, #f7ecd3 0%, #faf6ea 100%);
-            background-size: 420px 420px, cover;
+            background: var(--main-bg);
+            color: var(--main-text);
             font-family: 'Inter', Arial, sans-serif;
-            color: #25312b;
-            margin: 0;
             display: flex; align-items: center; justify-content: center;
+            transition: background 0.22s, color 0.18s;
         }
         .center-wrapper {
             min-height: 100vh;
@@ -24,13 +57,14 @@
             justify-content: center;
         }
         .box {
-            background: #fffdfccf;
+            background: var(--main-card);
+            color: var(--main-text);
             border-radius: 22px;
             box-shadow: 0 8px 40px #bca96b30, 0 1.5px 13px #c49c4850;
-            max-width: 99vw;
-            width: 730px;
-            margin: 0 auto;
-            padding: 35px 8px 20px 8px;
+            max-width: 1200px;
+            width: 97vw;
+            margin: 36px auto 0 auto;
+            padding: 35px 0px 20px 0px;
             position: relative;
             display: flex;
             flex-direction: column;
@@ -39,45 +73,66 @@
         }
         @keyframes fadeGrow {0% {opacity:0; transform:scale(0.97);} 100%{opacity:1; transform:scale(1);}}
         .back-home-btn {
-            position: absolute; left: 20px; top: 18px;
-            background: #c49c48; color: #fff; border: none; border-radius: 8px;
-            font-size: 15px; font-family: 'Inter', Arial, sans-serif; padding: 6px 15px 6px 11px;
+            position: absolute;
+            left: 26px; top: 18px;
+            background: #c49c48; color: #fff; border: none; border-radius: 100px;
+            font-size: 15px; font-family: 'Inter', Arial, sans-serif; padding: 6px 16px 6px 12px;
             font-weight: 600; box-shadow: 0 2px 8px #bca96b18; cursor: pointer;
             display: flex; align-items: center; gap: 6px; letter-spacing: 0.01em;
-            text-decoration: none; z-index: 2;
+            text-decoration: none; z-index: 2; min-width: 0;
             transition: background 0.18s, color 0.16s, box-shadow 0.17s;
         }
+        .back-home-btn[href*="tfr_request_form"] {
+            left: auto; right: 26px; background: #ffe082; color: #35523A;
+        }
         .back-home-btn:hover { background: #35523A; color: #ffe082; }
+        .back-home-btn[href*="tfr_request_form"]:hover { background: #c49c48; color: #fff; }
         h2 {
-            font-family: 'Merriweather', serif; font-size: 1.35rem; color: #c49c48;
-            text-align: center; font-weight: bold; margin-bottom: 18px;
-            letter-spacing: 0.04em; text-shadow: 0 3px 18px #c49c4827;
+            color: var(--color-green);
+            font-family: 'Merriweather', serif;
+            font-size: 1.38rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 18px;
+            letter-spacing: 0.04em;
+            text-shadow: 0 3px 18px #c49c4827;
+            margin-top: 40px;
         }
         .table-wrap {
             width: 100%;
             overflow-x: auto;
             padding-bottom: 8px;
+            display: flex;
+            justify-content: center;
         }
         table {
             width: 100%;
-            min-width: 690px;
+            min-width: 820px;
+            max-width: 1100px;
+            margin: 0 auto;
             border-collapse: collapse;
             background: #fffbe8e5;
             border-radius: 14px;
             font-size: 0.97rem;
             box-shadow: 0 2px 12px #bca96b18;
+            table-layout: fixed;
         }
         th, td {
-            padding: 8px 6px;
+            padding: 9px 7px;
             text-align: center;
             vertical-align: middle;
             white-space: nowrap;
+            word-break: break-word;
+        }
+        /* Căn đều cột */
+        th, td {
+            width: calc(100% / 8); /* 8 cột, chia đều */
         }
         th {
-            background: #c49c48;
-            color: #fff;
+            background: var(--main-th);
+            color: #25312b;
             font-weight: 700;
-            font-size: 0.97rem;
+            font-size: 1rem;
             letter-spacing: 0.04em;
             border: none;
         }
@@ -85,12 +140,12 @@
         tr:first-child th:last-child { border-radius: 0 12px 0 0; }
         tr:last-child td:first-child { border-radius: 0 0 0 12px; }
         tr:last-child td:last-child { border-radius: 0 0 12px 0; }
-        tr:nth-child(even) { background: #fffdfcb7;}
-        tr:nth-child(odd) { background: #f7ecd390;}
-        td.status.Submitted { color: #8B6B1E; font-weight: bold; }
-        td.status.Approved  { color: #43a047; font-weight: bold;}
-        td.status.Declined  { color: #df2323; font-weight: bold;}
-        td.reason { color: #df2323; font-style: italic; }
+        tr:nth-child(even) { background: #faf6ea;}
+        tr:nth-child(odd) { background: #fffdfc;}
+        td.status.Submitted { color: var(--color-bronze); font-weight: bold; }
+        td.status.Approved  { color: var(--color-green); font-weight: bold;}
+        td.status.Declined  { color: var(--color-fail); font-weight: bold;}
+        td.reason { color: var(--color-fail); font-style: italic; }
         .action-cell {
             display: flex;
             flex-direction: column;
@@ -107,10 +162,22 @@
             transition:background 0.13s, color 0.13s;
             box-shadow: 0 2px 6px #bca96b13;
         }
-        .btn-approve { background:#43a047; color:#fff;}
-        .btn-approve:hover { background:#2c7c27; }
-        .btn-decline { background:#df2323; color:#fff;}
-        .btn-decline:hover { background:#be1919; }
+        .btn-approve {
+            background: var(--color-green);
+            color: var(--main-th-bright);
+        }
+        .btn-approve:hover {
+            background: #346559;
+            color: #fff;
+        }
+        .btn-decline {
+            background: var(--color-fail);
+            color: var(--main-th-bright);
+        }
+        .btn-decline:hover {
+            background: #be1919;
+            color: #fff;
+        }
         .input-reason {
             padding: 4px 8px;
             border-radius: 100px;
@@ -123,8 +190,8 @@
         .input-reason:focus { border-color: #35523A;}
         .btn-details, .btn-pdf {
             background: #fff;
-            color: #b8922e;
-            border: 1.1px solid #c49c48;
+            color: var(--color-bronze);
+            border: 1.1px solid var(--main-th);
             border-radius: 100px;
             padding: 3px 9px;
             font-size: 13px;
@@ -136,9 +203,9 @@
             display: inline-block;
         }
         .btn-details:hover, .btn-pdf:hover {
-            background: #ffe082;
-            color: #344833;
-            border: 1.2px solid #ffe082;
+            background: var(--main-th);
+            color: #25312b;
+            border-color: var(--main-th);
         }
         .btn-pdf {
             color: #43a047;
@@ -158,6 +225,7 @@
             padding-bottom: 8px;
             display: flex;
             justify-content: flex-end;
+            padding-right: 14px;
         }
         .table-toolbar input {
             padding: 7px 13px;
@@ -168,15 +236,15 @@
             background: #fff;
         }
         .table-wrap {
-            width: 100%;
-            max-width: 100%;
+            width: 100vw;
+            max-width: 100vw;
             overflow-x: auto;
             background: transparent;
         }
         table {
-            min-width: 850px; /* hoặc tùy bạn, đủ 8 cột */
+            min-width: 880px;
             width: max-content;
-            max-width: 100%;
+            max-width: 100vw;
             border-collapse: collapse;
             background: #fffbe8e5;
             border-radius: 14px;
@@ -184,56 +252,109 @@
             box-shadow: 0 2px 12px #bca96b18;
             table-layout: auto;
         }
-        @media (max-width: 900px) {
-            .box { width: 99vw; min-width: 0; }
-            .table-wrap { max-width: 99vw; }
-            table { min-width: 900px; font-size: 12px; }
-            th, td { font-size: 11.5px; padding: 7px 3px; }
-            /* KHÔNG ẨN BẤT CỨ CỘT NÀO */
+        @media (max-width: 1200px) {
+            .box { max-width: 98vw; width: 98vw; }
+            .table-wrap { max-width: 100vw; }
+            table { max-width: 98vw; min-width: 680px; }
+            th, td { font-size: 11.8px; padding: 7px 3px; }
         }
-
+        @media (max-width: 900px) {
+            .box { width: 100vw; max-width: 100vw; min-width: 0; }
+            .back-home-btn, .back-home-btn[href*="tfr_request_form"] {
+                font-size: 13px;
+                padding: 5px 10px 5px 8px;
+                top: 11px;
+                border-radius: 100px;
+            }
+            .back-home-btn[href*="tfr_request_form"] { right: 13px; }
+            .back-home-btn { left: 13px; }
+            .table-wrap { max-width: 100vw; }
+            table { min-width: 580px; font-size: 11px; }
+            th, td { font-size: 10.9px; padding: 6px 2.5px; }
+            h2 { margin-top: 31px; font-size: 1.1rem; }
+        }
         @media (max-width: 600px) {
-            .box { width: 98vw; min-width: 0; }
-            .table-wrap { max-width: 98vw; }
-            table { min-width: 900px; font-size: 11px;}
-            th, td { font-size: 10.5px; padding: 6px 2px;}
-            /* KHÔNG ẨN BẤT CỨ CỘT NÀO */
+            .box { max-width: 99vw; width: 99vw; }
+            .back-home-btn, .back-home-btn[href*="tfr_request_form"] {
+                font-size: 11px;
+                padding: 3px 6px 3px 5px;
+                top: 6px;
+                border-radius: 100px;
+            }
+            .back-home-btn[href*="tfr_request_form"] { right: 6px; }
+            .back-home-btn { left: 6px; }
+            .table-wrap { max-width: 100vw; }
+            table { min-width: 470px; font-size: 10px;}
+            th, td { padding: 5px 1.5px;}
+            h2 { margin-top: 19px; font-size: 0.99rem;}
         }
         /* Darkmode chỉ đổi box, không đổi background */
-        body.dark .box { background: #344833ef !important; color: #f7f7ee !important; box-shadow: 0 4px 32px #000a;}
-        body.dark h2, body.dark th { color: #ffe082 !important; background: #35523A !important; text-shadow: none;}
-        body.dark table { background: #223323 !important;}
-        body.dark tr:nth-child(even), body.dark tr:nth-child(odd) { background: #223323 !important;}
-        body.dark td, body.dark th { color: #ffe082 !important;}
-        body.dark .back-home-btn { background: #ffe082 !important; color: #344833 !important;}
+        body.dark .box { background: var(--main-card) !important; color: var(--main-text) !important; }
+        body.dark h2, body.dark th { color: var(--main-th) !important; background: none !important;}
+        body.dark th { color: #25312b !important; background: var(--main-th) !important; }
+        body.dark table { background: #344833 !important; }
+        body.dark tr:nth-child(even), body.dark tr:nth-child(odd) { background: #344833 !important; }
+        body.dark td, body.dark th { color: #25312b !important; }
+        body.dark .back-home-btn { background: var(--main-th) !important; color: #344833 !important;}
         body.dark .back-home-btn:hover { background: #c49c48 !important; color: #fff !important;}
-        body.dark .btn-action, body.dark .btn-update {color:#fff;}
-        body.dark .btn-approve { background:#43a047 !important;}
-        body.dark .btn-approve:hover { background:#2c7c27 !important; }
-        body.dark .btn-decline { background:#df2323 !important;}
-        body.dark .btn-decline:hover { background:#be1919 !important; }
-        body.dark .btn-details, body.dark .btn-pdf { background:#344833 !important; color:#ffe082 !important; border-color:#ffe082;}
-        body.dark .btn-details:hover, body.dark .btn-pdf:hover { background:#ffe082 !important; color:#344833 !important; border-color:#ffe082;}
-        body.dark .input-reason {background:#223323 !important; color:#ffe082 !important; border-color:#ffe082;}
-        ::selection {background: #ffe082; color: #222;}
+        body.dark .btn-action, body.dark .btn-update {color:#25312b;}
+        body.dark .btn-approve { background: var(--color-green) !important; color: #25312b !important;}
+        body.dark .btn-approve:hover { background: #bfe3d1 !important; color: #25312b !important;}
+        body.dark .btn-decline { background: var(--color-fail) !important; color: #25312b !important;}
+        body.dark .btn-decline:hover { background: #be1919 !important; color: #fff !important;}
+        body.dark .btn-details, body.dark .btn-pdf { background: #344833 !important; color: var(--main-th) !important; border-color: var(--main-th);}
+        body.dark .btn-details:hover, body.dark .btn-pdf:hover { background: var(--main-th) !important; color: #25312b !important; border-color: var(--main-th);}
+        body.dark .input-reason {background:#3f5250 !important; color:#f6f6ef !important; border-color:#91b8a2;}
         body.dark ::selection {background: #c49c48; color: #25312b;}
         #theme-btn {
             position:fixed; right:24px; bottom:26px; z-index:11001;
-            background: #c49c48; color: #fff;
+            background: var(--main-th);
+            color: #344833;
             border-radius: 100px; font-size: 19px;
             padding: 6px 12px; border:none; box-shadow: 0 2px 10px #4d665c35;
             cursor:pointer; height: 42px; width: 42px; min-width:38px;
             display:flex;align-items:center;justify-content:center;opacity:0.96;
             transition: background 0.16s, color 0.16s;
         }
-        #theme-btn:hover { background: #35523A; color: #ffe082; opacity:1; }
+        #theme-btn:hover { background: var(--color-green); color: #fff; }
+        body.dark #theme-btn {
+            background: #6c837f;
+            color: #ffe082;
+        }
+        .table-toolbar input, .input-reason {
+            background: #fff;
+            color: var(--main-text);
+            border:1.2px solid var(--main-border);
+        }
+        body.dark .table-toolbar input, body.dark .input-reason {
+            background: #3f5250 !important;
+            color: #f6f6ef !important;
+            border-color: #91b8a2 !important;
+        }
+        body.dark input[type="date"] {
+            background: #3f5250 !important;
+            color: #fff !important;
+            border-color: #91b8a2 !important;
+        }
+        body.dark input[type="date"]::placeholder {
+            color: #ffe082 !important;
+            opacity: 1;
+        }
+        body.dark td {
+            color: #fffbe6 !important;
+        }
     </style>
 </head>
 <body>
     <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
     <div class="center-wrapper">
     <div class="box">
-        <a href="/" class="back-home-btn"><i class="fa fa-chevron-left"></i> Trang chủ</a>
+        <a href="/" class="back-home-btn">
+            <i class="fa fa-chevron-left"></i> Trang chủ
+        </a>
+        <a href="/tfr_request_form" class="back-home-btn">
+            <i class="fa fa-file-alt"></i> Tạo Request mới
+        </a>
         <h2>Trạng thái Test Request đã gửi</h2>
         <!-- FLASH MESSAGE HIỂN THỊ LỖI -->
         {% with messages = get_flashed_messages() %}
@@ -244,12 +365,12 @@
           {% endif %}
         {% endwith %}
         <div class="table-toolbar">
-            <input type="text" id="search-id" placeholder="Tìm theo TLQ-ID..." oninput="searchID()">
+            <input type="text" id="search-id" placeholder="Tìm theo TRQ-ID..." oninput="searchID()">
         </div>
         <div class="table-wrap">
         <table>
             <tr>
-                <th>TLQ-ID</th>
+                <th>TRQ-ID</th>
                 <th>Report No</th>
                 <th>Requestor</th>
                 <th>Dept.</th>
@@ -261,7 +382,7 @@
             </tr>
             {% for r in requests %}
             <tr>
-                <td>{{ r.tlq_id }}</td>
+                <td>{{ r.trq_id }}</td>
                 <td>{{ r.report_no }}</td>
                 <td>{{ r.requestor }}</td>
                 <td>{{ r.department }}</td>
@@ -273,7 +394,7 @@
                 <td>
                     {% if is_admin and r.status == "Submitted" %}
                         <form method="post" action="/tfr_request_status" style="margin:0;display:inline-flex;align-items:center;gap:2px;">
-                            <input type="hidden" name="idx" value="{{ loop.index0 }}">
+                            <input type="hidden" name="trq_id" value="{{ r.trq_id }}">
                             <input type="date" name="etd" value="{{ r.etd or '' }}" required style="padding:4px; font-size:13px; min-width:108px;">
                             <button type="submit" name="action" value="approve" class="btn-action btn-approve" style="margin-left:2px;">Approve</button>
                             <button type="button" class="btn-action btn-decline" onclick="showDecline({{ loop.index0 }})" style="margin-left:2px;">Decline</button>
@@ -288,7 +409,7 @@
                     {% endif %}
                     {% if is_admin and r.status == "Submitted" %}
                         <form method="post" action="/tfr_request_status" id="form-decline-{{ loop.index0 }}" style="display:none; margin-top:4px;">
-                            <input type="hidden" name="idx" value="{{ loop.index0 }}">
+                            <input type="hidden" name="trq_id" value="{{ r.trq_id }}">
                             <input type="text" name="decline_reason" class="input-reason" placeholder="Lý do decline..." required>
                             <button type="submit" name="action" value="decline" class="btn-action btn-decline" style="padding:6px 12px;">Xác nhận</button>
                             <button type="button" class="btn-details" onclick="hideDecline({{ loop.index0 }})">Hủy</button>
@@ -300,24 +421,29 @@
                         <button class="btn-pdf" onclick="showPDF('{{ url_for('static', filename=r.pdf_path) }}')">
                             <i class="fa fa-file-pdf"></i> PDF
                         </button>
+                    {% elif r.docx_path %}
+                        <a class="btn-details" href="{{ url_for('static', filename=r.docx_path) }}" download>
+                            <i class="fa fa-file-word"></i> DOCX
+                        </a>
                     {% else %}
                         <button class="btn-details" onclick="showDetail({{ loop.index0 }})"><i class="fa fa-eye"></i></button>
                     {% endif %}
                     {% if is_admin %}
                     <!-- Nút duplicate luôn hiển thị cho tất cả user -->
                     <form method="post" action="/tfr_request_status" style="display:inline;">
-                        <input type="hidden" name="idx" value="{{ loop.index0 }}">
+                        <input type="hidden" name="trq_id" value="{{ r.trq_id }}">
                         <button type="submit" name="action" value="duplicate" class="btn-details" style="background:#e3f7fa; color:#289abf; border-color:#8be4fc; margin-left:3px;">
                             <i class="fa fa-copy"></i> Dup
                         </button>
                     </form>
-                    <form method="post" action="/tfr_request_status" style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn xóa request này?');">
-                        <input type="hidden" name="idx" value="{{ loop.index0 }}">
+                    {% endif %}
+                    <form method="post" action="/tfr_request_status" style="display:inline;" 
+                        onsubmit="return confirmDelete('{{ r.requestor }}', '{{ r.trq_id }}');">
+                        <input type="hidden" name="trq_id" value="{{ r.trq_id }}">
                         <button type="submit" name="action" value="delete" class="btn-details" style="background:#fff3e0; color:#df2323; border-color:#df2323; margin-left:3px;">
                             <i class="fa fa-trash"></i> Xóa
                         </button>
                     </form>
-                    {% endif %}
                 </td>
             </tr>
             {% endfor %}
@@ -341,6 +467,11 @@
     </div>
     </div>
     <script>
+        function confirmDelete(requestor, trq_id) {
+            return confirm(
+                "Bạn có chắc muốn xóa request của requestor: " + requestor + " (TRQ-ID: " + trq_id + ") không?"
+            );
+        }
         // Darkmode toggle
         let dark = localStorage.getItem("vfr-darkmode") === "1";
         function applyDark(b) {

@@ -8,8 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:700&display=swap" rel="stylesheet">
     <style>
         body {
-            background: url('/static/bg_grass.png') repeat;
-            background-size: 420px 420px;
+            background-color: #e9efec;
             font-family: 'Inter', Arial, sans-serif;
             color: #25312b;
             margin: 0;
@@ -18,57 +17,196 @@
         .container-center {
             min-height: 100vh;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
+            width: 100vw;
+            box-sizing: border-box;
         }
         .box {
             background: #fffdfccf;
             border-radius: 22px;
             box-shadow: 0 4px 32px #4d665c44;
-            max-width: 490px;
-            width: 100%;
-            margin: 0 auto;
-            padding: 38px 32px 36px 32px;
+            max-width: 1200px;
+            width: 100vw;
+            margin: 32px 24px 32px 24px;
+            padding: 40px 48px 38px 48px;
             animation: fadeGrow 0.7s;
             transition: background 0.22s, color 0.16s;
             text-align: left;
             position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
         }
         @keyframes fadeGrow {0% {opacity:0;transform:scale(0.98);}100%{opacity:1;transform:scale(1);}}
+
+        /* ID và LangBtn */
+        .top-right-tools {
+            position: absolute;
+            top: 13px;
+            right: 18px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            z-index: 12;
+        }
+        .trq-id-label {
+            font-weight: bold;
+            color: #c49c48;
+            font-size: 15.7px;
+            background: rgba(255,255,255,0.75);
+            border-radius: 10px;
+            padding: 5px 14px 5px 13px;
+            box-shadow: 0 1px 5px #c49c4820;
+            margin-bottom: 0;
+            margin-right: 0;
+            white-space: nowrap;
+        }
+        #lang-btn {
+            background: #ffe082;
+            color: #35523A;
+            border-radius: 100px;
+            font-size: 15px;
+            padding: 5px 14px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.10);
+            cursor:pointer;
+            min-width: 0;
+            font-weight:600;
+            display:flex;
+            align-items:center;
+            gap:7px;
+            opacity:0.97;
+            letter-spacing:0.03em;
+            transition: background 0.16s, color 0.16s;
+            height: 33px;
+        }
+        #lang-btn:hover { background: #c49c48; color: #fff; }
+        body.dark #lang-btn {
+            background: #374B4A; color: #ffe082;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.19);
+        }
+        body.dark #lang-btn:hover { background: #ffe082; color: #35523A;}
+        body.dark .trq-id-label {
+            background: #2f3e3d;
+            color: #ffe082 !important;
+        }
+        /* Back home btn */
         .back-home-btn {
             position: absolute;
-            left: 18px;
-            top: 14px;
+            left: 16px;
+            top: 13px;
             background: #c49c48;
             color: #fff;
             border: none;
-            border-radius: 8px;
-            font-size: 17px;
-            font-family: 'Inter', Arial, sans-serif;
-            padding: 6px 15px 6px 11px;
+            border-radius: 100px;
+            font-size: 13.5px;
+            padding: 4px 12px 4px 9px;
             font-weight: 600;
-            box-shadow: 0 2px 8px #bca96b18;
+            box-shadow: 0 1.5px 6px #bca96b18;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
+            z-index: 10;
             letter-spacing: 0.01em;
             text-decoration: none;
-            z-index: 2;
-            transition: background 0.18s, color 0.16s, box-shadow 0.17s;
+            min-width: 0;
+            height: 28px;
+            line-height: 1.2;
+            width: auto;
+            transition: background 0.18s, color 0.16s, font-size 0.13s, padding 0.13s;
+        }
+        .back-home-btn i {
+            font-size: 13px;
+            margin-right: 2px;
         }
         .back-home-btn:hover {
             background: #35523A;
             color: #ffe082;
         }
-        h2 {
-            font-family: 'Merriweather', serif;
-            font-size: 26px;
-            color: #35523A;
+        /* Tiêu đề cách xa nút */
+        h2.text-title {
+            margin-top: 36px !important;
             text-align: center;
-            font-weight: bold;
+        }
+        @media (max-width: 900px) {
+            .top-right-tools {
+                top: 8px;
+                right: 5px;
+                gap: 6px;
+            }
+            .trq-id-label {
+                font-size: 13.3px;
+                padding: 3px 7px;
+                border-radius: 8px;
+            }
+            #lang-btn {
+                font-size: 13px;
+                padding: 3px 8px;
+                height: 25px;
+                gap: 5px;
+            }
+            .back-home-btn {
+                top: 7px;
+                left: 6px;
+                font-size: 12.2px;
+                padding: 3px 8px 3px 6px;
+                min-width: 0;
+                height: 24px;
+                gap: 3px;
+                border-radius: 100px;
+            }
+            .back-home-btn i {
+                font-size: 11.5px;
+            }
+            h2.text-title { margin-top: 34px !important; }
+        }
+        @media (max-width: 600px) {
+            .top-right-tools {
+                top: 5px;
+                right: 2px;
+                gap: 3px;
+            }
+            .trq-id-label {
+                font-size: 12px;
+                padding: 2px 4px;
+                border-radius: 6px;
+            }
+            #lang-btn {
+                font-size: 11.5px;
+                padding: 2px 4px;
+                height: 18px;
+                gap: 2px;
+            }
+            .back-home-btn {
+                font-size: 11.2px;
+                padding: 2px 5px 2px 4px;
+                min-width: 0;
+                height: 18px;
+                gap: 2px;
+            }
+            .back-home-btn i {
+                font-size: 10px;
+            }
+            h2.text-title { margin-top: 28px !important; font-size: 15.5px; }
+        }
+        .lab-info-box {
             margin-bottom: 18px;
-            letter-spacing: 0.04em;
+            background: #fffbe8 !important;
+            border: 2px solid #ffe082;
+            border-radius: 13px;
+            padding: 18px 16px;
+            box-shadow: 0 3px 14px #f7cf3a33;
+            font-size: 15.5px;
+            line-height: 1.7;
+            color: #775d17;
+        }
+        .lab-info-title {
+            font-weight: bold;
+            font-size: 18px;
+            color: #c49c48;
+            margin-bottom: 8px;
         }
         .error { color: #e33; font-size: 16px; text-align: center; margin-bottom: 16px; }
         .has-error input,
@@ -87,22 +225,20 @@
         label {
             font-weight: 600;
             color: #c49c48;
-            font-size: 16px;
-            margin-bottom: 2px;
+            font-size: 17px;
+            margin-bottom: 4px;
             letter-spacing: 0.03em;
             display: block;
         }
         .required { color: #e33; }
         .form-group {
-            margin-bottom: 16px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            margin-bottom: 14px;
             width: 100%;
         }
+        textarea,
         input[type="text"], input[type="number"], input[type="date"] {
             font-size: 16.3px;
-            padding: 8px 13px;
+            padding: 9px 14px;
             border-radius: 8px;
             border: 1.3px solid #4d665c;
             background: #f9f8f1;
@@ -112,27 +248,17 @@
             transition: background 0.16s, color 0.13s, border-color 0.16s;
             text-align:left;
             margin-bottom: 3px;
+            box-sizing: border-box;
         }
-        input[type="text"]:focus, input[type="number"]:focus, input[type="date"]:focus {
-            border-color: #b78e24;
-            outline: none;
-            background: #fffbe4;
-            color: #25312b;
-        }
-        .input-na-wrap {
-            display: flex;
-            align-items: center;
-            width: 100%;
-            gap: 10px;
-            justify-content: center;
-        }
+        textarea { resize: vertical; }
+        .input-na-wrap { display: flex; align-items: center; width: 100%; gap: 10px; flex-wrap: wrap;}
+        .na-checkbox { display: flex; align-items: center; gap: 6px; margin-left: 7px; min-width: 70px;}
         .radio-row, .checkbox-row {
             display: flex;
             gap: 18px;
             flex-wrap: wrap;
             margin-top: 7px;
             margin-bottom: 7px;
-            justify-content: center;
         }
         .radio-row label, .checkbox-row label {
             font-weight: 500;
@@ -141,6 +267,9 @@
             color: #35523A;
             letter-spacing:0.01em;
             cursor:pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         .na-label { font-weight: 400; color: #888; margin-left: 6px; }
         button[type="submit"] {
@@ -159,37 +288,108 @@
             transition: background 0.14s, color 0.16s;
         }
         button[type="submit"]:hover { background: #35523A; color: #ffe082;}
-        /* Dark mode style */
-        body.dark, .dark {
-            color: #f7f7ee !important;
+        .modern-form-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 26px;
         }
-        body.dark .box {
-            background: #344833e8 !important;
-            color: #f7f7ee !important;
-            box-shadow: 0 4px 32px #000a;
+        .form-card {
+            background: #fff;
+            border-radius: 15px;
+            box-shadow: 0 4px 16px #4d665c1a;
+            padding: 30px 28px 24px 28px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
-        body.dark h2, body.dark label {
-            color: #ffe082 !important;
+        .form-card-title {
+            font-size: 18.5px;
+            font-weight: 700;
+            color: #35523A;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            letter-spacing: 0.01em;
         }
-        body.dark button {
-            background: #ffe082 !important;
-            color: #344833 !important;
+        .form-row-2 {
+            display: flex;
+            gap: 24px;
+            width: 100%;
         }
-        body.dark button[type="submit"]:hover {background:#b78e24;color:#fff;}
-        body.dark input, body.dark textarea, body.dark select {
-            background: #223323 !important; color: #ffe082 !important; border-color: #ffe082 !important;
+        .form-row-2 > .form-group {
+            flex: 1 1 0;
+            margin-bottom: 10px;
         }
-        body.dark input[readonly] { background: #223323 !important; color: #d2cfa0;}
-        #theme-btn {
-            position:fixed; right:24px; bottom:26px; z-index:11001;
-            background: #c49c48; color: #fff;
-            border-radius: 100px; font-size: 19px;
-            padding: 6px 12px; border:none; box-shadow: 0 2px 10px #4d665c35;
-            cursor:pointer; height: 42px; width: 42px; min-width:38px;
-            display:flex;align-items:center;justify-content:center;opacity:0.96;
-            transition: background 0.16s, color 0.16s;
+        .form-row-2 > .form-group label {
+            margin-bottom: 4px;
         }
-        #theme-btn:hover { background: #35523A; color: #ffe082; opacity:1; }
+        /* Test status row nằm 1 hàng ngang cả mobile/desktop */
+        .test-status-row {
+            flex-wrap: nowrap !important;
+            gap: 10px !important;
+            width: 100%;
+            overflow-x: auto;
+            scrollbar-width: thin;
+        }
+        .test-status-row label {
+            min-width: unset;
+            white-space: nowrap;
+        }
+        .test-status-row .nth-label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-left: 0;
+        }
+        .input-nth {
+            width: 48px !important;
+            min-width: 36px !important;
+            font-size: 15px;
+            padding: 5px 4px !important;
+            margin-left: 0;
+            border-radius: 6px;
+            border: 1.1px solid #c49c48;
+            background: #f9f8f1;
+            color: #25312b;
+            outline: none;
+            transition: border 0.16s, background 0.16s;
+            text-align: center;
+        }
+        .input-nth:disabled {
+            background: #e0ded6 !important;
+            color: #bcbcb3 !important;
+            border-color: #dad8bc !important;
+            cursor: not-allowed;
+        }
+        body.dark .input-nth {
+            background: #31423d;
+            color: #ffe082;
+            border-color: #ffe082;
+        }
+        body.dark .input-nth:disabled {
+            background: #38433d !important;
+            color: #8b917d !important;
+            border-color: #4c615f !important;
+        }
+        .input-date {
+            max-width: 150px;
+            min-width: 90px;
+            width: 100%;
+            display: inline-block;
+        }
+        @media (max-width: 900px) {
+            .modern-form-grid { gap: 14px; }
+            .form-card { padding: 16px 8px 10px 8px; }
+            .form-card-title { font-size: 14.8px; margin-bottom: 8px;}
+            .form-row-2 { flex-direction: column; gap: 0;}
+            .lab-info-box { font-size: 13.7px; }
+            .form-card-title { font-size: 13.3px; }
+            .form-row-2 { gap: 0; }
+            .form-group { margin-bottom: 10px; }
+            .input-date { max-width: 110px; min-width: 60px; }
+        }
         @media (max-width: 600px) {
             html, body {
                 padding: 0;
@@ -205,244 +405,304 @@
                 margin: 0;
             }
             .box {
-                max-width: 97vw !important;
-                width: 97vw !important;
+                max-width: 99vw !important;
+                width: 99vw !important;
                 min-width: 0 !important;
                 margin: 3vw 0 3vw 0;
                 padding: 6vw 2vw 5vw 2vw;
                 border-radius: 11px;
                 box-shadow: 0 1.5px 8px #4d665c1a;
                 background: #fffdfccf;
+                flex-direction: column;
             }
-            h2 {
-                font-size: 17px;
-                margin-bottom: 10px;
-                margin-top: 0;
-                line-height: 1.19;
-                letter-spacing: 0.03em;
-            }
-            .form-group {
-                margin-bottom: 10px;
-                width: 100%;
-                align-items: stretch;
-                padding: 0;
-            }
-            .form-group label {
-                font-size: 12.5px;
-                margin-bottom: 3px;
-                font-weight: 600;
-                letter-spacing: 0.03em;
-                padding-left: 1px;
-            }
-            input[type="text"], input[type="number"], input[type="date"] {
-                font-size: 13.5px;
-                padding: 7px 9px;
-                border-radius: 7px;
-                margin-bottom: 0;
-                width: 100% !important;
-                min-width: 0;
-                max-width: 100%;
-                box-sizing: border-box;
-                background: #fff;
-                border: 1.2px solid #b9bcab;
-            }
-            .input-na-wrap {
-                display: flex;
-                flex-direction: row;
-                align-items: center;
-                gap: 6px;
-                width: 100%;
-            }
-            .na-label {
-                margin-left: 4px;
-                font-size: 11.8px;
-                white-space: nowrap;
-                padding: 0;
-                line-height: 1.6;
-            }
-            .radio-row, .checkbox-row {
-                display: flex;
-                flex-direction: row;
-                flex-wrap: wrap;
-                gap: 10px 9px;
-                font-size: 12.7px;
-                align-items: center;
-                justify-content: flex-start;
-                margin: 3px 0 3px 0;
-                width: 100%;
-                padding: 0;
-            }
-            .radio-row label, .checkbox-row label {
-                font-size: 12.7px;
-                font-weight: 500;
-                margin-bottom: 0;
-                letter-spacing: 0.01em;
-                white-space: nowrap;
-                display: flex;
-                align-items: center;
-                min-width: 0;
-                padding: 0 4px 0 0;
-            }
-            button[type="submit"] {
-                font-size: 14px;
-                padding: 10px 0;
-                border-radius: 8px;
-                margin-top: 10px;
-                width: 100%;
-            }
-            input[type="date"].input-date-mobile {
-                width: 60vw !important;
-                max-width: 250px !important;
-                min-width: 64px;
-                font-size: 12.5px;
-                padding: 6px 6px;
-                height: 35px;     
-            }
-            .back-home-btn {
-                left: 7px;
-                top: 6px;
-                font-size: 12.3px;
-                border-radius: 6px;
-                padding: 3px 8px 3px 7px;
-            }
-            .error-msg {
-                font-size: 12px;
-            }
+            .error-msg { font-size: 12px; }
+            h2.text-title { font-size: 15.5px; margin-top: 28px !important;}
+            .form-row-2 { gap: 0; }
+            .input-date { max-width: 88px; min-width: 55px; }
+            .test-status-row { gap: 8px !important; }
         }
+        body.dark, .dark {
+            color: #F1F1EB !important;
+            background-color: #1f2a29;
+        }
+        body.dark .box {
+            background: #374B4A !important;
+            color: #F1F1EB !important;
+            box-shadow: 0 4px 32px #000a;
+        }
+        body.dark .form-card {
+            background: #2f3e3d !important;
+            color: #f1f1eb !important;
+            box-shadow: 0 4px 16px #000a;
+        }
+        body.dark h2,
+        body.dark .form-card-title,
+        body.dark label {
+            color: #ffe082 !important;
+        }
+        body.dark input,
+        body.dark textarea,
+        body.dark select {
+            background: #31423d !important;
+            color: #f1f1eb !important;
+            border-color: #4c615f !important;
+        }
+        body.dark input[readonly] {
+            background: #2f3e3d !important;
+            color: #aab8b7 !important;
+        }
+        body.dark .lab-info-box {
+            background: #fffbe8 !important;
+            color: #775d17 !important;
+            border-color: #ffe082 !important;
+        }
+        #theme-btn {
+            position:fixed; right:24px; bottom:26px; z-index:11001;
+            background: #4C615F; color: #fff;
+            border-radius: 100px; font-size: 19px;
+            padding: 6px 12px; border:none; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+            cursor:pointer; height: 42px; width: 42px; min-width:38px;
+            display:flex;align-items:center;justify-content:center;opacity:0.96;
+            transition: background 0.16s, color 0.16s;
+        }
+        #theme-btn:hover { background: #35523A; color: #ffe082; opacity:1; }
     </style>
 </head>
 <body>
-    <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
+    <button id="theme-btn" title="Toggle Dark/Light mode"><i class="fa fa-moon"></i></button>
     <div class="container-center">
     <div class="box">
-        <a href="/" class="back-home-btn"><i class="fa fa-chevron-left"></i> Trang chủ</a>
-        <h2>TẠO TEST REQUEST FORM</h2>
-        <div style="position:absolute; top:14px; right:20px; font-weight:bold; color:#b78e24;">
-            ID: {{ form_data.get('tlq_id', 'Đang tạo...') }}
+        <div class="top-right-tools">
+            <div class="trq-id-label">
+                <span class="text-id-label">ID:</span> {{ form_data.get('trq_id', 'Đang tạo...') }}
+            </div>
+            <button id="lang-btn" title="Đổi ngôn ngữ/Change language"><i class="fa fa-language"></i> <span>EN</span></button>
+        </div>
+        <a href="/" class="back-home-btn"><i class="fa fa-chevron-left"></i> <span class="text-home">Trang chủ</span></a>
+        <h2 class="text-title">TẠO TEST REQUEST FORM</h2>
+        <div class="lab-info-box">
+            <div class="lab-info-title text-lab-info-title"><i class="fa fa-clock" style="margin-right: 6px;"></i><span>Lab Information</span></div>
+            <div><strong class="text-working-hours-title">Working hours:</strong> <span class="text-working-hours-detail">Mon - Sat: 8:00 – 16:45</span></div>
+            <div><strong class="text-leadtime-title">Standard Leadtime:</strong></div>
+            <div style="margin-left: 14px;">
+                • <span class="text-construction-test">CONSTRUCTION - TRANSIT TEST:</span> <span class="text-construction-days">3 working days</span><br>
+                • <span class="text-material-test">MATERIAL - FINISHING TEST:</span> <span class="text-material-days">4–5 working days</span>
+            </div>
+            <div style="margin-top: 6px;"><em class="text-cutoff">* Cut off time: 15:00</em></div>
         </div>
         {% if error %}
         <div class="error">{{ error }}</div>
         {% endif %}
         <form method="POST" action="">
-            <input type="hidden" name="tlq_id" value="{{ form_data.get('tlq_id', '') }}">
-            <div class="form-group {% if 'requestor' in missing_fields %}has-error{% endif %}">
-                <label>Requestor <span class="required">*</span></label>
-                <input type="text" name="requestor" required value="{{ form_data.get('requestor', '') }}">
-                {% if 'requestor' in missing_fields %}<div class="error-msg">Bắt buộc nhập</div>{% endif %}
-            </div>
-            <div class="form-group {% if 'department' in missing_fields %}has-error{% endif %}">
-                <label>Department <span class="required">*</span></label>
-                <input type="text" name="department" required value="{{ form_data.get('department', '') }}">
-                {% if 'department' in missing_fields %}<div class="error-msg">Bắt buộc nhập</div>{% endif %}
-            </div>
-            <div class="form-group {% if 'request_date' in missing_fields %}has-error{% endif %}">
-                <label>Request Date <span class="required">*</span></label>
-                <input type="date" name="request_date" required value="{{ form_data.get('request_date', '') }}" class="input-date-mobile" autocomplete="off" inputmode="none">
-                {% if 'request_date' in missing_fields %}<div class="error-msg">Bắt buộc nhập</div>{% endif %}
-            </div>
-
-            <!-- Chọn loại test: đổi từ checkbox sang radio -->
-            <div class="form-group {% if 'test_group' in missing_fields %}has-error{% endif %}">
-                <label>Chọn loại test <span class="required">*</span></label>
-                <div class="radio-row">
-                    <label><input type="radio" name="test_group" value="CONSTRUCTION TEST"
-                        {% if form_data.get('test_group') == 'CONSTRUCTION TEST' %}checked{% endif %}>
-                        CONSTRUCTION TEST</label>
-                    <label><input type="radio" name="test_group" value="PACKAGING TEST (TRANSIT TEST)"
-                        {% if form_data.get('test_group') == 'PACKAGING TEST (TRANSIT TEST)' %}checked{% endif %}>
-                        PACKAGING TEST (TRANSIT TEST)</label>
-                    <label><input type="radio" name="test_group" value="MATERIAL AND FINISHING TEST"
-                        {% if form_data.get('test_group') == 'MATERIAL AND FINISHING TEST' %}checked{% endif %}>
-                        MATERIAL AND FINISHING TEST</label>
+            <input type="hidden" name="trq_id" value="{{ form_data.get('trq_id', '') }}">
+            <div class="modern-form-grid">
+                <!-- Card 1: Người gửi -->
+                <div class="form-card">
+                    <div class="form-card-title"><i class="fa fa-user"></i> <span class="text-sender">Thông tin người gửi</span></div>
+                    <div class="form-row-2">
+                        <div class="form-group {% if 'requestor' in missing_fields %}has-error{% endif %}">
+                            <label class="text-requestor">Người yêu cầu <span class="required">*</span></label>
+                            <input type="text" name="requestor" required value="{{ form_data.get('requestor', '') }}">
+                            {% if 'requestor' in missing_fields %}<div class="error-msg text-required-msg">Bắt buộc nhập</div>{% endif %}
+                        </div>
+                        <div class="form-group {% if 'employee_id' in missing_fields %}has-error{% endif %}">
+                            <label class="text-employee-id">Mã nhân viên <span class="required">*</span></label>
+                            <input type="text" name="employee_id" required value="{{ form_data.get('employee_id', '') }}">
+                            {% if 'employee_id' in missing_fields %}<div class="error-msg text-required-msg">Bắt buộc nhập</div>{% endif %}
+                        </div>
+                    </div>
+                    <div class="form-row-2">
+                        <div class="form-group {% if 'department' in missing_fields %}has-error{% endif %}">
+                            <label class="text-department">Phòng ban <span class="required">*</span></label>
+                            <input type="text" name="department" required value="{{ form_data.get('department', '') }}">
+                            {% if 'department' in missing_fields %}<div class="error-msg text-required-msg">Bắt buộc nhập</div>{% endif %}
+                        </div>
+                        <div class="form-group {% if 'request_date' in missing_fields %}has-error{% endif %}">
+                            <label class="text-request-date">Ngày yêu cầu <span class="required">*</span></label>
+                            <input type="date" name="request_date" required value="{{ form_data.get('request_date', '') }}" class="input-date" autocomplete="off" inputmode="none">
+                            {% if 'request_date' in missing_fields %}<div class="error-msg text-required-msg">Bắt buộc nhập</div>{% endif %}
+                        </div>
+                    </div>
                 </div>
-                {% if 'test_group' in missing_fields %}<div class="error-msg">Bắt buộc chọn</div>{% endif %}
-            </div>
-
-            <div class="form-group {% if 'sample_description' in missing_fields %}has-error{% endif %}">
-                <label>Sample description <span class="required">*</span></label>
-                <div class="input-na-wrap">
-                    <input type="text" name="sample_description" style="flex:1 1 0;" id="sample_description_input"
-                        value="{{ '' if form_data.get('sample_description_na') else form_data.get('sample_description','') }}">
-                    <label class="na-label">
-                        <input type="checkbox" name="sample_description_na" value="1" id="sample_description_na"
-                            {% if form_data.get('sample_description_na') %}checked{% endif %}> N/A
-                    </label>
+                <!-- Card 2: Thông tin mẫu -->
+                <div class="form-card">
+                    <div class="form-card-title"><i class="fa fa-cube"></i> <span class="text-sample-info">Thông tin mẫu test</span></div>
+                    <div class="form-row-2">
+                        <div class="form-group {% if 'sample_description' in missing_fields %}has-error{% endif %}">
+                            <label class="text-sample-desc">Mô tả mẫu <span class="required">*</span></label>
+                            <div class="input-na-wrap">
+                                <input type="text" name="sample_description" style="flex:1 1 0;" id="sample_description_input"
+                                    value="{{ '' if form_data.get('sample_description_na') else form_data.get('sample_description','') }}">
+                                <span class="na-checkbox">
+                                    <input type="checkbox" name="sample_description_na" value="1" id="sample_description_na"
+                                        {% if form_data.get('sample_description_na') %}checked{% endif %}>
+                                    <span class="text-na">N/A</span>
+                                </span>
+                            </div>
+                            {% if 'sample_description' in missing_fields %}<div class="error-msg text-required-msg">Bắt buộc nhập/chọn N/A</div>{% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label class="text-item-code">Mã hàng <span class="required">*</span></label>
+                            <div class="input-na-wrap">
+                                <input type="text" name="item_code" style="flex:1 1 0;" id="item_code_input"
+                                    value="{{ '' if form_data.get('item_code_na') else form_data.get('item_code','') }}">
+                                <span class="na-checkbox">
+                                    <input type="checkbox" name="item_code_na" value="1" id="item_code_na"
+                                        {% if form_data.get('item_code_na') %}checked{% endif %}>
+                                    <span class="text-na">N/A</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label class="text-supplier">Nhà cung cấp <span class="required">*</span></label>
+                            <div class="input-na-wrap">
+                                <input type="text" name="supplier" style="flex:1 1 0;" id="supplier_input"
+                                    value="{{ '' if form_data.get('supplier_na') else form_data.get('supplier','') }}">
+                                <span class="na-checkbox">
+                                    <input type="checkbox" name="supplier_na" value="1" id="supplier_na"
+                                        {% if form_data.get('supplier_na') %}checked{% endif %}>
+                                    <span class="text-na">N/A</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="text-subcon">Thầu phụ <span class="required">*</span></label>
+                            <div class="input-na-wrap">
+                                <input type="text" name="subcon" style="flex:1 1 0;" id="subcon_input"
+                                    value="{{ '' if form_data.get('subcon_na') else form_data.get('subcon','') }}">
+                                <span class="na-checkbox">
+                                    <input type="checkbox" name="subcon_na" value="1" id="subcon_na"
+                                        {% if form_data.get('subcon_na') %}checked{% endif %}>
+                                    <span class="text-na">N/A</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                {% if 'sample_description' in missing_fields %}<div class="error-msg">Bắt buộc nhập/chọn N/A</div>{% endif %}
-            </div>
-            <div class="form-group">
-                <label>Item Code <span class="required">*</span></label>
-                <div class="input-na-wrap">
-                    <input type="text" name="item_code" style="flex:1 1 0;" id="item_code_input"
-                        value="{{ '' if form_data.get('item_code_na') else form_data.get('item_code','') }}">
-                    <label class="na-label"><input type="checkbox" name="item_code_na" value="1" id="item_code_na"
-                        {% if form_data.get('item_code_na') %}checked{% endif %}> N/A</label>
+                <!-- Card 3: Chi tiết test -->
+                <div class="form-card">
+                    <div class="form-card-title"><i class="fa fa-clipboard-list"></i> <span class="text-test-detail">Chi tiết test</span></div>
+                    <div class="form-group {% if 'test_group' in missing_fields %}has-error{% endif %}">
+                        <label class="text-test-group">Chọn nhóm test<span class="required">*</span></label>
+                        <div class="radio-row">
+                            <label>
+                                <input type="radio" name="test_group" value="CONSTRUCTION TEST"
+                                    {% if form_data.get('test_group') == 'CONSTRUCTION TEST' %}checked{% endif %}>
+                                CONSTRUCTION TEST
+                            </label>
+                            <label>
+                                <input type="radio" name="test_group" value="TRANSIT TEST"
+                                    {% if form_data.get('test_group') == 'TRANSIT TEST' %}checked{% endif %}>
+                                TRANSIT TEST
+                            </label>
+                            <label>
+                                <input type="radio" name="test_group" value="MATERIAL TEST"
+                                    {% if form_data.get('test_group') == 'MATERIAL TEST' %}checked{% endif %}>
+                                MATERIAL TEST
+                            </label>
+                            <label>
+                                <input type="radio" name="test_group" value="FINISHING TEST"
+                                    {% if form_data.get('test_group') == 'FINISHING TEST' %}checked{% endif %}>
+                                FINISHING TEST
+                            </label>
+                            <label>
+                                <input type="radio" name="test_group" value="ENVIRONMENTAL TEST"
+                                    {% if form_data.get('test_group') == 'ENVIRONMENTAL TEST' %}checked{% endif %}>
+                                ENVIRONMENTAL TEST
+                            </label>
+                        </div>
+                        {% if 'test_group' in missing_fields %}<div class="error-msg text-required-msg">Bắt buộc chọn</div>{% endif %}
+                    </div>
+                    <div class="form-row-2">
+                        <div class="form-group {% if 'test_status' in missing_fields %}has-error{% endif %}">
+                            <label class="text-test-status">Lần test <span class="required">*</span></label>
+                            <div class="radio-row test-status-row">
+                                <label>
+                                    <input type="radio" name="test_status" value="1st" required
+                                        {% if form_data.get('test_status') == '1st' %}checked{% endif %}>
+                                    <span class="text-1st">Lần 1</span>
+                                </label>
+                                <label>
+                                    <input type="radio" name="test_status" value="2nd" required
+                                        {% if form_data.get('test_status') == '2nd' %}checked{% endif %}>
+                                    <span class="text-2nd">Lần 2</span>
+                                </label>
+                                <label>
+                                    <input type="radio" name="test_status" value="3rd" required
+                                        {% if form_data.get('test_status') == '3rd' %}checked{% endif %}>
+                                    <span class="text-3rd">Lần 3</span>
+                                </label>
+                                <label class="nth-label">
+                                    <input type="radio" name="test_status" value="nth" required
+                                        {% if form_data.get('test_status') not in ['1st','2nd','3rd','',None] %}checked{% endif %}>
+                                    <span class="text-nth">Lần ...</span>
+                                    <input type="number" class="input-nth" name="test_status_nth" min="4" placeholder="số"
+                                        {% if form_data.get('test_status') not in ['1st','2nd','3rd','',None] %}
+                                            value="{{ form_data.get('test_status').replace('th','') }}"
+                                        {% else %}
+                                            disabled
+                                        {% endif %}
+                                    >
+                                </label>
+                            </div>
+                            {% if 'test_status' in missing_fields %}<div class="error-msg text-required-msg">Bắt buộc chọn</div>{% endif %}
+                        </div>
+                        <div class="form-group {% if 'furniture_testing' in missing_fields %}has-error{% endif %}">
+                            <label class="text-furniture-test">Loại sản phẩm <span class="required">*</span></label>
+                            <div class="radio-row">
+                                <label><input type="radio" name="furniture_testing" value="Indoor"
+                                    {% if form_data.get('furniture_testing') == 'Indoor' %}checked{% endif %}> INDOOR</label>
+                                <label><input type="radio" name="furniture_testing" value="Outdoor"
+                                    {% if form_data.get('furniture_testing') == 'Outdoor' %}checked{% endif %}> OUTDOOR</label>
+                            </div>
+                            {% if 'furniture_testing' in missing_fields %}<div class="error-msg text-required-msg">Bắt buộc chọn</div>{% endif %}
+                        </div>
+                    </div>
+                    <div class="form-row-2">
+                        <div class="form-group {% if 'quantity' in missing_fields %}has-error{% endif %}">
+                            <label class="text-quantity">Số lượng <span class="required">*</span></label>
+                            <input type="number" name="quantity" min="1" required value="{{ form_data.get('quantity','') }}">
+                            {% if 'quantity' in missing_fields %}<div class="error-msg text-required-msg">Bắt buộc nhập</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+                <!-- Card 4: Tùy chọn -->
+                <div class="form-card">
+                    <div class="form-card-title"><i class="fa fa-cog"></i> <span class="text-option">Tùy chọn</span></div>
+                    <div class="form-group {% if 'sample_return' in missing_fields %}has-error{% endif %}">
+                        <label class="text-sample-return">Trả mẫu <span class="required">*</span></label>
+                        <div class="radio-row">
+                            <label>
+                                <input type="radio" name="sample_return" value="Yes"
+                                    {% if form_data.get('sample_return') == 'Yes' %}checked{% endif %}> <span class="text-yes">Có</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="sample_return" value="No"
+                                    {% if form_data.get('sample_return') == 'No' %}checked{% endif %}> <span class="text-no">Không</span>
+                            </label>
+                        </div>
+                        {% if 'sample_return' in missing_fields %}<div class="error-msg text-required-msg">Bắt buộc chọn</div>{% endif %}
+                        <div class="sample-return-alert" style="margin-top: 8px; background: #fff0cc; color: #b85012; font-weight: bold; border-radius: 9px; border: 1.6px solid #f7bc3d; padding: 9px 12px; font-size: 15.2px; text-align: center;">
+                            <i class="fa fa-exclamation-triangle" style="color: #ee9100;"></i>
+                            <span class="text-sample-destroy">
+                                Nếu không yêu cầu trả mẫu, mẫu sẽ được <span style="color:#d32f2f;">hủy sau 30 ngày</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="text-remark">Ghi chú (nếu có)</label>
+                        <textarea name="remark" rows="3" placeholder="Ghi chú thêm nếu cần..." class="text-remark-placeholder">{{ form_data.get('remark', '') }}</textarea>
+                    </div>
+                    <button type="submit"><i class="fa fa-file-export"></i> <span class="text-export-btn">Xuất TFR</span></button>
                 </div>
             </div>
-            <div class="form-group">
-                <label>Supplier <span class="required">*</span></label>
-                <div class="input-na-wrap">
-                    <input type="text" name="supplier" style="flex:1 1 0;" id="supplier_input"
-                        value="{{ '' if form_data.get('supplier_na') else form_data.get('supplier','') }}">
-                    <label class="na-label"><input type="checkbox" name="supplier_na" value="1" id="supplier_na"
-                        {% if form_data.get('supplier_na') %}checked{% endif %}> N/A</label>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Subcon <span class="required">*</span></label>
-                <div class="input-na-wrap">
-                    <input type="text" name="subcon" style="flex:1 1 0;" id="subcon_input"
-                        value="{{ '' if form_data.get('subcon_na') else form_data.get('subcon','') }}">
-                    <label class="na-label"><input type="checkbox" name="subcon_na" value="1" id="subcon_na"
-                        {% if form_data.get('subcon_na') %}checked{% endif %}> N/A</label>
-                </div>
-            </div>
-            <div class="form-group {% if 'test_status' in missing_fields %}has-error{% endif %}">
-                <label>Test status <span class="required">*</span></label>
-                <div class="radio-row">
-                    <label>
-                        <input type="radio" name="test_status" value="1st" required
-                            {% if form_data.get('test_status') == '1st' %}checked{% endif %}> 1st
-                    </label>
-                    <label>
-                        <input type="radio" name="test_status" value="2nd" required
-                            {% if form_data.get('test_status') == '2nd' %}checked{% endif %}> 2nd
-                    </label>
-                    <label>
-                        <input type="radio" name="test_status" value="3rd" required
-                            {% if form_data.get('test_status') == '3rd' %}checked{% endif %}> 3rd
-                    </label>
-                    <label>
-                        <input type="radio" name="test_status" value="nth" required
-                            {% if form_data.get('test_status') not in ['1st','2nd','3rd','',None] %}checked{% endif %}> ...th
-                        <input type="number" name="test_status_nth" style="width:62px;" min="4" placeholder="số"
-                            value="{% if form_data.get('test_status') not in ['1st','2nd','3rd','',None] %}{{ form_data.get('test_status').replace('th','') }}{% endif %}">
-                    </label>
-                </div>
-                {% if 'test_status' in missing_fields %}<div class="error-msg">Bắt buộc chọn</div>{% endif %}
-            </div>
-            <!-- Furniture testing: đổi từ checkbox sang radio -->
-            <div class="form-group {% if 'furniture_testing' in missing_fields %}has-error{% endif %}">
-                <label>Furniture testing <span class="required">*</span></label>
-                <div class="radio-row">
-                    <label><input type="radio" name="furniture_testing" value="Indoor"
-                        {% if form_data.get('furniture_testing') == 'Indoor' %}checked{% endif %}> Indoor</label>
-                    <label><input type="radio" name="furniture_testing" value="Outdoor"
-                        {% if form_data.get('furniture_testing') == 'Outdoor' %}checked{% endif %}> Outdoor</label>
-                </div>
-                {% if 'furniture_testing' in missing_fields %}<div class="error-msg">Bắt buộc chọn</div>{% endif %}
-            </div>
-            <div class="form-group {% if 'quantity' in missing_fields %}has-error{% endif %}">
-                <label>Quantity <span class="required">*</span></label>
-                <input type="number" name="quantity" min="1" required value="{{ form_data.get('quantity','') }}">
-                {% if 'quantity' in missing_fields %}<div class="error-msg">Bắt buộc nhập</div>{% endif %}
-            </div>
-            <button type="submit"><i class="fa fa-file-export"></i> Xuất TFR</button>
         </form>
     </div>
     </div>
     <script>
-        // Darkmode toggle
+        // DARKMODE TOGGLE
         let dark = localStorage.getItem("vfr-darkmode") === "1";
         function applyDark(b) {
             document.body.classList.toggle("dark", b);
@@ -454,7 +714,118 @@
             applyDark(dark);
         };
 
-        // --- Chỉ cho điền hoặc tick N/A, không để trống cả 2 (Sample description, Item code, Supplier, Subcon)
+        // LANGUAGE TOGGLE
+        let lang = localStorage.getItem("tfr-lang") || "vi";
+        const LANG = {
+            vi: {
+                "text-title": "TẠO PHIẾU YÊU CẦU THỬ NGHIỆM",
+                "text-home": "Trang chủ",
+                "text-lab-info-title": "Thông tin Lab",
+                "text-working-hours-title": "Thời gian làm việc:",
+                "text-working-hours-detail": "Thứ 2 - Thứ 7: 8:00 – 16:45",
+                "text-leadtime-title": "Thời gian trả kết quả:",
+                "text-construction-test": "CONSTRUCTION - TRANSIT TEST:",
+                "text-construction-days": "3 ngày làm việc",
+                "text-material-test": "MATERIAL - FINISHING TEST:",
+                "text-material-days": "4–5 ngày làm việc",
+                "text-cutoff": "* Nhận mẫu đến: 15:00",
+                "text-id-label": "Mã:",
+                "text-sender": "Thông tin người gửi",
+                "text-requestor": "Người yêu cầu <span class='required'>*</span>",
+                "text-employee-id": "Mã nhân viên <span class='required'>*</span>",
+                "text-department": "Phòng ban <span class='required'>*</span>",
+                "text-request-date": "Ngày yêu cầu <span class='required'>*</span>",
+                "text-sample-info": "Thông tin mẫu test",
+                "text-sample-desc": "Mô tả mẫu <span class='required'>*</span>",
+                "text-na": "N/A",
+                "text-item-code": "Mã hàng <span class='required'>*</span>",
+                "text-supplier": "Nhà cung cấp <span class='required'>*</span>",
+                "text-subcon": "Thầu phụ <span class='required'>*</span>",
+                "text-test-detail": "Chi tiết test",
+                "text-test-group": "Chọn nhóm test<span class='required'>*</span>",
+                "text-1st": "Lần 1",
+                "text-2nd": "Lần 2",
+                "text-3rd": "Lần 3",
+                "text-nth": "Lần ...",
+                "text-test-status": "Lần test <span class='required'>*</span>",
+                "text-furniture-test": "Loại sản phẩm <span class='required'>*</span>",
+                "text-quantity": "Số lượng <span class='required'>*</span>",
+                "text-option": "Tùy chọn",
+                "text-sample-return": "Trả mẫu <span class='required'>*</span>",
+                "text-yes": "Có",
+                "text-no": "Không",
+                "text-sample-destroy": "Nếu không yêu cầu trả mẫu, mẫu sẽ được <span style='color:#d32f2f;'>hủy sau 30 ngày</span>",
+                "text-remark": "Ghi chú (nếu có)",
+                "text-remark-placeholder": "Nhập ghi chú thêm nếu cần...",
+                "text-export-btn": "Xuất TFR",
+                "text-required-msg": "Bắt buộc nhập/chọn"
+            },
+            en: {
+                "text-title": "CREATE TEST REQUEST FORM",
+                "text-home": "Home",
+                "text-lab-info-title": "Lab Information",
+                "text-working-hours-title": "Working hours:",
+                "text-working-hours-detail": "Mon - Sat: 8:00 – 16:45",
+                "text-leadtime-title": "Standard Leadtime:",
+                "text-construction-test": "CONSTRUCTION - TRANSIT TEST:",
+                "text-construction-days": "3 working days",
+                "text-material-test": "MATERIAL - FINISHING TEST:",
+                "text-material-days": "4–5 working days",
+                "text-cutoff": "* Cut off time: 15:00",
+                "text-id-label": "ID:",
+                "text-sender": "Sender information",
+                "text-requestor": "Requestor <span class='required'>*</span>",
+                "text-employee-id": "Employee ID <span class='required'>*</span>",
+                "text-department": "Department <span class='required'>*</span>",
+                "text-request-date": "Request Date <span class='required'>*</span>",
+                "text-sample-info": "Sample information",
+                "text-sample-desc": "Sample description <span class='required'>*</span>",
+                "text-na": "N/A",
+                "text-item-code": "Item Code <span class='required'>*</span>",
+                "text-supplier": "Supplier <span class='required'>*</span>",
+                "text-subcon": "Subcon <span class='required'>*</span>",
+                "text-test-detail": "Test details",
+                "text-test-group": "Choose group test<span class='required'>*</span>",
+                "text-1st": "1ST",
+                "text-2nd": "2ND",
+                "text-3rd": "3RD",
+                "text-nth": "...th",
+                "text-test-status": "Test status <span class='required'>*</span>",
+                "text-furniture-test": "Furniture testing <span class='required'>*</span>",
+                "text-quantity": "Quantity <span class='required'>*</span>",
+                "text-option": "Options",
+                "text-sample-return": "Sample return <span class='required'>*</span>",
+                "text-yes": "Yes",
+                "text-no": "No",
+                "text-sample-destroy": "If tested/remaining samples are <u>not requested to return</u>, they will be <span style='color:#d32f2f;'>destroyed after 30 days</span>",
+                "text-remark": "Remark (if any)",
+                "text-remark-placeholder": "Add remark if needed...",
+                "text-export-btn": "Export TFR",
+                "text-required-msg": "Required"
+            }
+        };
+        function applyLang(lang) {
+            for(const key in LANG[lang]) {
+                let els = document.getElementsByClassName(key);
+                for(let i=0; i<els.length; i++) {
+                    if (els[i].tagName === "INPUT" || els[i].tagName === "TEXTAREA") {
+                        if (key === "text-remark-placeholder") els[i].placeholder = LANG[lang][key];
+                    } else {
+                        els[i].innerHTML = LANG[lang][key];
+                    }
+                }
+            }
+            document.getElementById('lang-btn').children[1].innerText = lang === "en" ? "VI" : "EN";
+            localStorage.setItem("tfr-lang", lang);
+        }
+        applyLang(lang);
+
+        document.getElementById('lang-btn').onclick = function() {
+            lang = (lang === "en" ? "vi" : "en");
+            applyLang(lang);
+        };
+
+        // N/A input logic giữ nguyên
         function handleNaInput(textId, naId) {
             const input = document.getElementById(textId);
             const checkbox = document.getElementById(naId);
@@ -476,6 +847,25 @@
         handleNaInput("item_code_input", "item_code_na");
         handleNaInput("supplier_input", "supplier_na");
         handleNaInput("subcon_input", "subcon_na");
+
+        // Test status nth input enable/disable
+        function nthRadioHandler() {
+            let nthRadio = document.querySelector('input[name="test_status"][value="nth"]');
+            let nthInput = document.querySelector('.input-nth');
+            let radios = document.querySelectorAll('input[name="test_status"]');
+            if(!nthRadio || !nthInput) return;
+            function update() {
+                if(nthRadio.checked) {
+                    nthInput.disabled = false;
+                    nthInput.focus();
+                } else {
+                    nthInput.disabled = true;
+                }
+            }
+            radios.forEach(radio => radio.addEventListener('change', update));
+            update();
+        }
+        nthRadioHandler();
 
         // Scroll đến trường lỗi đầu tiên nếu có lỗi
         {% if missing_fields %}

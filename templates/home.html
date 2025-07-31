@@ -13,15 +13,15 @@
         --main-border: #4d665c55;
     }
     body.darkmode {
-        --main-bg: #1a1d22;
-        --main-card: #22242aeb;
+        --main-bg: #2b3938;      /* nền tổng thể tối hơn */
+        --main-card: #374B4A;    /* thẻ nội dung nổi lên */
         --main-text: #f6f6ef;
         --main-th: #ffe082;
-        --main-border: #2229;
+        --main-border: #263d3a;
     }
     body {
         font-family: 'Segoe UI', sans-serif;
-        background: var(--main-bg) url('/static/bg_grass.png') repeat;
+        background-color: var(--main-bg);
         background-size: 420px 420px;
         margin: 0;
         padding: 0;
@@ -256,7 +256,19 @@
         padding: 6px 12px;
     }
     .logout-link { display: inline-block; margin-top: 16px; text-align: center; }
-    .logout-link a { color: #a33; font-size: 15px; text-decoration: none; }
+    .logout-link a {
+        color: #4d665c;
+        font-weight: bold;
+        text-decoration: none;
+        font-size: 14px;
+        transition: color 0.3s ease;
+    }
+    .logout-link a:hover {
+        text-decoration: underline;
+    }
+    body.darkmode .logout-link a {
+        color: #ffe082;  /* vàng sáng, nổi bật trên nền #374B4A */
+    }
     .status-late {
         color: #d32f2f;
         font-weight: bold;
@@ -693,9 +705,112 @@
         opacity: 1;
     }
     body.dark #theme-btn, body.darkmode #theme-btn {
-        background: #8B6B1E !important;
-        color: #fff !important;
+        background: #6c837f !important;
+        color: #fefefe !important;
         transition: background 0.23s, color 0.23s;
+    }
+    .item-search-form {
+        display: flex;
+        align-items: center;  /* CĂN GIỮA label với input/nút */
+        gap: 10px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+    }
+    .item-search-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #c49c48;
+        margin-bottom: 0;
+        /* Đảm bảo label sát input */
+        white-space: nowrap;
+        /* Căn chỉnh cho cùng chiều cao với input */
+        height: 38px;
+        display: flex;
+        align-items: center;
+    }
+    .item-search-input {
+        font-size: 15px;
+        padding: 7px 13px;
+        border-radius: 7px;
+        border: 1.3px solid #ffe082;
+        background: #fffbe8;
+        color: #775d17;
+        font-weight: 600;
+        outline: none;
+        min-width: 140px;
+        max-width: 220px;
+        width: 180px;
+        box-sizing: border-box;
+    }
+    .item-search-btn {
+        font-size: 15px;
+        padding: 7px 22px;
+        border-radius: 7px;
+        background: #c49c48;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background 0.17s, color 0.17s;
+        display: flex;
+        align-items: center;
+        height: 38px;
+    }
+    .item-search-btn:hover {
+        background: #35523A;
+        color: #ffe082;
+    }
+    /* Responsive nhỏ gọn trên đth */
+    @media (max-width: 600px) {
+        .item-search-form {
+            gap: 4px;
+        }
+        .item-search-label {
+            font-size: 12px;
+            height: 32px;
+        }
+        .item-search-input {
+            font-size: 13px;
+            padding: 6px 9px;
+            min-width: 130px;   /* tăng từ 85px */
+            max-width: 200px;   /* tăng từ 120px */
+            width: 170px;       /* tăng từ 100px */
+            height: 32px;
+        }
+        .item-search-btn {
+            font-size: 13px;
+            padding: 6px 13px;
+            height: 32px;
+        }
+    }
+    @media (max-width: 430px) {
+        .item-search-form {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .item-search-label,
+        .item-search-input,
+        .item-search-btn {
+            width: 100%;
+            min-width: 0;
+            max-width: 99vw;
+            justify-content: flex-start;
+        }
+        .item-search-label {
+            margin-bottom: 3px;
+            height: auto;
+        }
+    }
+    .staff-id {
+        text-align: right;
+        font-size: 14.3px;
+        font-style: italic;
+        margin-top: -6px;
+        color: #968015; /* màu sáng dùng cho lightmode */
+    }
+
+    body.darkmode .staff-id {
+        color: #ffe082;  /* sáng hơn, dễ đọc trên nền #374B4A */
     }
     </style>
 </head>
@@ -707,16 +822,27 @@
           <i class="fa fa-list-ul"></i>
         </button>
         <div id="requestDropdownMenu" class="dropdown-content">
-          <a href="/tfr_request_form">
-            <i class="fa fa-file-circle-plus"></i> Tạo Request
-          </a>
-          <a href="/tfr_request_status">
-            <i class="fa fa-search"></i> Trạng thái Request
-          </a>
+        <a href="/tfr_request_form">
+            <i class="fa fa-file-circle-plus"></i> Create Request
+        </a>
+        <a href="/tfr_request_status">
+            <i class="fa fa-search"></i> RQ Submited
+        </a>
+        <a href="/tfr_request_archive">
+            <i class="fa fa-archive"></i> TRF
+        </a>
+        {% if session.get('role') == 'stl' %}
+            <a href="javascript:void(0)" onclick="confirmExportExcel()"
+            style="display:flex;align-items:center;gap:8px;">
+            <i class="fa fa-file-export"></i> Update INF
+            </a>
+        {% endif %}
         </div>
       </div>
     </div>
     <div class="center-form">
+        <img src="/static/logo_vfr.jpg" alt="VFR Logo"
+            style="display:block; margin:0 auto 18px auto; max-width:190px;"/>
         <h2>TRA CỨU SẢN PHẨM</h2>
         <form method="GET" action="/go_report">
             <input type="text" name="report" placeholder="Nhập REPORT#">
@@ -752,7 +878,8 @@
         {% if session.get('auth_ok') and not session.get('staff_id') %}
         <form method="POST" style="margin:32px auto 16px auto; max-width:390px; background:#fffbe8; border-radius:13px; padding:18px 26px 14px 26px; box-shadow:0 1px 7px #f7cf3a12;">
             <h3 style="color:#c49c48; font-size:20px; margin-bottom:18px; text-align:center;">Nhập ID Nhân viên</h3>
-            <input type="text" name="staff_id" placeholder="Mã số hoặc tên (ví dụ: 220312 - Bình)" style="width:100%;margin-bottom:12px;" required autofocus>
+            <input type="text" name="staff_id" id="staff_id_input" list="staff_id_history" autocomplete="off" placeholder="Mã số hoặc tên (ví dụ: 19797 - Hoàng)" style="width:100%;margin-bottom:12px;" required autofocus>
+            <datalist id="staff_id_history"></datalist>
             <button type="submit" name="action" value="set_staff_id" style="width:100%;">Xác nhận</button>
             {% if message %}
             <div class="error-message" style="margin-top:8px;">{{ message }}</div>
@@ -761,7 +888,7 @@
         {% endif %}
 
         {% if session.get('auth_ok') and session.get('staff_id') and report_list %}
-            <div style="text-align:right; font-size:14.3px; color:#968015; font-style:italic; margin-top:-6px;">
+            <div class="staff-id">
                 <b>ID Nhân viên:</b> {{ session.get('staff_id') }}
             </div>
             <h3 style="margin-top:36px; color:var(--main-th);">Danh sách report:</h3>
@@ -808,22 +935,34 @@
             <div class="toolbar-top">
                 <div class="stat-btn-bar">
                     <a href="{{ url_for('view_counter_log') }}"
-                    class="main-btn"
-                    style="background:#35523A;
-                            color:#fff;
-                            border-radius:12px;
-                            font-size:18px;
-                            font-weight:600;
-                            padding:12px 38px;
-                            display:inline-block;
-                            box-shadow:0 3px 13px #3333;
-                            letter-spacing:0.04em;
-                            text-decoration:none;
-                            transition:background 0.22s;">
-                    <i class="fa fa-table" style="margin-right:7px;"></i>
+                        class="main-btn"
+                        style="background:#4e8573; /* Xanh mới */
+                                color:#fff9d1;    /* Vàng sáng kem */
+                                border-radius:12px;
+                                font-size:18px;
+                                font-weight:600;
+                                padding:12px 38px;
+                                display:inline-block;
+                                box-shadow:0 3px 13px #2b3938aa;
+                                letter-spacing:0.04em;
+                                text-decoration:none;
+                                transition:background 0.22s, color 0.22s;">
+                        <i class="fa fa-table" style="margin-right:7px;"></i>
                         Xem bảng thống kê từng ngày
                     </a>
                 </div>
+                <form method="get" id="item-search-form" class="item-search-form">
+                    <label for="item_search" class="item-search-label">Tìm ITEM#</label>
+                    <input type="text"
+                        id="item_search"
+                        name="item_search"
+                        placeholder="Nhập mã ITEM#"
+                        value="{{ request.args.get('item_search', '') }}"
+                        class="item-search-input">
+                    <button type="submit" class="item-search-btn">
+                        <i class="fa fa-search"></i> Tìm
+                    </button>
+                </form>
                 <form method="get" class="type-filter-form" id="filter-form" style="margin:0; text-align:left;">
                     <label for="type_of" class="type-filter-label">Type of</label>
                     <select name="type_of" id="type_of" onchange="this.form.submit()" class="type-filter-select">
@@ -832,7 +971,6 @@
                         <option value="{{ t }}" {% if t == selected_type %}selected{% endif %}>{{ t }}</option>
                         {% endfor %}
                     </select>
-
                     <label class="type-filter-label">Status</label>
                     <div class="dropdown-status-filter" style="margin-right:2px;">
                     <button type="button" class="dropdown-status-btn" onclick="toggleStatusDropdown()">
@@ -878,6 +1016,7 @@
                             <th>TYPE OF</th>
                             <th>STATUS</th>
                             <th>LOG IN DATE</th>
+                            <th>ETD</th>
                             <th>Hành động</th>
                         </tr>
                     </thead>
@@ -893,6 +1032,7 @@
                             </span>
                             </td>
                             <td>{{ r.log_date }}</td>
+                            <td>{{ r.etd or "" }}</td>
                             <td>
                                 <a href="/update?report={{ r.report }}">
                                     <button><i class="fa fa-edit"></i> Xem</button>
@@ -1002,37 +1142,102 @@
                 }
             };
         }
+
+        // ==== GHI NHỚ NHIỀU ID NHÂN VIÊN (autocomplete) ====
+        let staffIdInput = document.getElementById("staff_id_input");
+        let datalist = document.getElementById("staff_id_history");
+        if (staffIdInput && datalist) {
+            // Lấy history từ localStorage
+            let history = [];
+            try {
+                history = JSON.parse(localStorage.getItem("staff_id_history") || "[]");
+            } catch {}
+            // Đổ vào datalist
+            datalist.innerHTML = "";
+            history.forEach(function(id) {
+                let opt = document.createElement("option");
+                opt.value = id;
+                datalist.appendChild(opt);
+            });
+            // Nếu có id cuối cùng thì autofill
+            if(history.length) staffIdInput.value = history[history.length-1];
+
+            // Khi submit, thêm ID mới vào history nếu chưa có
+            staffIdInput.form.addEventListener('submit', function(e) {
+                let id = staffIdInput.value.trim();
+                if(id) {
+                    let idx = history.indexOf(id);
+                    if(idx !== -1) history.splice(idx,1); // xóa khỏi chỗ cũ
+                    history.push(id); // đưa lên cuối cùng (ID dùng gần nhất)
+                    if(history.length > 10) history = history.slice(-10); // chỉ giữ tối đa 10 mã gần nhất
+                    localStorage.setItem("staff_id_history", JSON.stringify(history));
+                }
+            });
+        }
     });
 
     // Dropdown status filter JS
     function toggleStatusDropdown() {
-      var el = document.getElementById('dropdown-status-menu');
-      el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
-      setTimeout(function() {
+    var el = document.getElementById('dropdown-status-menu');
+    el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
+    setTimeout(function() {
         document.addEventListener('click', closeStatusDropdown);
-      }, 20);
+    }, 20);
     }
     function closeStatusDropdown(event) {
-      var el = document.getElementById('dropdown-status-menu');
-      var btn = document.querySelector('.dropdown-status-btn');
-      if (!el.contains(event.target) && !btn.contains(event.target)) {
+    var el = document.getElementById('dropdown-status-menu');
+    var btn = document.querySelector('.dropdown-status-btn');
+    if (!el.contains(event.target) && !btn.contains(event.target)) {
         el.style.display = 'none';
         document.removeEventListener('click', closeStatusDropdown);
-      }
+    }
     }
 
     // Dropdown request (góc phải)
     function toggleRequestDropdown() {
-      var menu = document.getElementById('requestDropdownMenu');
-      menu.classList.toggle('show');
+    var menu = document.getElementById('requestDropdownMenu');
+    menu.classList.toggle('show');
     }
     document.addEventListener('click', function(event) {
-      var menu = document.getElementById('requestDropdownMenu');
-      var btn = document.querySelector('.btn-more');
-      if (!btn.contains(event.target) && !menu.contains(event.target)) {
-          menu.classList.remove('show');
-      }
+    var menu = document.getElementById('requestDropdownMenu');
+    var btn = document.querySelector('.btn-more');
+    if (!btn.contains(event.target) && !menu.contains(event.target)) {
+        menu.classList.remove('show');
+    }
+    });
+    function confirmExportExcel() {
+        if(confirm("Bạn chắc chắn muốn chạy Update INF?")) {
+            runExportExcel();
+        }
+    }
+    function runExportExcel() {
+        document.getElementById('loading-overlay').style.display = 'flex';
+        fetch('/run_export_excel', {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading-overlay').style.display = 'none';
+                alert(data.message || (data.success ? 'Đã chạy xong Export!' : 'Có lỗi!'));
+                if(data.success && data.reload) window.location.reload();
+            })
+            .catch(e => {
+                document.getElementById('loading-overlay').style.display = 'none';
+                alert('Lỗi không kết nối được server!');
+            });
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        var overlay = document.getElementById('loading-overlay');
+        if(overlay) overlay.style.display = 'none';
     });
     </script>
+    <div id="loading-overlay" style="display:none;position:fixed;z-index:20005;top:0;left:0;width:100vw;height:100vh;background:rgba(60,60,60,0.34);backdrop-filter:blur(1px);display:flex;align-items:center;justify-content:center;">
+      <div style="background:#fffbe8ee;padding:32px 44px;border-radius:18px;box-shadow:0 2px 16px #2224;display:flex;flex-direction:column;align-items:center;">
+        <div class="loader" style="margin-bottom:18px;">
+          <i class="fa fa-spinner fa-spin" style="font-size:44px;color:#c49c48;"></i>
+        </div>
+        <div style="font-size:19px;font-weight:600;color:#b78e24;text-align:center;">
+          Đang xuất dữ liệu Excel...<br>Vui lòng chờ 1-2 phút!
+        </div>
+      </div>
+    </div>
 </body>
 </html>

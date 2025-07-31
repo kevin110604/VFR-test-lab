@@ -16,46 +16,47 @@ def get_first_empty_report_all_blank(excel_path):
     for row in range(2, ws.max_row + 1):
         is_blank = True
         # Duyệt cột từ B (2) tới T (20), bỏ cột A(1) và U(21)
-        for col in range(2, 21):  # B=2, T=20
+        for col in range(3, 22):  # B=2, T=20
             cell = ws.cell(row=row, column=col).value
             if cell not in (None, "", " "):
                 is_blank = False
                 break
         if is_blank:
             # Lấy mã report ở cột A
-            report_no = ws.cell(row=row, column=1).value
+            report_no = ws.cell(row=row, column=2).value
             if report_no:
                 return str(report_no).strip()
     return None
 
 def build_label_value_map(data):
     label_groups = {
-        # "sample_type": ["MATERIAL", "CARCASS", "FINISHED ITEM", "OTHERS"],  # ĐÃ LOẠI BỎ
-        "test_status": ["1ST", "2ND", "3RD", "...TH"],
-        "furniture_testing": ["INDOOR", "OUTDOOR"],
-        "test_groups": [
+        "test_group": [
+            "MATERIAL TEST",
+            "FINISHING TEST",
             "CONSTRUCTION TEST",
-            "PACKAGING TEST (TRANSIT TEST)",
-            "MATERIAL AND FINISHING TEST"
-        ]
+            "TRANSIT TEST",
+            "ENVIRONMENTAL TEST",
+        ],
+        "test_status": ["1ST", "2ND", "3RD", "...TH"],  # nth → ...th
+        "furniture_testing": ["INDOOR", "OUTDOOR"],
+        "sample_return": ["YES", "NO"]
     }
     label_value_map = {}
     for group, labels in label_groups.items():
         value = data.get(group, None)
-        if value is None or (isinstance(value, str) and not value.strip()) or (isinstance(value, list) and len(value) == 0):
+        if value is None or (isinstance(value, str) and not value.strip()):
             for label in labels:
                 label_value_map[label] = False
         else:
-            if not isinstance(value, list):
-                value_list = [value]
-            else:
-                value_list = value
-            value_list = [str(v).strip().upper() for v in value_list]
+            vstr = str(value).strip().upper()
             for label in labels:
                 if group == "test_status" and label == "...TH":
-                    label_value_map[label] = any("NTH" in v for v in value_list)
+                    label_value_map[label] = (vstr.endswith("TH") and vstr not in ["1ST", "2ND", "3RD"])
                 else:
-                    label_value_map[label] = (label in value_list)
+                    label_value_map[label] = (label == vstr)
+    for field in ["sample_description", "item_code", "supplier", "subcon"]:
+        val = data.get(field, "").strip().upper()
+        label_value_map[f"{field.upper()} N/A"] = (val == "N/A")
     return label_value_map
 
 def tick_unicode_checkbox_by_label(docx_path, out_path, label_value_map):
@@ -84,12 +85,10 @@ def tick_unicode_checkbox_by_label(docx_path, out_path, label_value_map):
                 for label_key, value in label_value_map.items():
                     key_norm = label_key.replace(" ", "").replace("_", "").replace(".", "").upper()
                     if label.startswith(key_norm):
-                        old = t.text
                         if value:
                             t.text = t.text.replace('☐', '☑')
                         else:
                             t.text = t.text.replace('☑', '☐')
-                        print(f"[DEBUG] Tick {label_key}: {old} → {t.text} (tick next to: '{label}')")
                         break
             i += 1
 
@@ -124,28 +123,43 @@ def fill_docx_and_export_pdf(data, fixed_report_no=None):
     mapping = {
         "requestor": "requestor",
         "department": "department",
-        "title": "title",
         "requested date": "request_date",
-        "estimated completed date": "estimated_completion_date",
         "lab test report no.": "report_no",
         "sample description": "sample_description",
         "item code": "item_code",
-        "material code": "material_code",
         "quantity": "quantity",
         "supplier": "supplier",
         "subcon": "subcon",
-        "dimension": "dimension",
-        "sales code": "sales_code",
-        "weight": "weight",
-        # KHÔNG còn "sample type"
+        "test group": "test_group",
+        "test status": "test_status",
+        "furniture testing": "furniture_testing",
+        "estimated completed date": "estimated_completion_date",
     }
+    remark = data.get("remark", "")
+    remark_written = False
+
     for table in doc.tables:
         nrows = len(table.rows)
         ncols = len(table.columns)
         for i, row in enumerate(table.rows):
             for j, cell in enumerate(row.cells):
                 label = cell.text.strip().lower().replace("(mã item)", "").replace("(mã material)", "").replace("*", "")
+                if not remark_written and ("other tests/instructions" in label or "remark" in label) and remark:
+                    if i+1 < nrows:
+                        below_cell = table.rows[i+1].cells[j]
+                        if not below_cell.text.strip():
+                            below_cell.text = remark
+                            remark_written = True
+                            continue
+                if ("emp id" in label or "msnv" in label) and data.get("employee_id", ""):
+                    if j+1 < ncols:
+                        target_cell = row.cells[j+1]
+                        if not target_cell.text.strip():
+                            target_cell.text = str(data["employee_id"])
+                            continue
                 for map_label, key in mapping.items():
+                    if map_label in ["remark", "employee id"]:
+                        continue
                     if map_label in label and key in data and str(data[key]).strip() != "":
                         if j+1 < ncols:
                             target_cell = row.cells[j+1]
