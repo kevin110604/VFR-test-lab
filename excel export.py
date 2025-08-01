@@ -11,11 +11,11 @@ from openpyxl.styles import Alignment, Font, Border, Side, PatternFill
 from datetime import datetime, timedelta
 import numpy as np
 
-# ==== ENSURE SHAREPOINT FOLDER EXISTS (AUTO CREATE IF NOT) ====
+# ==== HAM DAM BAO FOLDER SHAREPOINT TON TAI (TU TAO TUNG CAP) ====
 def ensure_folder(ctx, folder_url):
     folder_url = folder_url.rstrip("/")
     root_url = "/".join(folder_url.strip("/").split("/")[:4])  # /sites/...
-    parts = folder_url.strip("/").split("/")[4:]  # after /sites/...
+    parts = folder_url.strip("/").split("/")[4:]  # sau /sites/...
     current_url = root_url
     for part in parts:
         current_url = current_url + "/" + part
@@ -23,22 +23,22 @@ def ensure_folder(ctx, folder_url):
             ctx.web.folders.add(current_url).execute_query()
         except Exception as e:
             if "already exists" not in str(e).lower():
-                print(f"Error creating folder {current_url}: {e}")
+                print("Loi tao folder {}: {}".format(current_url, e))
                 raise
     return ctx.web.get_folder_by_server_relative_url(folder_url)
 
-# ==== SharePoint Config ====
+# ==== Cau hinh SharePoint ====
 site_url = "https://jonathancharles.sharepoint.com/sites/TESTLAB-VFR9"
 username = "tan_qa@vfr.net.vn"
 password = "qaz@Tat@123"
 
-# ================= PART 1: EXPORT PRODUCT LIST WITH QR =================
+# ================= PHAN 1: XUAT FILE DS SAN PHAM TEST VOI QR =================
 relative_url = "/sites/TESTLAB-VFR9/Shared Documents/DATA DAILY/QAD-Outstanding list-2025.xlsx"
-excel_file_out = "product_list_with_qr.xlsx"
+excel_file_out = "ds san pham test voi qr.xlsx"
 
 ctx_auth = AuthenticationContext(site_url)
 if not ctx_auth.acquire_token_for_user(username, password):
-    raise Exception("Failed to connect to SharePoint!")
+    raise Exception("Khong ket noi duoc SharePoint!")
 ctx = ClientContext(site_url, ctx_auth)
 
 download = io.BytesIO()
@@ -53,7 +53,7 @@ for name in excel_file.sheet_names:
         sheet_name = name
         break
 if sheet_name is None:
-    raise Exception("Sheet 'OL list' not found!")
+    raise Exception("Khong tim thay sheet 'OL list'!")
 df = excel_file.parse(sheet_name)
 
 cols_selected = list(df.columns[1:23])
@@ -81,7 +81,7 @@ report_col = find_col(["report", "#"])
 def norm(s):
     return (str(s).strip().lower() if not pd.isnull(s) else "")
 
-# Filter rows: exclude outsource
+# Loc dong: loai bo outsource
 rows = []
 for idx, row in df.iterrows():
     skip = False
@@ -96,17 +96,23 @@ for idx, row in df.iterrows():
 df_out = df.iloc[rows].copy()
 df_out = df_out[cols_selected]
 
-# Filter by Report ID >= 4500
-report_col_main = report_col if report_col in df_out.columns else df_out.columns[0]
+# Xac dinh cot report la cot so 2 trong file ds
+report_col_main = df_out.columns[1]
+
+# Chuan hoa va xoa trung ma report, giu dong cuoi
+df_out[report_col_main] = df_out[report_col_main].astype(str).str.strip()
+df_out = df_out.drop_duplicates(subset=report_col_main, keep='last')
+
+# Loc theo Report ID >= 4500
 df_out["__report_num__"] = pd.to_numeric(df_out[report_col_main].astype(str).str.extract(r'(\d+)$')[0], errors="coerce")
 df_out = df_out[df_out["__report_num__"] >= 4500]
 df_out.drop(columns="__report_num__", inplace=True)
 
-# Add extra columns (only Test Date, Complete Date)
+# Them cot bo sung (chi them Test Date, Complete Date)
 for col in ["Test Date", "Complete Date"]:
     df_out[col] = ""
 
-# Create QR Code link column
+# Tao cot QR Code link
 qr_url_dict = {}
 for idx, row in df_out.iterrows():
     report_raw = str(row[report_col_main]).strip()
@@ -139,7 +145,7 @@ for col in df_out.columns:
 for col in date_cols:
     df_out[col] = df_out[col].apply(only_date)
 
-### ============= REMOVE ROWS WITH BLANK RATING =============
+### ============= PHAN SUA DE KHONG GIU LAI DONG RATING BLANK =============
 def is_valid_rating(val):
     if pd.isnull(val): return False
     sval = str(val).strip()
@@ -149,11 +155,11 @@ def is_valid_rating(val):
 
 if os.path.exists(excel_file_out):
     df_exist = pd.read_excel(excel_file_out)
-    # Normalize column names in both DataFrames
+    # Chuan hoa ten cot o ca hai DataFrame (nen lam)
     df_exist.columns = [col.strip() for col in df_exist.columns]
     df_out.columns = [col.strip() for col in df_out.columns]
 
-    # Detect report and rating column names
+    # Xac dinh cot ma report va cot rating (trong file cu)
     report_col_exist = None
     rating_col_exist = None
     for col in df_exist.columns:
@@ -162,20 +168,16 @@ if os.path.exists(excel_file_out):
         if "rating" in col.lower():
             rating_col_exist = col
 
-    # Auto detect report column in SharePoint file
-    report_col_main = None
-    for col in df_out.columns:
-        if "report" in col.lower() and ("#" in col or "id" in col or "report" == col.lower().strip()):
-            report_col_main = col
-            break
-    if not report_col_main:
-        raise Exception("Report column not found in SharePoint file!")
+    # Dung dung report_col_main la cot so 2
+    report_col_main = df_out.columns[1]
 
-    # Normalize report column values
+    # Chuan hoa gia tri index (report)
     df_exist[report_col_exist] = df_exist[report_col_exist].astype(str).str.strip()
     df_out[report_col_main] = df_out[report_col_main].astype(str).str.strip()
+    # Xoa trung ma report tren df_out (de phong file cu)
+    df_out = df_out.drop_duplicates(subset=report_col_main, keep='last')
 
-    # Build mapping: report code -> SharePoint data
+    # Build mapping tu ma report -> du lieu SharePoint
     sharepoint_data = df_out.set_index(report_col_main).to_dict(orient="index")
 
     updated_rows = []
@@ -189,7 +191,7 @@ if os.path.exists(excel_file_out):
             if pd.notnull(report_val) and report_str in sharepoint_data:
                 new_data = sharepoint_data[report_str]
                 for col in df_exist.columns:
-                    # Only update if column exists in new data
+                    # Chi update neu cot nay co trong du lieu moi
                     if col != rating_col_exist and col in new_data:
                         row[col] = new_data[col]
             updated_rows.append(row)
@@ -199,7 +201,7 @@ else:
 
 df_final.to_excel(excel_file_out, index=False)
 
-# ============== FORMATTING, COLORING, UPLOAD TO SHAREPOINT ==============
+# ============== CAC DOAN DINH DANG, TO MAU, UPLOAD SHAREPOINT GIU NGUYEN ==============
 wb = load_workbook(excel_file_out)
 ws = wb.active
 
@@ -252,29 +254,30 @@ for row in range(2, ws.max_row + 1):
                 ws.cell(row=row, column=col).fill = fill
 
 wb.save(excel_file_out)
-print(f"[INFO] Exported file: {excel_file_out}")
+print("Da xuat file: {}".format(excel_file_out))
 
-# ================= PART 2: HANDLE completed_items.xlsx LOCAL =================
+# ================= PHAN 2: XU LY FILE completed_items.xlsx LOCAL =================
 completed_file = "completed_items.xlsx"
 if not os.path.exists(completed_file):
-    print(f"[ERROR] File {completed_file} not found locally. Will not upload to SharePoint.")
+    print("Khong tim thay file {} o local. Khong up len SharePoint.".format(completed_file))
 else:
-    df = pd.read_excel(completed_file, dtype=str)  # Read all as string
+    df = pd.read_excel(completed_file, dtype=str)  # Doc tat ca duoi dang chuoi
 
     max_rows = 200
     total_rows = len(df)
 
     if total_rows > max_rows:
-        # Keep only last 200 rows (most recent)
+        # Giu 200 dong cuoi cung (moi nhat)
         df = df.iloc[-max_rows:].copy()
-        print(f"[INFO] Deleted {total_rows - max_rows} old rows, kept only last {max_rows} reports in {completed_file}.")
+        print("Da xoa {} dong cu, chi giu lai {} ma report moi nhat trong file {}.".format(
+            total_rows - max_rows, max_rows, completed_file))
     else:
-        print(f"[INFO] File has only {total_rows} rows, no need to delete any.")
+        print("File hien chi co {} dong, khong can xoa dong nao.".format(total_rows))
 
-    # Export file with original header and formatting
+    # Xuat lai file giu nguyen heading va dinh dang
     df.to_excel(completed_file, index=False)
 
-    # Re-format file if needed
+    # Dinh dang lai file (neu muon)
     wb = load_workbook(completed_file)
     ws = wb.active
 
@@ -295,9 +298,9 @@ else:
         ws.column_dimensions[col_letter].width = max(max_length + 2, 15)
 
     wb.save(completed_file)
-    print(f"[INFO] Exported file: {completed_file}")
+    print("Da xuat file: {}".format(completed_file))
     
-    # ==== UPLOAD FILE TO SHAREPOINT ====
+    # ==== UPLOAD FILE LEN SHAREPOINT ====
     upload_relative_url = "/sites/TESTLAB-VFR9/Shared Documents/DATA DAILY/completed_items.xlsx"
     folder_excel = os.path.dirname(upload_relative_url)
     ensure_folder(ctx, folder_excel)
@@ -305,13 +308,13 @@ else:
         with open(completed_file, "rb") as f:
             ctx.web.get_folder_by_server_relative_url(folder_excel) \
                 .upload_file(os.path.basename(upload_relative_url), f.read()).execute_query()
-        print(f"[INFO] Uploaded file {completed_file} to SharePoint: {upload_relative_url}")
+        print("Da upload file {} len SharePoint: {}".format(completed_file, upload_relative_url))
     else:
-        print("[ERROR] File completed_items.xlsx does not exist, cannot upload.")
+        print("File completed_items.xlsx chua ton tai, khong the upload.")
 
 trf_file = "TRF.xlsx"
 if not os.path.exists(trf_file):
-    print(f"[ERROR] File {trf_file} not found locally. Will not upload to SharePoint.")
+    print("Khong tim thay file {} o local. Khong up len SharePoint.".format(trf_file))
 else:
     df = pd.read_excel(trf_file, dtype=str)
 
@@ -320,9 +323,10 @@ else:
 
     if total_rows > max_rows:
         df = df.iloc[-max_rows:].copy()
-        print(f"[INFO] Deleted {total_rows - max_rows} old rows, kept only last {max_rows} reports in {trf_file}.")
+        print("Da xoa {} dong cu, chi giu lai {} ma report moi nhat trong file {}.".format(
+            total_rows - max_rows, max_rows, trf_file))
     else:
-        print(f"[INFO] File has only {total_rows} rows, no need to delete any.")
+        print("File hien chi co {} dong, khong can xoa dong nao.".format(total_rows))
 
     df.to_excel(trf_file, index=False)
 
@@ -346,9 +350,9 @@ else:
         ws.column_dimensions[col_letter].width = max(max_length + 2, 15)
 
     wb.save(trf_file)
-    print(f"[INFO] Exported file: {trf_file}")
+    print("Da xuat file: {}".format(trf_file))
     
-    # ==== UPLOAD FILE TO SHAREPOINT ====
+    # ==== UPLOAD FILE LEN SHAREPOINT ====
     upload_relative_url_trf = "/sites/TESTLAB-VFR9/Shared Documents/DATA DAILY/TRF.xlsx"
     folder_excel_trf = os.path.dirname(upload_relative_url_trf)
     ensure_folder(ctx, folder_excel_trf)
@@ -356,6 +360,6 @@ else:
         with open(trf_file, "rb") as f:
             ctx.web.get_folder_by_server_relative_url(folder_excel_trf) \
                 .upload_file(os.path.basename(upload_relative_url_trf), f.read()).execute_query()
-        print(f"[INFO] Uploaded file {trf_file} to SharePoint: {upload_relative_url_trf}")
+        print("Da upload file {} len SharePoint: {}".format(trf_file, upload_relative_url_trf))
     else:
-        print("[ERROR] File TRF.xlsx does not exist, cannot upload.")
+        print("File TRF.xlsx chua ton tai, khong the upload.")

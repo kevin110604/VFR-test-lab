@@ -615,6 +615,24 @@
                         </div>
                         {% if 'test_group' in missing_fields %}<div class="error-msg text-required-msg">Bắt buộc chọn</div>{% endif %}
                     </div>
+                    
+                    <!-- Block Finishing QA/LINE TEST: Chèn sau phần test_group -->
+                    <div id="finishing-detail-row" style="display:none; margin-top:14px;">
+                        <label><span style="color:#c49c48;font-weight:600;">Chọn loại Finishing Test <span class="required">*</span></span></label>
+                        <div class="radio-row" style="margin-top:8px;">
+                            <label>
+                                <input type="radio" name="finishing_type" value="QA TEST"
+                                    {% if form_data.get('finishing_type') == 'QA TEST' %}checked{% endif %}>
+                                QA TEST
+                            </label>
+                            <label>
+                                <input type="radio" name="finishing_type" value="LINE TEST"
+                                    {% if form_data.get('finishing_type') == 'LINE TEST' %}checked{% endif %}>
+                                LINE TEST
+                            </label>
+                        </div>
+                        <div id="finishing_type_error" class="error-msg" style="display:none;">Bắt buộc chọn QA TEST hoặc LINE TEST</div>
+                    </div>
                     <div class="form-row-2">
                         <div class="form-group {% if 'test_status' in missing_fields %}has-error{% endif %}">
                             <label class="text-test-status">Lần test <span class="required">*</span></label>
@@ -877,6 +895,38 @@
             }
         });
         {% endif %}
+        // ----------- FINISHING TEST: Show/hide QA/LINE -----------
+        function updateFinishingTypeRow() {
+            let testGroup = document.querySelector('input[name="test_group"]:checked');
+            let finishingRow = document.getElementById('finishing-detail-row');
+            if (testGroup && testGroup.value === 'FINISHING TEST') {
+                finishingRow.style.display = '';
+            } else {
+                finishingRow.style.display = 'none';
+                // Bỏ chọn nếu chuyển sang nhóm test khác
+                let radios = finishingRow.querySelectorAll('input[name="finishing_type"]');
+                radios.forEach(r => r.checked = false);
+                document.getElementById('finishing_type_error').style.display = 'none';
+            }
+        }
+        let testGroupRadios = document.querySelectorAll('input[name="test_group"]');
+        testGroupRadios.forEach(radio => radio.addEventListener('change', updateFinishingTypeRow));
+        updateFinishingTypeRow();
+
+        // Check finishing_type before submit
+        document.querySelector('form').addEventListener('submit', function(e) {
+            let testGroup = document.querySelector('input[name="test_group"]:checked');
+            if (testGroup && testGroup.value === 'FINISHING TEST') {
+                let finishingChecked = document.querySelector('input[name="finishing_type"]:checked');
+                if (!finishingChecked) {
+                    e.preventDefault();
+                    document.getElementById('finishing_type_error').style.display = '';
+                    document.getElementById('finishing-detail-row').scrollIntoView({behavior:'smooth', block:'center'});
+                } else {
+                    document.getElementById('finishing_type_error').style.display = 'none';
+                }
+            }
+        });
     </script>
 </body>
 </html>

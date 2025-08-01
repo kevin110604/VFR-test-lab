@@ -791,7 +791,7 @@
         .item-search-label,
         .item-search-input,
         .item-search-btn {
-            width: 100%;
+            width: 50%;
             min-width: 0;
             max-width: 99vw;
             justify-content: flex-start;
@@ -812,6 +812,48 @@
     body.darkmode .staff-id {
         color: #ffe082;  /* sáng hơn, dễ đọc trên nền #374B4A */
     }
+    .item-search-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 15px;
+        background: var(--main-bg);
+        color: var(--main-text);
+        margin-top: 10px;
+    }
+    .item-search-table th, .item-search-table td {
+        border: 1px solid #bbb;
+        padding: 8px 9px;
+        text-align: center;
+        background: transparent;
+    }
+    .item-search-table th {
+        background: #ffe082;
+        color: #b78e24;
+        font-weight: 800;
+        font-size: 13.5px;
+    }
+    .item-search-table .status-late   { color: #d32f2f; font-weight: bold; }
+    .item-search-table .status-must   { color: #FFD600; font-weight: bold; }
+    .item-search-table .status-due    { color: #FF9800; font-weight: bold; }
+    .item-search-table .status-active { color: #43a047; font-weight: bold; }
+    @media (max-width: 600px) {
+        .item-search-table {
+            font-size: 12px;
+            min-width: 360px;
+        }
+        .item-search-table th, .item-search-table td {
+            padding: 5px 4px;
+        }
+    }
+    @media (max-width: 430px) {
+        .item-search-table {
+            font-size: 10px;
+            min-width: 240px;
+        }
+        .item-search-table th, .item-search-table td {
+            padding: 3px 2px;
+        }
+    }
     </style>
 </head>
 <body>
@@ -826,7 +868,7 @@
             <i class="fa fa-file-circle-plus"></i> Create Request
         </a>
         <a href="/tfr_request_status">
-            <i class="fa fa-search"></i> RQ Submited
+            <i class="fa fa-search"></i> RQ Submitted
         </a>
         <a href="/tfr_request_archive">
             <i class="fa fa-archive"></i> TRF
@@ -849,6 +891,68 @@
             <br>
             <button type="submit"><i class="fa fa-search"></i> Xem thông tin</button>
         </form>
+        {% if not session.get('auth_ok') %}
+        <form method="GET" action="/" class="item-search-form">
+            <label for="item_search" class="item-search-label">🔎 Tìm ITEM#:</label>
+            <input type="text"
+                id="item_search"
+                name="item_search"
+                placeholder="Nhập mã ITEM#"
+                value="{{ request.args.get('item_search', '') }}"
+                class="item-search-input">
+            <button type="submit" class="item-search-btn">
+                <i class="fa fa-search"></i> Tìm ITEM#
+            </button>
+        </form>
+        {% endif %}
+        {% if not session.get('auth_ok') and request.args.get('item_search') %}
+            {% if report_list %}
+                <div class="table-responsive">
+                    <table class="item-search-table">
+                        <thead>
+                            <tr>
+                                <th>ITEM#</th>
+                                <th>REPORT#</th>
+                                <th>TYPE OF</th>
+                                <th>STATUS</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for r in report_list %}
+                            <tr>
+                                <td>{{ r.item }}</td>
+                                <td>{{ r.report or '-' }}</td>
+                                <td>{{ r.type_of or '-' }}</td>
+                                <td>
+                                    <span class="
+                                        {% if r.status == 'LATE' %}status-late
+                                        {% elif r.status == 'MUST' %}status-must
+                                        {% elif r.status == 'DUE' %}status-due
+                                        {% elif r.status == 'ACTIVE' %}status-active
+                                        {% endif %}
+                                    ">
+                                        {{ r.status or '-' }}
+                                    </span>
+                                </td>
+                                <td>
+                                {% if r.report %}
+                                    <a href="{{ url_for('update', report=r.report) }}">
+                                        <button type="button"><i class="fa fa-edit"></i> Xem report</button>
+                                    </a>
+                                {% else %}
+                                    <span style="color:#b78e24;">-</span>
+                                {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="error-message">Không tìm thấy mã ITEM này!</div>
+            {% endif %}
+        {% endif %}
         {% if not session.get('auth_ok') %}
         <form method="POST" class="form-pw login-row">
             <div style="position:relative; flex:1; min-width:0;">

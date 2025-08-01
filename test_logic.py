@@ -391,6 +391,40 @@ GHE_EU_TEST_TITLES = {
     }
 }
 
+F2057_TEST_TITLES = {
+    "f2057_step1": {
+        "full": "F2057 - Bước 1: Đo kích thước, cân nặng",
+        "short": "Đo kích thước, cân nặng",
+        "img": ["/static/images/buoc 1 f2057 tu us.png"]
+    },
+    "f2057_step2": {
+        "full": "F2057 - Bước 2: Tính toán lực",
+        "short": "Tính toán lực",
+        "img": ["/static/images/buoc 2 f2057 tu us.png"]
+    },
+    "f2057_step3": {
+        "full": "F2057 - Bước 3: Test to Evaluate Interlock System",
+        "short": "Test Interlock",
+        "img": ["/static/images/buoc 3 f2057 tu us.png"]
+    },
+    "f2057_step4": {
+        "full": "F2057 - Bước 4: Simulated Clothing Load",
+        "short": "Clothing Load",
+        "img": ["/static/images/buoc 4 f2057 tu us.png"]
+    },
+    "f2057_step5": {
+        "full": "F2057 - Bước 5: Simulated Horizontal Dynamic Force",
+        "short": "Horizontal Force",
+        "img": ["/static/images/buoc 5 f2057 tu us.png"]
+    },
+    "f2057_step6": {
+        "full": "F2057 - Bước 6: Simulate Reaction on Carpet with Child Weight",
+        "short": "Child Weight",
+        "img": ["/static/images/buoc 6.1 f2057 tu us.png",
+                "/static/images/buoc 6.2 f2057 tu us.png"]
+    }
+}
+
 TU_US_TEST_TITLES = {
     "muc3": {
         "full": "Mục 4.2: Concentrated functional load test",
@@ -501,9 +535,9 @@ TU_US_TEST_TITLES = {
         "full": "Mục 20: Pull force test",
         "short": "Pull force test",
         "img": ["/static/images/buoc 24 tu us.png"]
-    }
+    },
 }
-
+TU_US_TEST_TITLES.update(F2057_TEST_TITLES)
 TU_EU_TEST_TITLES = {
     "muc3": {
         "full": "Mục 5.2.5: Extension elements (EN14749:2016)",
@@ -1059,7 +1093,6 @@ TEST_GROUP_TITLES = {
     'transit_RH_pallet': TRANSIT_RH_PALLET_TEST_TITLES,
     "transit_181_lt68": TRANSIT_181_LT68_TEST_TITLES,
     "transit_181_gt68": TRANSIT_181_GT68_TEST_TITLES,
-
     # Thêm các nhóm khác nếu cần
 }
 

@@ -78,5 +78,26 @@
     "status": "Submitted",
     "decline_reason": "",
     "report_no": ""
+  },
+  {
+    "trq_id": "TL-2520195",
+    "requestor": "A",
+    "employee_id": "A",
+    "department": "A",
+    "request_date": "2025-08-01",
+    "sample_description": "A",
+    "item_code": "A",
+    "supplier": "A",
+    "subcon": "A",
+    "test_status": "1st",
+    "furniture_testing": "Indoor",
+    "quantity": "1",
+    "sample_return": "Yes",
+    "remark": "A (QA TEST)",
+    "test_group": "FINISHING TEST",
+    "finishing_type": "QA TEST",
+    "status": "Submitted",
+    "decline_reason": "",
+    "report_no": ""
   }
 ]

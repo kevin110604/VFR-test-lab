@@ -4,7 +4,7 @@ from excel_utils import get_item_code, get_col_idx, copy_row_with_style, is_img_
 from image_utils import allowed_file, safe_filename, get_img_urls
 from auth import login, logout, is_logged_in, get_user_type
 from test_logic import load_group_notes, get_group_test_status, is_drop_test, is_impact_test, is_rotational_test,  TEST_GROUP_TITLES, TEST_TYPE_VI, DROP_ZONES, DROP_LABELS, GT68_FACE_LABELS, GT68_FACE_ZONES
-from test_logic import IMPACT_ZONES, IMPACT_LABELS, ROT_LABELS, ROT_ZONES, RH_IMPACT_ZONES, RH_VIB_ZONES, RH_SECOND_IMPACT_ZONES, RH_STEP12_ZONES, update_group_note_file, get_group_note_value
+from test_logic import IMPACT_ZONES, IMPACT_LABELS, ROT_LABELS, ROT_ZONES, RH_IMPACT_ZONES, RH_VIB_ZONES, RH_SECOND_IMPACT_ZONES, RH_STEP12_ZONES, update_group_note_file, get_group_note_value, F2057_TEST_TITLES
 from notify_utils import send_teams_message, notify_when_enough_time
 from counter_utils import update_counter, check_and_reset_counter, log_report_complete
 from docx_utils import approve_request_fill_docx_pdf
@@ -268,13 +268,8 @@ def tfr_request_form():
             missing_fields.append("furniture_testing")
             error = "Phải chọn Indoor hoặc Outdoor!"
 
-        # Validate N/A logic cho các trường option
-        def na_or_value(key):
-            na_key = key + "_na"
-            if form.get(na_key):
-                return "N/A"
-            return form.get(key, "").strip()
-
+        # Lấy finishing_type nếu có (sẽ là "" nếu không chọn FINISHING TEST)
+        finishing_type = form.get("finishing_type", "")
         form_data = form.to_dict(flat=False)
         form_data["test_group"] = test_group
         form_data["furniture_testing"] = furniture_testing
@@ -282,6 +277,20 @@ def tfr_request_form():
         form_data["employee_id"] = form.get("employee_id", "").strip()
         form_data["sample_return"] = form.get("sample_return", "")
         form_data["remark"] = form.get("remark", "").strip()
+        form_data["finishing_type"] = finishing_type
+
+        # Validate N/A logic cho các trường option
+        def na_or_value(key):
+            na_key = key + "_na"
+            if form.get(na_key):
+                return "N/A"
+            return form.get(key, "").strip()
+
+        # Nếu chọn FINISHING TEST thì bắt buộc finishing_type
+        if test_group == "FINISHING TEST":
+            if not finishing_type:
+                missing_fields.append("finishing_type")
+                error = "Phải chọn QA TEST hoặc LINE TEST!"
 
         if missing_fields:
             if not error:
@@ -302,6 +311,14 @@ def tfr_request_form():
             nth = form.get("test_status_nth", "").strip()
             test_status = nth + "th" if nth.isdigit() else "nth"
 
+        # Logic Remark với FINISHING TEST + QA/LINE TEST
+        remark = form.get("remark", "").strip()
+        if test_group == "FINISHING TEST" and finishing_type:
+            if remark:
+                remark = f"{remark} ({finishing_type})"
+            else:
+                remark = finishing_type
+
         new_request = {
             "trq_id": form.get("trq_id", default_trq_id),
             "requestor": form.get("requestor"),
@@ -316,8 +333,9 @@ def tfr_request_form():
             "furniture_testing": furniture_testing,
             "quantity": form.get("quantity"),
             "sample_return": form.get("sample_return", ""),
-            "remark": form.get("remark", ""),
+            "remark": remark,
             "test_group": test_group,
+            "finishing_type": finishing_type,  # Lưu luôn trường này!
             "status": "Submitted",
             "decline_reason": "",
             "report_no": ""
@@ -916,7 +934,8 @@ def update():
     )
 
 @app.route("/test_group/<report>/<group>", methods=["GET", "POST"])
-def test_group_page(report, group):
+def test_group_page(report, group): # Import trong hàm để tránh circular import nếu cần
+
     session[f"last_test_type_{report}"] = get_group_title(group)
     group_titles = TEST_GROUP_TITLES.get(group)
     if not group_titles:
@@ -929,12 +948,6 @@ def test_group_page(report, group):
     # Đọc toàn bộ status/comment cho group đó (file lưu dạng "Mục xx: PASS/FAIL/N/A")
     all_status = load_group_notes(status_file)
     all_comment = load_group_notes(comment_file)
-
-    # Kiểm tra/tạo thư mục report_folder trước khi listdir
-    if os.path.exists(report_folder):
-        file_list = os.listdir(report_folder)
-    else:
-        file_list = []
 
     # Duyệt từng test_key để lấy trạng thái, comment và có ảnh hay không
     test_status = {}
@@ -950,23 +963,34 @@ def test_group_page(report, group):
         else:
             st = all_status.get(key)
         cm = all_comment.get(key)
-        has_img = any(
-            allowed_file(f) and f.startswith(f"test_{group}_{key}_")
-            for f in file_list
-        )
+        has_img = False
+        if os.path.exists(report_folder):
+            has_img = any(
+                allowed_file(f) and f.startswith(f"test_{group}_{key}_")
+                for f in os.listdir(report_folder)
+            )
         test_status[key] = {
             'status': st,
             'comment': cm,
             'has_img': has_img
         }
 
+    # Nếu là tủ US thì cần status cho từng step f2057
+    f2057_status = {}
+    if group == 'tu_us':
+        for fkey in F2057_TEST_TITLES:
+            # Đọc status/comment/ảnh từng step con như bình thường
+            s = get_group_test_status(report, group, fkey)
+            f2057_status[fkey] = s
 
     return render_template(
         "test_group_menu.html",
         report=report,
         group=group,
         test_titles=group_titles,
-        test_status=test_status
+        test_status=test_status,
+        F2057_TEST_TITLES=F2057_TEST_TITLES,
+        f2057_status=f2057_status
     )
 
 @app.route('/test_group/<report>/<group>/<test_key>', methods=['GET', 'POST'])
