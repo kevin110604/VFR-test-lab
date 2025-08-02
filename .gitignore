@@ -1,0 +1,33 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+
+# Flask uploads/static folders
+images/
+qr_labels/
+
+# Office, Excel
+*.xlsx
+*.xls
+*.docx
+
+# JSON files
+*.json
+
+# VS Code
+.vscode/
+
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Zip/backup
+*.zip
+*.bak
