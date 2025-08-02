@@ -1,5 +1,4 @@
 # Python cache
-__pycache__/
 *.py[cod]
 *.pyo
 
@@ -8,7 +7,7 @@ __pycache__/
 venv/
 
 # Flask uploads/static folders
-images/
+/images/        # chỉ ignore images ở root
 qr_labels/
 
 # Office, Excel
@@ -31,3 +30,6 @@ Thumbs.db
 # Zip/backup
 *.zip
 *.bak
+
+# ---- THÊM DÒNG NÀY để KHÔNG ignore static/images ----
+!static/images/
