@@ -3,7 +3,7 @@ import os
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'bmp'}
 UPLOAD_FOLDER = "images"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-local_main = "ds sản phẩm test với qr.xlsx"
+local_main = "ds san pham test voi qr.xlsx"
 local_complete = "completed_items.xlsx"
 qr_folder = "qr_labels"
 TEAMS_WEBHOOK_URL_TRF = "https://jonathancharles.webhook.office.com/webhookb2/c1820b56-e3c0-4435-b1a6-1630c0f8da85@064944f6-1e04-4050-b3e1-e361758625ec/IncomingWebhook/09c95cb9a4d5487c8b8aac5ef36f6d1d/169de55a-0196-4de6-b160-7a456bce2292/V2me37ZNeF3_Z1CnaOm4naD_tJ0TptNjr_rJRwga6qBSg1"
