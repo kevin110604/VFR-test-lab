@@ -11,6 +11,7 @@ from docx_utils import approve_request_fill_docx_pdf
 from file_utils import safe_write_json, safe_read_json, safe_save_excel, safe_load_excel, safe_write_text, safe_read_text
 import re, os, pytz, json, openpyxl, random, subprocess
 from datetime import datetime
+from waitress import serve
 from openpyxl import load_workbook, Workbook
 from openpyxl.styles import PatternFill
 from collections import defaultdict, OrderedDict
@@ -2095,4 +2096,4 @@ scheduler.add_job(func=auto_notify_all_pending, trigger="interval", seconds=300)
 scheduler.start()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8246, debug=True)
+    serve(app, host="0.0.0.0", port=8246)
