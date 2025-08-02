@@ -88,5 +88,35 @@
     "status": "Approved",
     "pdf_path": "TFR/25-4984.pdf",
     "docx_path": null
+  },
+  {
+    "trq_id": "TL-2545496",
+    "report_no": "25-5055",
+    "requestor": "A",
+    "department": "A",
+    "request_date": "2025-08-02",
+    "status": "Approved",
+    "pdf_path": null,
+    "docx_path": "TFR/25-5055.docx"
+  },
+  {
+    "trq_id": "TL-2520195",
+    "report_no": "25-5056",
+    "requestor": "A",
+    "department": "A",
+    "request_date": "2025-08-01",
+    "status": "Approved",
+    "pdf_path": null,
+    "docx_path": "TFR/25-5056.docx"
+  },
+  {
+    "trq_id": "TL-2573780",
+    "report_no": "25-5057",
+    "requestor": "Lê Thị Mỹ Nhiên",
+    "department": "CAR2",
+    "request_date": "2025-07-31",
+    "status": "Approved",
+    "pdf_path": null,
+    "docx_path": "TFR/25-5057.docx"
   }
 ]

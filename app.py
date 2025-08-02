@@ -132,18 +132,28 @@ def home():
         message = f"Error reading list: {e}"
 
     status_set = []
+    all_statuses = ['LATE', 'MUST', 'DUE', 'ACTIVE', 'COMPLETE', 'DONE']
     for s in all_statuses:
         if s in raw_status_set: status_set.append(s)
     for s in sorted(raw_status_set):
         if s not in status_set: status_set.append(s)
 
+    # --- LOGIC LỌC STATUS ---
     selected_status = request.args.getlist("status")
-    # === LOGIC MẶC ĐỊNH: Nếu không chọn gì -> mặc định show LATE, MUST, DUE ===
-    if not selected_status or selected_status == [""]:
+    filter_from_user = "status" in request.args
+
+    if not filter_from_user:
+        # Mới vào trang, mặc định lọc theo LATE, MUST, DUE
         selected_status = ["LATE", "MUST", "DUE"]
-    # Nếu chọn "all", show tất cả
-    if "all" in selected_status:
-        selected_status = []
+    else:
+        # Nếu form lọc được gửi (dù bấm All hay chọn từng status)
+        # Nếu không chọn gì hoặc chỉ tick All → ALL (không filter theo status)
+        if not selected_status or selected_status == [""]:
+            selected_status = []
+        elif "" in selected_status:
+            # Nếu có tick cả All + các status khác, vẫn xem như ALL
+            selected_status = []
+
     selected_type = request.args.get("type_of", "")
     item_search = request.args.get("item_search", "").strip()
 
@@ -494,9 +504,13 @@ def tfr_request_archive():
         if "-" in d: return datetime.strptime(d, "%Y-%m-%d")
         else: return datetime.strptime(d, "%d/%m/%Y")
     archive = [r for r in archive if (now - get_dt(r["request_date"])).days < 14]
+    # Sắp xếp mới nhất lên đầu (giảm dần theo ngày)
+    archive = sorted(
+        archive,
+        key=lambda r: get_dt(r["request_date"]),
+        reverse=True
+    )
     return render_template("tfr_request_archive.html", requests=archive)
-
-import subprocess
 
 @app.route('/run_export_excel', methods=['POST'])
 def run_export_excel():
@@ -2081,5 +2095,4 @@ scheduler.add_job(func=auto_notify_all_pending, trigger="interval", seconds=300)
 scheduler.start()
 
 if __name__ == "__main__":
-     from waitress import serve
-serve(app, host="0.0.0.0", port=8246)
+    app.run(host="0.0.0.0", port=8246, debug=True)
