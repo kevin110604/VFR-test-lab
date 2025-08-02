@@ -17,6 +17,9 @@ qr_labels/
 *.xls
 *.docx
 
+# JSON files
+*.json
+
 # VS Code
 .vscode/
 
