@@ -2105,4 +2105,4 @@ scheduler.add_job(func=auto_notify_all_pending, trigger="interval", seconds=300)
 scheduler.start()
 
 if __name__ == "__main__":
-    serve(app, host="0.0.0.0", port=8246)
+    app.run(host="0.0.0.0", port=8246)
