@@ -230,7 +230,7 @@ def home():
         status_set=status_set,
         selected_status=selected_status,
         session=session,
-        report_list=report_list_page,
+        report_list=report_list,
         summary_by_type=summary_by_type,
         counter=counter,
         page=page,
