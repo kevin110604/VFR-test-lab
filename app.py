@@ -499,27 +499,25 @@ def tfr_request_status():
 @app.route("/tfr_request_archive")
 def tfr_request_archive():
     from datetime import datetime
-
     archive = safe_read_json(ARCHIVE_LOG)
     now = datetime.now()
-
     def get_dt(d):
-        # Hỗ trợ cả 2 format ngày
-        if "-" in d: 
-            return datetime.strptime(d, "%Y-%m-%d")
-        else: 
-            return datetime.strptime(d, "%d/%m/%Y")
-
-    # Lọc 14 ngày gần nhất
+        if "-" in d: return datetime.strptime(d, "%Y-%m-%d")
+        else: return datetime.strptime(d, "%d/%m/%Y")
     archive = [r for r in archive if (now - get_dt(r["request_date"])).days < 14]
 
-    # Sắp xếp: mới nhất lên đầu, cùng ngày thì report_no lớn lên đầu
+    def extract_report_number(s):
+        try:
+            return int(str(s).split("-")[-1])
+        except Exception:
+            return 0
+
+    # Sắp xếp mới nhất lên đầu (ngày mới hơn trước, nếu cùng ngày thì report_no lớn lên trước)
     archive = sorted(
         archive,
-        key=lambda r: (get_dt(r["request_date"]), int(r.get("report_no", 0))),
+        key=lambda r: (get_dt(r["request_date"]), extract_report_number(r.get("report_no", ""))),
         reverse=True
     )
-
     return render_template("tfr_request_archive.html", requests=archive)
 
 @app.route('/run_export_excel', methods=['POST'])
