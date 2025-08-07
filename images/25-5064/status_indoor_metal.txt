@@ -1,0 +1,5 @@
+Mục pencil: N/A
+Mục adhesion: N/A
+Mục impact: N/A
+Mục solvent: N/A
+Mục corrosion: FAIL

@@ -708,7 +708,7 @@
                 <div style="min-width:120px; flex:1 1 140px;">
                     <div style="font-weight:bold; color:#4d665c; font-size:17px; margin-bottom:7px; text-align:center;">Indoor</div>
                     <a href="{{ url_for('test_group_page', report=report_id, group='indoor_chuyen') }}" class="test-btn" style="margin-bottom:6px;">TEST CHUYỀN</a>
-                    <a href="{{ url_for('test_group_page', report=report_id, group='indoor_thuong') }}" class="test-btn" style="margin-bottom:6px;">TEST THƯỜNG</a>
+                    <a href="{{ url_for('test_group_page', report=report_id, group='indoor_thuong') }}" class="test-btn" style="margin-bottom:6px;">QA TEST</a>
                     <a href="{{ url_for('test_group_page', report=report_id, group='indoor_stone') }}" class="test-btn" style="margin-bottom:6px;">TEST ĐÁ</a>
                     <a href="{{ url_for('test_group_page', report=report_id, group='indoor_metal') }}" class="test-btn" style="margin-bottom:6px;">TEST METAL</a>
                 </div>
@@ -721,6 +721,12 @@
                 <div style="min-width:120px; flex:1 1 140px;">
                     <div style="font-weight:bold; color:#4d665c; font-size:17px; margin-bottom:7px; text-align:center;">Line test</div>
                     <a href="{{ url_for('line_test', report=report_id) }}" class="test-btn" style="margin-bottom:6px;">LINE TEST</a>
+                    <!-- Nút mới HOT & COLD TEST -->
+                    <a href="{{ url_for('hot_cold_test', report=report_id, group='line', from_line=1) }}"
+                        class="test-btn"
+                        style="margin-bottom:6px;">
+                        <i class="fa fa-temperature-high"></i> HOT &amp; COLD TEST
+                    </a>
                     {% if show_line_test_done_notice %}
                         <div style="color:#357a32;font-size:16px;font-weight:bold;margin-top:7px;">
                             &#10004; Đã hoàn thành line test (đủ {{ so_gio_test }} tiếng)

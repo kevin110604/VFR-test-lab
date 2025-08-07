@@ -11,18 +11,27 @@
         --main-text: #333;
         --main-th: #4d665c;
         --main-border: #4d665c55;
+        --main-btn: #c49c48;
+        --main-btn-hover: #35523A;
+        --main-btn-text: #fff;
+        --main-btn-hover-text: #ffe082;
+        --main-btn-dark: #97722a;
+        --main-btn-dark-hover: #333f20;
     }
     body.darkmode {
-        --main-bg: #2b3938;      /* nền tổng thể tối hơn */
-        --main-card: #374B4A;    /* thẻ nội dung nổi lên */
+        --main-bg: #2b3938;
+        --main-card: #374B4A;
         --main-text: #f6f6ef;
         --main-th: #ffe082;
         --main-border: #263d3a;
+        --main-btn: #97722a;
+        --main-btn-hover: #35523A;
+        --main-btn-text: #fff;
+        --main-btn-hover-text: #ffe082;
     }
     body {
         font-family: 'Segoe UI', sans-serif;
         background-color: var(--main-bg);
-        background-size: 420px 420px;
         margin: 0;
         padding: 0;
         color: var(--main-text);
@@ -41,6 +50,176 @@
         font-size: 28px;
         color: var(--main-th);
         margin-bottom: 30px;
+    }
+    /* ==== REQUEST BUTTONS HÀNG NGANG ==== */
+    .request-menu-row {
+        display: flex;
+        flex-direction: row;
+        gap: 14px;
+        justify-content: center;
+        margin: 10px auto 19px auto;
+        max-width: 99vw;
+        width: 100%;
+        flex-wrap: wrap;
+    }
+    .request-btn {
+        flex: 1 1 0;
+        min-width: 120px;
+        max-width: 220px;
+        text-align: center;
+        background: var(--main-btn);
+        color: var(--main-btn-text);
+        font-size: 17px;
+        font-weight: 600;
+        border: none;
+        border-radius: 13px;
+        padding: 11px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: 0 2px 11px #c49c4840;
+        text-decoration: none;
+        transition: background 0.16s, color 0.15s, transform 0.12s, box-shadow 0.15s;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .request-btn:hover {
+        background: var(--main-btn-hover);
+        color: var(--main-btn-hover-text);
+        transform: translateY(-2px) scale(1.04);
+        box-shadow: 0 4px 18px #c49c4844;
+    }
+    body.darkmode .request-btn {
+        background: var(--main-btn);
+        color: var(--main-btn-text);
+    }
+    body.darkmode .request-btn:hover {
+        background: var(--main-btn-hover);
+        color: var(--main-btn-hover-text);
+    }
+    /* ==== TÌM ITEM: LUÔN 1 HÀNG NGANG ==== */
+    .item-search-form-modern {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        background: #fffbe8;
+        border-radius: 9px;
+        box-shadow: 0 1px 5px #f7cf3a15;
+        padding: 3px 7px;
+        margin: 16px auto 12px auto;
+        max-width: 430px;
+        width: 90%;
+    }
+
+    .item-search-form-modern label {
+        display: flex;
+        align-items: center;
+        font-size: 14.7px;
+        font-weight: 600;
+        color: #b78e24;
+        margin: 0 2px 0 0;
+        white-space: nowrap;
+        min-width: 68px;
+    }
+
+    .item-search-form-modern input {
+        font-size: 15px;
+        border-radius: 6px;
+        border: 1.2px solid #d9bc6d;
+        background: #fff;
+        color: #444;
+        font-weight: 600;
+        padding: 5px 11px;
+        flex: 1 1 0;
+        min-width: 80px;
+        max-width: 999px;
+        width: 100%;
+        margin-right: 2px;
+        transition: border 0.13s;
+        height: 32px;
+    }
+
+    .item-search-form-modern input:focus {
+        border-color: #c49c48;
+        outline: none;
+    }
+
+    .item-search-form-modern button {
+        font-size: 13.5px;
+        padding: 4px 14px;
+        border-radius: 7px;
+        background: var(--main-btn);
+        color: var(--main-btn-text);
+        font-weight: 700;
+        border: none;
+        min-width: 52px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.13s, color 0.13s;
+        box-shadow: 0 1px 7px #c49c4830;
+        letter-spacing: 0.01em;
+        flex: 0 0 auto; /* Nút chỉ chiếm độ rộng vừa nội dung */
+    }
+    .item-search-form-modern button:hover {
+        background: var(--main-btn-hover);
+        color: var(--main-btn-hover-text);
+    }
+    body.darkmode .item-search-form-modern button {
+        background: var(--main-btn);
+        color: var(--main-btn-text);
+    }
+    body.darkmode .item-search-form-modern button:hover {
+        background: var(--main-btn-hover);
+        color: var(--main-btn-hover-text);
+    }
+
+    /* Mobile responsive */
+    @media (max-width: 600px) {
+        .item-search-form-modern {
+            flex-direction: row;
+            gap: 4px;
+            padding: 2px 3vw;
+            max-width: 99vw;
+        }
+        .item-search-form-modern label,
+        .item-search-form-modern button,
+        .item-search-form-modern input {
+            font-size: 12px;
+            height: 28px;
+        }
+        .item-search-form-modern input {
+            min-width: 60px;
+            max-width: 200px;
+            width: 77px;
+            padding: 3px 7px;
+        }
+        .item-search-form-modern button {
+            padding: 2.5px 9px;
+            border-radius: 6px;
+            min-width: 43px;
+        }
+    }
+
+    @media (max-width: 420px) {
+        .item-search-form-modern {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 5px;
+            padding: 2px 2vw;
+        }
+        .item-search-form-modern label,
+        .item-search-form-modern input,
+        .item-search-form-modern button {
+            width: 100%;
+            min-width: 0;
+            max-width: 99vw;
+        }
+        .item-search-form-modern input { margin-right: 0; }
     }
     h3 { color: var(--main-th); }
     /* ---------- FILTER BAR STYLE (MỚI) --------- */
@@ -857,186 +1036,153 @@
     </style>
 </head>
 <body>
-    <!-- OVERLAY NHẬP STAFF ID - LUÔN HIỆN KHI CHƯA NHẬP -->
     {% if not session.get('staff_id') %}
     <div id="staff-id-overlay" style="position:fixed;z-index:30000;top:0;left:0;width:100vw;height:100vh;background:rgba(35,42,55,0.22);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;">
         <form method="POST" id="staff-id-form"
             style="background:#fffbe8; border-radius:18px; padding:34px 36px; box-shadow:0 8px 40px #c49c4844; min-width:330px; max-width:94vw;">
-            <h3 style="color:#c49c48; text-align:center; font-size:22px; margin-bottom:14px;">Nhập ID Nhân viên</h3>
+            <h3 style="color:#c49c48; text-align:center; font-size:22px; margin-bottom:14px;">Staff ID</h3>
             <input type="text" name="staff_id" id="staff_id_input" list="staff_id_history" autocomplete="off"
-                   placeholder="Mã số hoặc tên (ví dụ: 19797 - Hoàng)" required autofocus
-                   style="width:100%; font-size:18px; margin-bottom:17px; border-radius:8px; border:1.3px solid #c49c48; padding:11px;">
+                    placeholder="(VD: 19797 - Nguyễn Văn A)" required autofocus
+                    pattern="^\d+\s*-\s*[\p{L}\s]+$"
+                    style="width:100%; font-size:18px; margin-bottom:17px; border-radius:8px; border:1.3px solid #c49c48; padding:11px;">
             <datalist id="staff_id_history"></datalist>
             <button type="submit" name="action" value="set_staff_id"
                 style="width:100%; background:#c49c48; color:#fff; font-size:17px; padding:11px; border-radius:7px; border:none;cursor:pointer;">
-                Xác nhận
+            Submit    
             </button>
             {% if message %}
             <div class="error-message" style="margin-top:12px; color:#e33; text-align:center;">{{ message }}</div>
             {% endif %}
         </form>
     </div>
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            setTimeout(function(){
-                var inp = document.getElementById('staff_id_input');
-                if(inp) inp.focus();
-            }, 180);
-            // Autocomplete history staff_id
-            let staffIdInput = document.getElementById("staff_id_input");
-            let datalist = document.getElementById("staff_id_history");
-            if (staffIdInput && datalist) {
-                let history = [];
-                try { history = JSON.parse(localStorage.getItem("staff_id_history") || "[]"); } catch {}
-                datalist.innerHTML = "";
-                history.forEach(function(id) {
-                    let opt = document.createElement("option");
-                    opt.value = id;
-                    datalist.appendChild(opt);
-                });
-                if(history.length) staffIdInput.value = history[history.length-1];
-                staffIdInput.form.addEventListener('submit', function(e) {
-                    let id = staffIdInput.value.trim();
-                    if(id) {
-                        let idx = history.indexOf(id);
-                        if(idx !== -1) history.splice(idx,1);
-                        history.push(id);
-                        if(history.length > 10) history = history.slice(-10);
-                        localStorage.setItem("staff_id_history", JSON.stringify(history));
-                    }
-                });
-            }
-        });
-    </script>
     {% endif %}
 
-    <!-- TOÀN BỘ NỘI DUNG CHÍNH ĐẶT TRONG DIV NÀY ĐỂ ĐIỀU KHIỂN OPACITY -->
     <div style="opacity:{% if not session.get('staff_id') %}0.22{% else %}1{% endif %}; pointer-events:{% if not session.get('staff_id') %}none{% else %}auto{% endif %}; transition:opacity 0.22s;">
-
-    <!-- Nút tròn request ở góc phải -->
-    <div style="position: fixed; top: 22px; right: 28px; z-index: 2001;">
-      <div class="dropdown">
-        <button class="btn-more" onclick="toggleRequestDropdown()" title="Test Request">
-          <i class="fa fa-list-ul"></i>
-        </button>
-        <div id="requestDropdownMenu" class="dropdown-content">
-        <a href="/tfr_request_form">
-            <i class="fa fa-file-circle-plus"></i> Create Request
-        </a>
-        <a href="/tfr_request_status">
-            <i class="fa fa-search"></i> RQ Submitted
-        </a>
-        <a href="/tfr_request_archive">
-            <i class="fa fa-archive"></i> TRF
-        </a>
-        {% if session.get('role') == 'stl' %}
-            <a href="javascript:void(0)" onclick="confirmExportExcel()"
-            style="display:flex;align-items:center;gap:8px;">
-            <i class="fa fa-file-export"></i> Update INF
-            </a>
-        {% endif %}
-        </div>
-      </div>
-    </div>
-    <div class="center-form">
-        <img src="/static/logo_vfr.jpg" alt="VFR Logo"
-            style="display:block; margin:0 auto 18px auto; max-width:190px;"/>
-        <h2>TRA CỨU SẢN PHẨM</h2>
-        <form method="GET" action="/go_report">
-            <input type="text" name="report" placeholder="Nhập REPORT#">
-            <br>
-            <button type="submit"><i class="fa fa-search"></i> Xem thông tin</button>
-        </form>
-        {% if not session.get('auth_ok') %}
-        <form method="GET" action="/" class="item-search-form">
-            <label for="item_search" class="item-search-label">🔎 Tìm ITEM#:</label>
-            <input type="text"
-                id="item_search"
-                name="item_search"
-                placeholder="Nhập mã ITEM#"
-                value="{{ request.args.get('item_search', '') }}"
-                class="item-search-input">
-            <button type="submit" class="item-search-btn">
-                <i class="fa fa-search"></i> Tìm ITEM#
-            </button>
-        </form>
-        {% endif %}
-        {% if not session.get('auth_ok') and request.args.get('item_search') %}
-            {% if report_list %}
-                <div class="table-responsive">
-                    <table class="item-search-table">
-                        <thead>
-                            <tr>
-                                <th>ITEM#</th>
-                                <th>REPORT#</th>
-                                <th>TYPE OF</th>
-                                <th>STATUS</th>
-                                <th>Hành động</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        {% for r in report_list %}
-                            <tr>
-                                <td>{{ r.item }}</td>
-                                <td>{{ r.report or '-' }}</td>
-                                <td>{{ r.type_of or '-' }}</td>
-                                <td>
-                                    <span class="
-                                        {% if r.status == 'LATE' %}status-late
-                                        {% elif r.status == 'MUST' %}status-must
-                                        {% elif r.status == 'DUE' %}status-due
-                                        {% elif r.status == 'ACTIVE' %}status-active
-                                        {% endif %}
-                                    ">
-                                        {{ r.status or '-' }}
-                                    </span>
-                                </td>
-                                <td>
-                                {% if r.report %}
-                                    <a href="{{ url_for('update', report=r.report) }}">
-                                        <button type="button"><i class="fa fa-edit"></i> Xem report</button>
-                                    </a>
-                                {% else %}
-                                    <span style="color:#b78e24;">-</span>
-                                {% endif %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% else %}
-                <div class="error-message">Không tìm thấy mã ITEM này!</div>
-            {% endif %}
-        {% endif %}
-        {% if not session.get('auth_ok') %}
-        <form method="POST" class="form-pw login-row">
-            <div style="position:relative; flex:1; min-width:0;">
-                <input type="password" name="password" id="login-password"
-                    placeholder="Nhập mật khẩu" required
-                    class="pw-input"
-                    style="padding-right:38px;">
-                <button type="button" id="toggle-pw"
-                    tabindex="-1"
-                    title="Hiện/Ẩn mật khẩu"
-                    aria-label="Hiện/Ẩn mật khẩu">
-                    <i class="fa fa-eye" id="eye-icon"></i>
+        <div class="center-form" style="margin-top:60px; margin-bottom:42px; position:relative;">
+            <!-- Nút chuyển ngôn ngữ -->
+            <div style="position:absolute; top:20px; right:32px; z-index:22;">
+                <button id="lang-btn" title="Đổi ngôn ngữ/Change language" style="background:#ffe082; color:#35523A; border-radius:100px; font-size:15px; padding:5px 16px; border:none; font-weight:600; box-shadow:0 2px 10px #bca96b22; cursor:pointer;">
+                    <i class="fa fa-language"></i> <span>EN</span>
                 </button>
             </div>
-            <button name="action" value="login" class="pw-btn">Đăng nhập</button>
-        </form>
-        {% if message %}
-            <div class="error-message">{{ message }}</div>
-        {% endif %}
-        {% else %}
-        <div class="logout-link">
-            <a href="/logout"><i class="fa fa-sign-out-alt"></i> Đăng xuất</a>
-        </div>
-        {% endif %}
-
-        <!-- KHÔNG CẦN LẠI FORM NHẬP STAFF ID NỮA, đã có overlay ở trên! -->
+            <img src="/static/logo_vfr.jpg" alt="VFR Logo"
+                style="display:block; margin:0 auto 18px auto; max-width:190px;"/>
+            <h2 class="text-title">Product Search</h2>
+            {% if not session.get('auth_ok') %}
+            <!-- Request button hàng ngang -->
+            <div class="request-menu-row">
+                <a href="/tfr_request_form" class="request-btn"><i class="fa fa-file-circle-plus"></i> <span class="text-create-rq">Create Request</span></a>
+                <a href="/tfr_request_status" class="request-btn"><i class="fa fa-search"></i> <span class="text-rq-status">RQ Submitted</span></a>
+            </div>
+            <!-- Form tìm item -->
+            <form method="GET" action="/" class="item-search-form-modern">
+                <label for="item_search" class="item-search-label text-item-label">🔎 ITEM#</label>
+                <input type="text"
+                    id="item_search"
+                    name="item_search"
+                    maxlength="32"
+                    placeholder="ITEM#"
+                    value="{{ request.args.get('item_search', '') }}">
+                <button type="submit">
+                    <i class="fa fa-search" style="margin-right:4px;"></i> <span class="text-search-btn">Tìm</span>
+                </button>
+            </form>
+            {% if request.args.get('item_search') %}
+                {% if report_list %}
+                    <div class="table-responsive">
+                        <table class="item-search-table">
+                            <thead>
+                                <tr>
+                                    <th class="text-th-item">ITEM#</th>
+                                    <th class="text-th-report">REPORT#</th>
+                                    <th class="text-th-type">TYPE OF</th>
+                                    <th class="text-th-status">STATUS</th>
+                                    <th class="text-th-action">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for r in report_list %}
+                                <tr>
+                                    <td>{{ r.item }}</td>
+                                    <td>{{ r.report or '-' }}</td>
+                                    <td>{{ r.type_of or '-' }}</td>
+                                    <td>
+                                        <span class="
+                                            {% if r.status == 'LATE' %}status-late
+                                            {% elif r.status == 'MUST' %}status-must
+                                            {% elif r.status == 'DUE' %}status-due
+                                            {% elif r.status == 'ACTIVE' %}status-active
+                                            {% endif %}
+                                        ">
+                                            {{ r.status or '-' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                    {% if r.report %}
+                                        <a href="{{ url_for('update', report=r.report) }}">
+                                            <button type="button"><i class="fa fa-edit"></i> <span class="text-view-report">Xem report</span></button>
+                                        </a>
+                                    {% else %}
+                                        <span style="color:#b78e24;">-</span>
+                                    {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="error-message text-notfound">Không tìm thấy mã ITEM này!</div>
+                {% endif %}
+            {% endif %}
+            <!-- Form đăng nhập -->
+            <form method="POST" class="form-pw login-row" style="margin-top:26px;">
+                <div style="position:relative; flex:1; min-width:0;">
+                    <input type="password" name="password" id="login-password"
+                        placeholder="Nhập mật khẩu" required
+                        class="pw-input text-password"
+                        style="padding-right:38px;">
+                    <button type="button" id="toggle-pw"
+                        tabindex="-1"
+                        title="Hiện/Ẩn mật khẩu"
+                        aria-label="Hiện/Ẩn mật khẩu"
+                        style="position:absolute; right:10px; top:0; height:100%; background:transparent; border:none; cursor:pointer;">
+                        <i class="fa fa-eye" id="eye-icon"></i>
+                    </button>
+                </div>
+                <button name="action" value="login" class="pw-btn text-login-btn">Đăng nhập</button>
+            </form>
+            {% if message %}
+                <div class="error-message">{{ message }}</div>
+            {% endif %}
+            {% else %}
+            <!-- Đã đăng nhập: Drop góc phải, logout -->
+            <div style="position: fixed; top: 22px; right: 28px; z-index: 2001;">
+              <div class="dropdown">
+                <button class="btn-more" onclick="toggleRequestDropdown()" title="Test Request">
+                  <i class="fa fa-list-ul"></i>
+                </button>
+                <div id="requestDropdownMenu" class="dropdown-content">
+                    <a href="/tfr_request_form"><i class="fa fa-file-circle-plus"></i> <span class="text-create-rq">Create Request</span></a>
+                    <a href="/tfr_request_status"><i class="fa fa-search"></i> <span class="text-rq-status">RQ Submitted</span></a>
+                    <a href="/tfr_request_archive"><i class="fa fa-archive"></i> <span class="text-trf">TRF</span></a>
+                    {% if session.get('role') == 'stl' %}
+                        <a href="javascript:void(0)" onclick="confirmExportExcel()"><i class="fa fa-file-export"></i> <span class="text-update-inf">Update INF</span></a>
+                    {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="logout-link">
+                <a href="/logout"><i class="fa fa-sign-out-alt"></i> <span class="text-logout">Đăng xuất</span></a>
+            </div>
+            {% endif %}
 
         {% if session.get('auth_ok') and session.get('staff_id') and report_list %}
+            <form method="GET" action="/go_report">
+                <input type="text" name="report" placeholder="Nhập REPORT#">
+                <br>
+                <button type="submit"><i class="fa fa-search"></i> Xem thông tin</button>
+            </form>
             <div class="staff-id">
                 <b>ID Nhân viên:</b> {{ session.get('staff_id') }}
             </div>
@@ -1073,7 +1219,7 @@
                       <td><b>TOTAL</b></td>
                       {% for t in summary_by_type %}<td><b>{{ t.total }}</b></td>{% endfor %}
                     </tr>
-                  </tbody>
+                  </tbody>   
                 </table>
               </div>
             </div>
@@ -1085,17 +1231,7 @@
                 <div class="stat-btn-bar">
                     <a href="{{ url_for('view_counter_log') }}"
                         class="main-btn"
-                        style="background:#4e8573; /* Xanh mới */
-                                color:#fff9d1;    /* Vàng sáng kem */
-                                border-radius:12px;
-                                font-size:18px;
-                                font-weight:600;
-                                padding:12px 38px;
-                                display:inline-block;
-                                box-shadow:0 3px 13px #2b3938aa;
-                                letter-spacing:0.04em;
-                                text-decoration:none;
-                                transition:background 0.22s, color 0.22s;">
+                        style="background:#4e8573; color:#fff9d1; border-radius:12px; font-size:18px; font-weight:600; padding:12px 38px; display:inline-block; box-shadow:0 3px 13px #2b3938aa; letter-spacing:0.04em; text-decoration:none; transition:background 0.22s, color 0.22s;">
                         <i class="fa fa-table" style="margin-right:7px;"></i>
                         Xem bảng thống kê từng ngày
                     </a>
@@ -1145,7 +1281,6 @@
                         </div>
                     </div>
                     </div>
-
                     <label for="page_size" class="type-filter-label">Hiển thị</label>
                     <select name="page_size" id="page_size" class="type-filter-select" onchange="updatePageSize()">
                         <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
@@ -1213,180 +1348,280 @@
                 </div>
             </div>
         {% endif %}
+        </div>
     </div>
     <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Darkmode
-        var themeBtn = document.getElementById('theme-btn');
-        if (localStorage.getItem("darkmode") === "true") {
-            document.body.classList.add("darkmode");
-            themeBtn.innerHTML = '<i class="fa fa-sun"></i>';
+        // --- PREF SYNC (darkmode, lang) ---
+        function setPref(key, value) {
+            localStorage.setItem("vfr-" + key, value);
+            // Sync lên server (Flask session)
+            fetch('/set_pref', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ key, value })
+            });
         }
-        themeBtn.onclick = function() {
-            var d = document.body.classList.toggle('darkmode');
-            localStorage.setItem("darkmode", d ? "true" : "false");
-            themeBtn.innerHTML = d ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
-        };
 
-        // Số report/trang lấy từ backend
-        let chunkSize = {{ page_size|default(10) }};
-        const tableBox = document.getElementById('report-table-box');
-        if (tableBox) {
-            const rows = Array.from(document.querySelectorAll('.report-row'));
-            const btnNext = document.getElementById('load-more-btn');
-            const btnPrev = document.getElementById('prev-btn');
-            let startIdx = 0;
+        // --- INIT VAR from backend/session ---
+        let INIT_DARK = {{ 'true' if darkmode in ('1', 1, True) else 'false' }};
+        let INIT_LANG = "{{ lang or 'vi' }}";
 
-            function showChunk(idx) {
-                rows.forEach((row, i) => {
-                    row.style.display = (i >= idx && i < idx + chunkSize) ? '' : 'none';
+        // --- STAFF ID AUTOCOMPLETE & VALIDATION ---
+        document.addEventListener("DOMContentLoaded", function() {
+            setTimeout(function(){
+                var inp = document.getElementById('staff_id_input');
+                if(inp) inp.focus();
+            }, 180);
+            let staffIdInput = document.getElementById("staff_id_input");
+            let datalist = document.getElementById("staff_id_history");
+            if (staffIdInput && datalist) {
+                let history = [];
+                try { history = JSON.parse(localStorage.getItem("staff_id_history") || "[]"); } catch {}
+                datalist.innerHTML = "";
+                history.forEach(function(id) {
+                    let opt = document.createElement("option");
+                    opt.value = id;
+                    datalist.appendChild(opt);
                 });
-                btnPrev.style.display = (idx <= 0) ? 'none' : '';
-                btnNext.style.display = (idx + chunkSize >= rows.length) ? 'none' : '';
-                if (rows.length > 0) {
-                    window.scrollTo({ top: tableBox.offsetTop, behavior: 'smooth' });
-                }
-            }
+                if(history.length) staffIdInput.value = history[history.length-1];
 
-            btnNext.addEventListener('click', function() {
-                if (startIdx + chunkSize < rows.length) {
-                    startIdx += chunkSize;
-                    showChunk(startIdx);
-                }
-            });
-            btnPrev.addEventListener('click', function() {
-                startIdx = Math.max(0, startIdx - chunkSize);
-                showChunk(startIdx);
-            });
-
-            if (rows.length > chunkSize) {
-                btnNext.style.display = '';
+                // Thêm kiểm tra định dạng khi submit form Staff ID
+                staffIdInput.form.addEventListener('submit', function(e) {
+                    let val = staffIdInput.value.trim();
+                    // Regex: bắt đầu là số, dấu -, rồi họ tên (chữ cái, khoảng trắng)
+                    // Sử dụng cờ 'u' để hỗ trợ Unicode (cho tên tiếng Việt)
+                    let regex = /^\d+\s*-\s*[\p{L}\s]+$/u;
+                    if (!regex.test(val)) {
+                        e.preventDefault();
+                        alert("Vui lòng nhập đúng định dạng: Mã số - Họ tên (VD: 19797 - Nguyễn Văn A)");
+                        staffIdInput.focus();
+                        return false;
+                    }
+                    // Lưu lại lịch sử nhập
+                    if(val) {
+                        let idx = history.indexOf(val);
+                        if(idx !== -1) history.splice(idx,1);
+                        history.push(val);
+                        if(history.length > 10) history = history.slice(-10);
+                        localStorage.setItem("staff_id_history", JSON.stringify(history));
+                    }
+                });
             }
-            showChunk(0);
+        });
 
-            // Đổi page_size thì reload lại filter form
-            window.updatePageSize = function() {
-                let form = document.getElementById("filter-form");
-                if(form){
-                    form.submit();
-                }
-            }
+        // --- DARKMODE SYNC ---
+        function applyDarkMode(dark) {
+            document.body.classList.toggle('darkmode', dark);
+            document.body.classList.toggle('dark', dark); // để hỗ trợ cả class "dark"
+            let themeBtn = document.getElementById('theme-btn');
+            if (themeBtn) themeBtn.innerHTML = dark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
+            setPref("darkmode", dark ? "1" : "0");
         }
+        document.addEventListener('DOMContentLoaded', function() {
+            let dark = (typeof INIT_DARK === "boolean" ? INIT_DARK : (INIT_DARK == "true"));
+            if (localStorage.getItem("vfr-darkmode") !== null)
+                dark = localStorage.getItem("vfr-darkmode") === "1";
+            applyDarkMode(dark);
+            let themeBtn = document.getElementById('theme-btn');
+            if (themeBtn) {
+                themeBtn.onclick = function() {
+                    dark = !dark;
+                    applyDarkMode(dark);
+                };
+            }
+            // PHÂN TRANG (nếu có bảng report-row)
+            let chunkSize = typeof PAGE_SIZE !== "undefined" ? PAGE_SIZE : (typeof page_size !== "undefined" ? page_size : 10);
+            if (typeof chunkSize !== "number") { try { chunkSize = parseInt(chunkSize); } catch {} }
+            if (!chunkSize || isNaN(chunkSize)) chunkSize = 10;
+            const tableBox = document.getElementById('report-table-box');
+            if (tableBox) {
+                const rows = Array.from(document.querySelectorAll('.report-row'));
+                const btnNext = document.getElementById('load-more-btn');
+                const btnPrev = document.getElementById('prev-btn');
+                let startIdx = 0;
+                function showChunk(idx) {
+                    rows.forEach((row, i) => {
+                        row.style.display = (i >= idx && i < idx + chunkSize) ? '' : 'none';
+                    });
+                    btnPrev && (btnPrev.style.display = (idx <= 0) ? 'none' : '');
+                    btnNext && (btnNext.style.display = (idx + chunkSize >= rows.length) ? 'none' : '');
+                    if (rows.length > 0) {
+                        window.scrollTo({ top: tableBox.offsetTop, behavior: 'smooth' });
+                    }
+                }
+                btnNext && btnNext.addEventListener('click', function() {
+                    if (startIdx + chunkSize < rows.length) {
+                        startIdx += chunkSize;
+                        showChunk(startIdx);
+                    }
+                });
+                btnPrev && btnPrev.addEventListener('click', function() {
+                    startIdx = Math.max(0, startIdx - chunkSize);
+                    showChunk(startIdx);
+                });
+                if (rows.length > chunkSize) {
+                    btnNext && (btnNext.style.display = '');
+                }
+                showChunk(0);
+                window.updatePageSize = function() {
+                    let form = document.getElementById("filter-form");
+                    if(form){ form.submit(); }
+                }
+            }
+        });
 
-        // Hiện/ẩn mật khẩu
-        var togglePw = document.getElementById('toggle-pw');
-        if (togglePw) {
-            togglePw.onclick = function() {
-                var pw = document.getElementById('login-password');
-                var icon = document.getElementById('eye-icon');
-                if (pw.type === "password") {
-                    pw.type = "text";
-                    icon.classList.remove('fa-eye');
-                    icon.classList.add('fa-eye-slash');
-                } else {
-                    pw.type = "password";
-                    icon.classList.remove('fa-eye-slash');
-                    icon.classList.add('fa-eye');
+        // --- SHOW/HIDE PASSWORD ---
+        document.addEventListener('DOMContentLoaded', function() {
+            var togglePw = document.getElementById('toggle-pw');
+            if (togglePw) {
+                togglePw.onclick = function() {
+                    var pw = document.getElementById('login-password');
+                    var icon = document.getElementById('eye-icon');
+                    if (pw.type === "password") {
+                        pw.type = "text";
+                        icon.classList.remove('fa-eye');
+                        icon.classList.add('fa-eye-slash');
+                    } else {
+                        pw.type = "password";
+                        icon.classList.remove('fa-eye-slash');
+                        icon.classList.add('fa-eye');
+                    }
+                };
+            }
+        });
+
+        // --- LANGUAGE SYNC ---
+        function applyLang(lang) {
+            const LANG = {
+                vi: {
+                    "text-title": "TRA CỨU SẢN PHẨM",
+                    "text-create-rq": "Tạo Request",
+                    "text-rq-status": "Trạng thái đã gửi",
+                    "text-trf": "Lưu trữ",
+                    "text-update-inf": "Cập nhật INF",
+                    "text-logout": "Đăng xuất",
+                    "text-item-label": "🔎 MÃ ITEM",
+                    "text-search-btn": "Tìm",
+                    "text-view-report": "Xem report",
+                    "text-th-item": "ITEM#",
+                    "text-th-report": "REPORT#",
+                    "text-th-type": "LOẠI",
+                    "text-th-status": "TRẠNG THÁI",
+                    "text-th-action": "Hành động",
+                    "text-notfound": "Không tìm thấy mã ITEM này!",
+                    "text-login-btn": "Đăng nhập",
+                    "text-password": "Nhập mật khẩu",
+                    "text-staff-id": "Nhập ID Nhân viên",
+                    "text-confirm": "Xác nhận"
+                },
+                en: {
+                    "text-title": "PRODUCT SEARCH",
+                    "text-create-rq": "Create Request",
+                    "text-rq-status": "RQ Submitted",
+                    "text-trf": "TRF",
+                    "text-update-inf": "Update INF",
+                    "text-logout": "Logout",
+                    "text-item-label": "🔎 ITEM#",
+                    "text-search-btn": "Search",
+                    "text-view-report": "View report",
+                    "text-th-item": "ITEM#",
+                    "text-th-report": "REPORT#",
+                    "text-th-type": "TYPE OF",
+                    "text-th-status": "STATUS",
+                    "text-th-action": "Action",
+                    "text-notfound": "ITEM not found!",
+                    "text-login-btn": "Login",
+                    "text-password": "Enter password",
+                    "text-staff-id": "Enter Staff ID",
+                    "text-confirm": "Confirm"
                 }
             };
-        }
-
-        // ==== GHI NHỚ NHIỀU ID NHÂN VIÊN (autocomplete) ====
-        let staffIdInput = document.getElementById("staff_id_input");
-        let datalist = document.getElementById("staff_id_history");
-        if (staffIdInput && datalist) {
-            // Lấy history từ localStorage
-            let history = [];
-            try {
-                history = JSON.parse(localStorage.getItem("staff_id_history") || "[]");
-            } catch {}
-            // Đổ vào datalist
-            datalist.innerHTML = "";
-            history.forEach(function(id) {
-                let opt = document.createElement("option");
-                opt.value = id;
-                datalist.appendChild(opt);
-            });
-            // Nếu có id cuối cùng thì autofill
-            if(history.length) staffIdInput.value = history[history.length-1];
-
-            // Khi submit, thêm ID mới vào history nếu chưa có
-            staffIdInput.form.addEventListener('submit', function(e) {
-                let id = staffIdInput.value.trim();
-                if(id) {
-                    let idx = history.indexOf(id);
-                    if(idx !== -1) history.splice(idx,1); // xóa khỏi chỗ cũ
-                    history.push(id); // đưa lên cuối cùng (ID dùng gần nhất)
-                    if(history.length > 10) history = history.slice(-10); // chỉ giữ tối đa 10 mã gần nhất
-                    localStorage.setItem("staff_id_history", JSON.stringify(history));
+            for (const key in LANG[lang]) {
+                let els = document.getElementsByClassName(key);
+                for (let i = 0; i < els.length; i++) {
+                    if (els[i].tagName === "INPUT" && key === "text-password") {
+                        els[i].placeholder = LANG[lang][key];
+                    } else {
+                        els[i].innerHTML = LANG[lang][key];
+                    }
                 }
-            });
+            }
+            let langBtn = document.getElementById('lang-btn');
+            if (langBtn && langBtn.children[1]) {
+                langBtn.children[1].innerText = lang === "en" ? "VI" : "EN";
+            }
+            setPref("lang", lang);
+            localStorage.setItem("vfr-lang", lang);
         }
-    });
+        document.addEventListener('DOMContentLoaded', function() {
+            let lang = INIT_LANG || "vi";
+            if (localStorage.getItem("vfr-lang"))
+                lang = localStorage.getItem("vfr-lang");
+            applyLang(lang);
+            let langBtn = document.getElementById('lang-btn');
+            if (langBtn) {
+                langBtn.onclick = function() {
+                    lang = (lang === "en" ? "vi" : "en");
+                    applyLang(lang);
+                };
+            }
+        });
 
-    // Dropdown status filter JS
-    function toggleStatusDropdown() {
-    var el = document.getElementById('dropdown-status-menu');
-    el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
-    setTimeout(function() {
-        document.addEventListener('click', closeStatusDropdown);
-    }, 20);
-    }
-    function closeStatusDropdown(event) {
-    var el = document.getElementById('dropdown-status-menu');
-    var btn = document.querySelector('.dropdown-status-btn');
-    if (!el.contains(event.target) && !btn.contains(event.target)) {
-        el.style.display = 'none';
-        document.removeEventListener('click', closeStatusDropdown);
-    }
-    }
-
-    // Dropdown request (góc phải)
-    function toggleRequestDropdown() {
-    var menu = document.getElementById('requestDropdownMenu');
-    menu.classList.toggle('show');
-    }
-    document.addEventListener('click', function(event) {
-    var menu = document.getElementById('requestDropdownMenu');
-    var btn = document.querySelector('.btn-more');
-    if (!btn.contains(event.target) && !menu.contains(event.target)) {
-        menu.classList.remove('show');
-    }
-    });
-    function confirmExportExcel() {
-        if(confirm("Bạn chắc chắn muốn chạy Update INF?")) {
-            runExportExcel();
+        // --- DROPDOWN FILTER STATUS ---
+        function toggleStatusDropdown() {
+            var el = document.getElementById('dropdown-status-menu');
+            el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
+            setTimeout(function() {
+                document.addEventListener('click', closeStatusDropdown);
+            }, 20);
         }
-    }
-    function runExportExcel() {
-        document.getElementById('loading-overlay').style.display = 'flex';
-        fetch('/run_export_excel', {method: 'POST'})
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('loading-overlay').style.display = 'none';
-                alert(data.message || (data.success ? 'Đã chạy xong Export!' : 'Có lỗi!'));
-                if(data.success && data.reload) window.location.reload();
-            })
-            .catch(e => {
-                document.getElementById('loading-overlay').style.display = 'none';
-                alert('Lỗi không kết nối được server!');
-            });
-    }
-    document.addEventListener('DOMContentLoaded', function() {
-        var overlay = document.getElementById('loading-overlay');
-        if(overlay) overlay.style.display = 'none';
-    });
+        function closeStatusDropdown(event) {
+            var el = document.getElementById('dropdown-status-menu');
+            var btn = document.querySelector('.dropdown-status-btn');
+            if (!el.contains(event.target) && !btn.contains(event.target)) {
+                el.style.display = 'none';
+                document.removeEventListener('click', closeStatusDropdown);
+            }
+        }
+
+        // --- DROPDOWN REQUEST MENU (góc phải) ---
+        function toggleRequestDropdown() {
+            var menu = document.getElementById('requestDropdownMenu');
+            menu.classList.toggle('show');
+        }
+        document.addEventListener('click', function(event) {
+            var menu = document.getElementById('requestDropdownMenu');
+            var btn = document.querySelector('.btn-more');
+            if (menu && btn && !btn.contains(event.target) && !menu.contains(event.target)) {
+                menu.classList.remove('show');
+            }
+        });
+
+        // --- EXPORT EXCEL (nếu có) ---
+        function confirmExportExcel() {
+            if(confirm("Bạn chắc chắn muốn chạy Update INF?")) {
+                runExportExcel();
+            }
+        }
+        function runExportExcel() {
+            document.getElementById('loading-overlay').style.display = 'flex';
+            fetch('/run_export_excel', {method: 'POST'})
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('loading-overlay').style.display = 'none';
+                    alert(data.message || (data.success ? 'Đã chạy xong Export!' : 'Có lỗi!'));
+                    if(data.success && data.reload) window.location.reload();
+                })
+                .catch(e => {
+                    document.getElementById('loading-overlay').style.display = 'none';
+                    alert('Lỗi không kết nối được server!');
+                });
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            var overlay = document.getElementById('loading-overlay');
+            if(overlay) overlay.style.display = 'none';
+        });
     </script>
-    <div id="loading-overlay" style="display:none;position:fixed;z-index:20005;top:0;left:0;width:100vw;height:100vh;background:rgba(60,60,60,0.34);backdrop-filter:blur(1px);display:flex;align-items:center;justify-content:center;">
-      <div style="background:#fffbe8ee;padding:32px 44px;border-radius:18px;box-shadow:0 2px 16px #2224;display:flex;flex-direction:column;align-items:center;">
-        <div class="loader" style="margin-bottom:18px;">
-          <i class="fa fa-spinner fa-spin" style="font-size:44px;color:#c49c48;"></i>
-        </div>
-        <div style="font-size:19px;font-weight:600;color:#b78e24;text-align:center;">
-          Đang xuất dữ liệu Excel...<br>Vui lòng chờ 1-2 phút!
-        </div>
-      </div>
-    </div>
 </body>
 </html>

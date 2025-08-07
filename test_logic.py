@@ -840,6 +840,13 @@ OUTDOOR_FINISHING_TEST_TITLES = {
     }
 }
 
+LINE_TEST_TITLES = {
+    "hot_cold": {
+        "full": "Hot & Cold Cycle Test (Line Test)",
+        "short": "Hot & Cold Cycle",
+        "img": ["/static/images/buoc 6 indoor.png"]}
+}
+
 TRANSIT_2C_NP_TEST_TITLES = {
     "step1": {
         "full": "Bước 1: Kiểm tra thông tin sản phẩm",
@@ -1087,6 +1094,7 @@ TEST_GROUP_TITLES = {
     'indoor_thuong':INDOOR_THUONG_TEST_TITLES,
     'indoor_stone':INDOOR_STONE_TEST_TITLES,
     'indoor_metal':INDOOR_METAL_TEST_TITLES,
+    "line": LINE_TEST_TITLES,
     'transit_2c_np': TRANSIT_2C_NP_TEST_TITLES,
     'transit_2c_pallet': TRANSIT_2C_PALLET_TEST_TITLES,
     'transit_RH_np': TRANSIT_RH_NP_TEST_TITLES,
