@@ -1,0 +1,2 @@
+Mục adhesion: PASS
+Mục impact: PASS
