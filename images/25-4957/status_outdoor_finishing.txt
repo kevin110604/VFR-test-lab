@@ -1,5 +1,0 @@
-Mục muc1: N/A
-Mục muc2: FAIL
-Mục muc3: PASS
-Mục muc4: FAIL
-Mục muc5: FAIL
