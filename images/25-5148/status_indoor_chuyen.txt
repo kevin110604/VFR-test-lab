@@ -1,3 +1,0 @@
-Mục pencil: FAIL
-Mục adhesion: PASS
-Mục impact: PASS
