@@ -360,11 +360,18 @@
     </div>
     
     <div class="box animate__animated animate__fadeInDown centered-block">
-        <a href="{{ url_for('test_group_page', report=report, group=group) }}"
-           class="back-btn"
-           tabindex="0"
-           aria-label="Quay lại chọn mục kiểm tra">
-            <i class="fa fa-arrow-left"></i> <span>Quay lại mục kiểm tra</span>
+        <a href="{% if from_line %}{{ url_for('update', report=report) }}{% else %}{{ url_for('test_group_page', report=report, group=group) }}{% endif %}"
+          class="back-btn"
+          tabindex="0"
+          aria-label="Quay lại">
+            <i class="fa fa-arrow-left"></i> 
+            <span>
+                {% if from_line %}
+                    Quay lại trang thông tin
+                {% else %}
+                    Quay lại mục kiểm tra
+                {% endif %}
+            </span>
         </a>
         <h2>Hot &amp; Cold Cycle Test</h2>
         <div class="header-sub">Group: <b>{{ group.upper() }}</b></div>
