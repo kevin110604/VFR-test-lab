@@ -1623,5 +1623,15 @@
             if(overlay) overlay.style.display = 'none';
         });
     </script>
+    <div id="loading-overlay" style="display:none;position:fixed;z-index:20005;top:0;left:0;width:100vw;height:100vh;background:rgba(60,60,60,0.34);backdrop-filter:blur(1px);display:flex;align-items:center;justify-content:center;">
+      <div style="background:#fffbe8ee;padding:32px 44px;border-radius:18px;box-shadow:0 2px 16px #2224;display:flex;flex-direction:column;align-items:center;">
+        <div class="loader" style="margin-bottom:18px;">
+          <i class="fa fa-spinner fa-spin" style="font-size:44px;color:#c49c48;"></i>
+        </div>
+        <div style="font-size:19px;font-weight:600;color:#b78e24;text-align:center;">
+          Đang xuất dữ liệu Excel...<br>Vui lòng chờ 1-2 phút!
+        </div>
+      </div>
+    </div>
 </body>
 </html>

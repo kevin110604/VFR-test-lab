@@ -490,6 +490,7 @@
                     <form method="post" action="/tfr_request_status" style="display:inline;" 
                         onsubmit="return confirmDelete('{{ r.requestor }}', '{{ r.trq_id }}');">
                         <input type="hidden" name="trq_id" value="{{ r.trq_id }}">
+                        <input type="hidden" name="edit_idx" value="{{ real_indices[loop.index0] }}">
                         <button type="submit" name="action" value="delete" class="btn-details" style="background:#fff3e0; color:#df2323; border-color:#df2323; margin-left:3px;">
                             <i class="fa fa-trash"></i> Delete
                         </button>

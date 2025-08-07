@@ -637,15 +637,29 @@ def tfr_request_status():
         # === DELETE ===
         elif action == "delete":
             trq_id = request.form.get("trq_id")
-            for i, req in enumerate(tfr_requests):
-                if req.get("trq_id") == trq_id:
-                    deleted_req = tfr_requests.pop(i)
+            edit_idx = request.form.get("edit_idx")
+            if edit_idx is not None:
+                try:
+                    edit_idx = int(edit_idx)
+                    deleted_req = tfr_requests.pop(edit_idx)
                     from notify_utils import send_teams_message
                     send_teams_message(
                         TEAMS_WEBHOOK_URL_TRF,
                         f"🗑️ [TRF] Đã có yêu cầu bị xóa!\n- TRQ-ID: {deleted_req.get('trq_id')}\n- Người thao tác: {session.get('staff_id', 'Không rõ')}"
                     )
-                    break
+                except Exception as e:
+                    print("Xóa bị lỗi:", e)
+            else:
+                # fallback: xóa theo trq_id (trường hợp cũ)
+                for i, req in enumerate(tfr_requests):
+                    if req.get("trq_id") == trq_id:
+                        deleted_req = tfr_requests.pop(i)
+                        from notify_utils import send_teams_message
+                        send_teams_message(
+                            TEAMS_WEBHOOK_URL_TRF,
+                            f"🗑️ [TRF] Đã có yêu cầu bị xóa!\n- TRQ-ID: {deleted_req.get('trq_id')}\n- Người thao tác: {session.get('staff_id', 'Không rõ')}"
+                        )
+                        break
             safe_write_json(TFR_LOG_FILE, tfr_requests)
             return redirect(url_for('tfr_request_status'))
 
