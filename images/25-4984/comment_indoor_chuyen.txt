@@ -1,0 +1,4 @@
+Mục pencil: Fail 2H pass 3B
+Mục adhesion: Pass 4A fail 1B
+Mục standing_water: Pass 4A
+Mục impact: Pass 200

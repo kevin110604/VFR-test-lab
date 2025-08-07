@@ -1,0 +1,3 @@
+Mục adhesion: Pass 4H
+Mục impact: Pass 200
+Mục standing_water: Pass 4A

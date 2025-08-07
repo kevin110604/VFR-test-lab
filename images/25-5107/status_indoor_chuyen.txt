@@ -1,0 +1,3 @@
+Mục pencil: PASS
+Mục adhesion: PASS
+Mục impact: PASS

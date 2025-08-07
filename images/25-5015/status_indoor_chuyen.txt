@@ -1,0 +1,4 @@
+Mục pencil: PASS
+Mục adhesion: N/A
+Mục impact: PASS
+Mục standing_water: N/A
