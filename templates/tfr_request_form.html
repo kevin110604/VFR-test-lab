@@ -616,22 +616,36 @@
                         {% if 'test_group' in missing_fields %}<div class="error-msg text-required-msg">Bắt buộc chọn</div>{% endif %}
                     </div>
                     
-                    <!-- Block Finishing QA/LINE TEST: Chèn sau phần test_group -->
+                    <!-- Block Finishing QA/LINE TEST -->
                     <div id="finishing-detail-row" style="display:none; margin-top:14px;">
-                        <label><span style="color:#c49c48;font-weight:600;">Chọn loại Finishing Test <span class="required">*</span></span></label>
+                        <label><span style="color:#c49c48;font-weight:600;" class="text-finishing-type-label">Chọn loại Finishing Test <span class="required">*</span></span></label>
                         <div class="radio-row" style="margin-top:8px;">
                             <label>
                                 <input type="radio" name="finishing_type" value="QA TEST"
                                     {% if form_data.get('finishing_type') == 'QA TEST' %}checked{% endif %}>
-                                QA TEST
+                                <span class="text-qa-test">QA TEST</span>
                             </label>
                             <label>
                                 <input type="radio" name="finishing_type" value="LINE TEST"
                                     {% if form_data.get('finishing_type') == 'LINE TEST' %}checked{% endif %}>
-                                LINE TEST
+                                <span class="text-line-test">LINE TEST</span>
                             </label>
                         </div>
                         <div id="finishing_type_error" class="error-msg" style="display:none;">Bắt buộc chọn QA TEST hoặc LINE TEST</div>
+                        <div id="material-type-row" style="display:none; margin-top:10px;">
+                            <label><span style="color:#c49c48;font-weight:600;" class="text-material-type-label">Chọn loại vật liệu <span class="required">*</span></span></label>
+                            <div class="radio-row" style="margin-top:8px;">
+                                <label>
+                                    <input type="radio" name="material_type" value="WOOD">
+                                    <span class="text-wood">WOOD</span>
+                                </label>
+                                <label>
+                                    <input type="radio" name="material_type" value="METAL">
+                                    <span class="text-metal">METAL</span>
+                                </label>
+                            </div>
+                            <div id="material_type_error" class="error-msg" style="display:none;">Bắt buộc chọn Wood hoặc Metal</div>
+                        </div>
                     </div>
                     <div class="form-row-2">
                         <div class="form-group {% if 'test_status' in missing_fields %}has-error{% endif %}">
@@ -686,7 +700,7 @@
                         </div>
                     </div>
                 </div>
-                <!-- Card 4: Tùy chọn -->
+                <!-- Card 4 giữ nguyên -->
                 <div class="form-card">
                     <div class="form-card-title"><i class="fa fa-cog"></i> <span class="text-option">Tùy chọn</span></div>
                     <div class="form-group {% if 'sample_return' in missing_fields %}has-error{% endif %}">
@@ -720,7 +734,7 @@
     </div>
     </div>
     <script>
-        // ----- SYNC với server -----
+        // ======== SYNC với server ========
         function setPref(key, value) {
             localStorage.setItem("vfr-" + key, value);
             fetch('/set_pref', {
@@ -749,7 +763,7 @@
             }
         });
 
-        // ===================== LANGUAGE TOGGLE =====================
+        // ===================== LANGUAGE TOGGLE (multi-language, có bổ sung) =====================
         let lang = localStorage.getItem("vfr-lang") || "vi";
         const LANG = {
             vi: {
@@ -793,7 +807,14 @@
                 "text-remark": "Ghi chú (nếu có)",
                 "text-remark-placeholder": "Nhập ghi chú thêm nếu cần...",
                 "text-export-btn": "Xuất TFR",
-                "text-required-msg": "Bắt buộc nhập/chọn"
+                "text-required-msg": "Bắt buộc nhập/chọn",
+                // Dịch bổ sung
+                "text-finishing-type-label": "Chọn loại Finishing Test <span class='required'>*</span>",
+                "text-qa-test": "QA TEST",
+                "text-line-test": "LINE TEST",
+                "text-material-type-label": "Chọn loại vật liệu <span class='required'>*</span>",
+                "text-wood": "GỖ",
+                "text-metal": "KIM LOẠI"
             },
             en: {
                 "text-title": "CREATE TEST REQUEST FORM",
@@ -836,7 +857,14 @@
                 "text-remark": "Remark (if any)",
                 "text-remark-placeholder": "Add remark if needed...",
                 "text-export-btn": "Export TFR",
-                "text-required-msg": "Required"
+                "text-required-msg": "Required",
+                // Dịch bổ sung
+                "text-finishing-type-label": "Choose Finishing Test type <span class='required'>*</span>",
+                "text-qa-test": "QA TEST",
+                "text-line-test": "LINE TEST",
+                "text-material-type-label": "Choose material type <span class='required'>*</span>",
+                "text-wood": "WOOD",
+                "text-metal": "METAL"
             }
         };
         function applyLang(lang) {
@@ -867,7 +895,7 @@
             }
         });
 
-        // --------------- N/A input logic giữ nguyên (không liên quan sync) ---------------
+        // =============== N/A input logic ===============
         function handleNaInput(textId, naId) {
             const input = document.getElementById(textId);
             const checkbox = document.getElementById(naId);
@@ -890,7 +918,7 @@
         handleNaInput("supplier_input", "supplier_na");
         handleNaInput("subcon_input", "subcon_na");
 
-        // Test status nth input enable/disable
+        // =============== Test status nth input enable/disable ===============
         function nthRadioHandler() {
             let nthRadio = document.querySelector('input[name="test_status"][value="nth"]');
             let nthInput = document.querySelector('.input-nth');
@@ -909,7 +937,7 @@
         }
         nthRadioHandler();
 
-        // Scroll đến trường lỗi đầu tiên nếu có lỗi
+        // =============== Scroll đến trường lỗi đầu tiên nếu có lỗi ===============
         {% if missing_fields %}
         document.addEventListener("DOMContentLoaded", function() {
             var firstError = document.querySelector('.has-error input, .has-error select, .has-error textarea');
@@ -919,7 +947,8 @@
             }
         });
         {% endif %}
-        // ----------- FINISHING TEST: Show/hide QA/LINE -----------
+
+        // =============== FINISHING TEST: Show/hide QA/LINE  ===============
         function updateFinishingTypeRow() {
             let testGroup = document.querySelector('input[name="test_group"]:checked');
             let finishingRow = document.getElementById('finishing-detail-row');
@@ -927,27 +956,52 @@
                 finishingRow.style.display = '';
             } else {
                 finishingRow.style.display = 'none';
-                // Bỏ chọn nếu chuyển sang nhóm test khác
                 let radios = finishingRow.querySelectorAll('input[name="finishing_type"]');
                 radios.forEach(r => r.checked = false);
                 document.getElementById('finishing_type_error').style.display = 'none';
+
+                // Ẩn luôn block vật liệu
+                let materialRow = document.getElementById('material-type-row');
+                materialRow.style.display = 'none';
+                let radios2 = materialRow.querySelectorAll('input[name="material_type"]');
+                radios2.forEach(r => r.checked = false);
+                document.getElementById('material_type_error').style.display = 'none';
             }
         }
         let testGroupRadios = document.querySelectorAll('input[name="test_group"]');
         testGroupRadios.forEach(radio => radio.addEventListener('change', updateFinishingTypeRow));
         updateFinishingTypeRow();
 
-        // Check finishing_type before submit
+        // =============== Hiện/ẩn lựa chọn Wood/Metal khi chọn QA/LINE TEST ===============
+        function updateMaterialTypeRow() {
+            let finishingType = document.querySelector('input[name="finishing_type"]:checked');
+            let materialRow = document.getElementById('material-type-row');
+            if (finishingType && (finishingType.value === 'QA TEST' || finishingType.value === 'LINE TEST')) {
+                materialRow.style.display = '';
+            } else {
+                materialRow.style.display = 'none';
+                let radios = materialRow.querySelectorAll('input[name="material_type"]');
+                radios.forEach(r => r.checked = false);
+                document.getElementById('material_type_error').style.display = 'none';
+            }
+        }
+        let finishingTypeRadios = document.querySelectorAll('input[name="finishing_type"]');
+        finishingTypeRadios.forEach(radio => radio.addEventListener('change', updateMaterialTypeRow));
+        updateMaterialTypeRow();
+
+        // =============== Bắt buộc phải chọn Wood/Metal nếu QA/LINE TEST ===============
         document.querySelector('form').addEventListener('submit', function(e) {
             let testGroup = document.querySelector('input[name="test_group"]:checked');
-            if (testGroup && testGroup.value === 'FINISHING TEST') {
-                let finishingChecked = document.querySelector('input[name="finishing_type"]:checked');
-                if (!finishingChecked) {
+            let finishingType = document.querySelector('input[name="finishing_type"]:checked');
+            if (testGroup && testGroup.value === 'FINISHING TEST' && finishingType &&
+                (finishingType.value === 'QA TEST' || finishingType.value === 'LINE TEST')) {
+                let materialChecked = document.querySelector('input[name="material_type"]:checked');
+                if (!materialChecked) {
                     e.preventDefault();
-                    document.getElementById('finishing_type_error').style.display = '';
-                    document.getElementById('finishing-detail-row').scrollIntoView({behavior:'smooth', block:'center'});
+                    document.getElementById('material_type_error').style.display = '';
+                    document.getElementById('material-type-row').scrollIntoView({behavior:'smooth', block:'center'});
                 } else {
-                    document.getElementById('finishing_type_error').style.display = 'none';
+                    document.getElementById('material_type_error').style.display = 'none';
                 }
             }
         });

@@ -9,7 +9,7 @@ from notify_utils import send_teams_message, notify_when_enough_time
 from counter_utils import update_counter, check_and_reset_counter, log_report_complete
 from docx_utils import approve_request_fill_docx_pdf
 from file_utils import safe_write_json, safe_read_json, safe_save_excel, safe_load_excel, safe_write_text, safe_read_text
-import re, os, pytz, json, openpyxl, random, subprocess, traceback, regex
+import re, os, pytz, json, openpyxl, random, subprocess, traceback, regex, calendar
 from datetime import datetime
 from waitress import serve
 from openpyxl import load_workbook, Workbook
@@ -19,6 +19,35 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
+
+def format_excel_date_short(dt):
+    """Convert Python datetime/date -> format 'd-mmm' (e.g., 7-Aug) cho Excel."""
+    if isinstance(dt, str):
+        # Thử parse về date
+        try:
+            dt = datetime.strptime(dt, "%Y-%m-%d")
+        except:
+            try:
+                dt = datetime.strptime(dt, "%d/%m/%Y")
+            except:
+                try:
+                    dt = datetime.strptime(dt, "%m/%d/%Y")
+                except:
+                    return dt  # Trả nguyên nếu không parse được
+    # Trả về dạng 'd-mmm'
+    return f"{dt.day}-{calendar.month_abbr[dt.month]}"
+
+def try_parse_excel_date(dt):
+    """Parse dt về kiểu datetime/date nếu có thể, trả về None nếu không hợp lệ."""
+    if isinstance(dt, datetime):
+        return dt
+    if isinstance(dt, str):
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y"):
+            try:
+                return datetime.strptime(dt, fmt)
+            except Exception:
+                continue
+    return None
 
 def calculate_default_etd(request_date_str, test_group):
     from datetime import datetime, timedelta
@@ -276,6 +305,25 @@ def home():
 
 TFR_LOG_FILE = "tfr_requests.json"  # Dùng file json cho đơn giản
 
+def get_category_component_position(finishing_type, material_type):
+    # material_type: chỉ nhận WOOD hoặc METAL (nên xử lý hoa thường hóa)
+    if not finishing_type or not material_type:
+        return ""
+    finishing_type = finishing_type.strip().upper()
+    material_type = material_type.strip().upper()
+    if finishing_type == "QA TEST":
+        if material_type == "WOOD":
+            return "COLOR PANEL"
+        elif material_type == "METAL":
+            return "METAL"
+    elif finishing_type == "LINE TEST":
+        if material_type == "WOOD":
+            return "LINE TEST_COLOR"
+        elif material_type == "METAL":
+            return "LINE TEST_METAL"
+    return ""
+
+
 @app.route("/tfr_request_form", methods=["GET", "POST"])
 def tfr_request_form():
     tfr_requests = safe_read_json(TFR_LOG_FILE)
@@ -320,6 +368,9 @@ def tfr_request_form():
             error = "Phải chọn Indoor hoặc Outdoor!"
 
         finishing_type = form.get("finishing_type", "")
+        # ---- LẤY material_type (bổ sung) ----
+        material_type = form.get("material_type", "")   # <== BỔ SUNG DÒNG NÀY
+
         form_data = form.to_dict(flat=True)
         form_data["test_group"] = test_group
         form_data["furniture_testing"] = furniture_testing
@@ -328,6 +379,7 @@ def tfr_request_form():
         form_data["sample_return"] = form.get("sample_return", "")
         form_data["remark"] = form.get("remark", "").strip()
         form_data["finishing_type"] = finishing_type
+        form_data["material_type"] = material_type       # <== BỔ SUNG DÒNG NÀY
 
         def na_or_value(key):
             na_key = key + "_na"
@@ -384,6 +436,7 @@ def tfr_request_form():
             "remark": remark,
             "test_group": test_group,
             "finishing_type": finishing_type,
+            "material_type": material_type,       # <== BỔ SUNG DÒNG NÀY
             "status": "Submitted",
             "decline_reason": "",
             "report_no": ""
@@ -405,6 +458,17 @@ def tfr_request_form():
 
         safe_write_json(TFR_LOG_FILE, tfr_requests)
 
+        message = (
+            f"📝 [TRF] Có yêu cầu Test Request mới!\n"
+            f"- Người gửi: {new_request.get('requestor')}\n"
+            f"- Bộ phận: {new_request.get('department')}\n"
+            f"- Ngày gửi: {new_request.get('request_date')}\n"
+            f"- Nhóm test: {new_request.get('test_group')}\n"
+            f"- Số lượng: {new_request.get('quantity')}\n"
+            f"- Mã TRQ-ID: {new_request.get('trq_id')}"
+        )
+        send_teams_message(TEAMS_WEBHOOK_URL_TRF, message)
+
         return redirect(url_for('tfr_request_status'))
 
     if not editing:
@@ -421,7 +485,12 @@ def tfr_request_form():
 
     if not form_data.get("trq_id"):
         form_data["trq_id"] = generate_unique_trq_id({r.get("trq_id") for r in tfr_requests if "trq_id" in r})
-
+    
+    if not form_data.get("request_date"):
+        vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
+        today = datetime.now(vn_tz).strftime("%Y-%m-%d")
+        form_data["request_date"] = today
+    
     return render_template(
         "tfr_request_form.html",
         darkmode=session.get("darkmode", "0"),
@@ -481,10 +550,19 @@ def tfr_request_status():
                             row_idx = row
                             break
                     if row_idx:
-                        def set_val(col_name, value):
+                        def set_val(col_name, value, is_date_col=False):
                             col_idx = get_col_idx(ws, col_name)
                             if col_idx:
-                                ws.cell(row=row_idx, column=col_idx).value = value.upper() if isinstance(value, str) else value
+                                cell = ws.cell(row=row_idx, column=col_idx)
+                                if is_date_col:
+                                    dt_val = try_parse_excel_date(value)
+                                    if dt_val:
+                                        cell.value = dt_val
+                                        cell.number_format = 'd-mmm'
+                                    else:
+                                        cell.value = value
+                                else:
+                                    cell.value = value.upper() if isinstance(value, str) else value
                         def clean_type_of(val):
                             return val[:-5].strip() if val and val.upper().endswith(" TEST") else val
                         set_val("item#", req.get("item_code", ""))
@@ -494,10 +572,23 @@ def tfr_request_status():
                         set_val("submiter in", req.get("requestor", ""))
                         set_val("submited", req.get("department", ""))
                         set_val("qa comment", req.get("remark", ""))
-                        set_val("etd", req.get("etd", ""))
+                        # ETD format
+                        etd_val = req.get("etd", "")
+                        if etd_val:
+                            set_val("etd", format_excel_date_short(etd_val))
+                        else:
+                            set_val("etd", "")
+
+                        # Log in date format
                         vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
-                        now_str = datetime.now(vn_tz).strftime("%m/%d/%Y %H:%M")
-                        set_val("log in date", now_str)
+                        log_in_date = datetime.now(vn_tz)
+                        set_val("log in date", format_excel_date_short(log_in_date))
+                        # -------- BỔ SUNG ĐOẠN NÀY ----------
+                        finishing_type = req.get("finishing_type", "")
+                        material_type = req.get("material_type", "")
+                        cat_comp_pos = get_category_component_position(finishing_type, material_type)
+                        set_val("category / component name / position", cat_comp_pos)
+                        # -------- HẾT BỔ SUNG ---------------
                         wb.save(local_main)
                 except Exception as e:
                     print("Ghi vào Excel bị lỗi:", e)
@@ -562,10 +653,19 @@ def tfr_request_status():
                             row_idx = row
                             break
                     if row_idx:
-                        def set_val(col_name, value):
+                        def set_val(col_name, value, is_date_col=False):
                             col_idx = get_col_idx(ws, col_name)
                             if col_idx:
-                                ws.cell(row=row_idx, column=col_idx).value = value.upper() if isinstance(value, str) else value
+                                cell = ws.cell(row=row_idx, column=col_idx)
+                                if is_date_col:
+                                    dt_val = try_parse_excel_date(value)
+                                    if dt_val:
+                                        cell.value = dt_val
+                                        cell.number_format = 'd-mmm'
+                                    else:
+                                        cell.value = value
+                                else:
+                                    cell.value = value.upper() if isinstance(value, str) else value
                         def clean_type_of(val):
                             return val[:-5].strip() if val and val.upper().endswith(" TEST") else val
                         set_val("item#", req.get("item_code", ""))
@@ -575,10 +675,23 @@ def tfr_request_status():
                         set_val("submiter in", req.get("requestor", ""))
                         set_val("submited", req.get("department", ""))
                         set_val("qa comment", req.get("remark", ""))
-                        set_val("etd", req.get("etd", ""))
+                        # ---- ETD: always format d-mmm
+                        etd_val = req.get("etd", "")
+                        if etd_val:
+                            set_val("etd", format_excel_date_short(etd_val))
+                        else:
+                            set_val("etd", "")
+
                         vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
-                        now_str = datetime.now(vn_tz).strftime("%m/%d/%Y %H:%M")
-                        set_val("log in date", now_str)
+                        # --- Log in date: format d-mmm
+                        log_in_date = datetime.now(vn_tz)
+                        set_val("log in date", format_excel_date_short(log_in_date))
+                        # -------- BỔ SUNG ĐOẠN NÀY ----------
+                        finishing_type = req.get("finishing_type", "")
+                        material_type = req.get("material_type", "")
+                        cat_comp_pos = get_category_component_position(finishing_type, material_type)
+                        set_val("category / component name / position", cat_comp_pos)
+                        # -------- HẾT BỔ SUNG ---------------
                         wb.save(local_main)
                 except Exception as e:
                     print("Ghi vào Excel bị lỗi:", e)
