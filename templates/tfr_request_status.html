@@ -367,17 +367,46 @@
         body.dark td {
             color: #fffbe6 !important;
         }
+        .top-bar{
+        position:absolute; top:18px; left:26px; right:26px;
+        display:flex; justify-content:space-between; align-items:center; z-index:10;
+        }
+        .top-bar .right{ display:flex; gap:8px; flex-wrap:wrap; }
+
+        /* Ghi đè vị trí tuyệt đối cũ của .back-home-btn */
+        .top-bar .back-home-btn{ position:static !important; left:auto !important; right:auto !important; }
+
+        /* Màu như cũ */
+        .home-btn{ background:#c49c48; color:#fff; }
+        .archive-btn,.create-btn{ background:#ffe082; color:#35523A; }
+        .archive-btn:hover,.create-btn:hover{ background:#c49c48; color:#fff; }
+
+        /* Mobile */
+        @media (max-width:600px){
+        .top-bar{ top:6px; left:6px; right:6px; }
+        .top-bar .right{ gap:5px; }
+        .top-bar .back-home-btn{ font-size:11px; padding:3px 6px 3px 5px; }
+        }
     </style>
 </head>
 <body>
     <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
     <div class="center-wrapper">
     <div class="box">
-        <a href="/" class="back-home-btn"><i class="fa fa-chevron-left"></i> Home</a>
-        <a href="/tfr_request_form" class="back-home-btn"><i class="fa fa-file-alt"></i> Create New Request</a>
-        <a href="/tfr_request_archive" class="back-home-btn" style="top: 58px;">
-            <i class="fa fa-file-alt"></i> Approved Requests 
-        </a>
+            <!-- thay 3 thẻ <a> hiện tại bằng: -->
+            <div class="top-bar">
+            <div class="left">
+                <a href="/" class="back-home-btn home-btn"><i class="fa fa-chevron-left"></i> Home</a>
+            </div>
+            <div class="right">
+                <a href="/tfr_request_archive" class="back-home-btn archive-btn">
+                <i class="fa fa-file-alt"></i> Approved Requests
+                </a>
+                <a href="/tfr_request_form" class="back-home-btn create-btn">
+                <i class="fa fa-file-alt"></i> Create New Request
+                </a>
+            </div>
+            </div>
         <h2>Submitted Test Requests</h2>
         {% with messages = get_flashed_messages() %}
           {% if messages %}

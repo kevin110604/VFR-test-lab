@@ -3,4 +3,5 @@ git commit -m "update all code"
 git push --force
 
 git fetch
-git checkout origin/main -- "**/*.html" "**/*.py"
+git checkout origin/main -- "*.py" "*.html"
+

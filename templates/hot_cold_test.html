@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Hot &amp; Cold Cycle Test - {{ report }} - {{ group.upper() }}</title>
+    <title>{{ (title.short if title else (test_key|replace('_',' ')|title)) }} - {{ report }} - {{ group.upper() }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
@@ -349,6 +349,79 @@
             text-shadow: 0 2px 14px #c49c484a;
             font-family: 'Merriweather', serif;
         }
+        .duration-form {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0 14px;
+        }
+        .duration-form label {
+            font-weight: 700;
+            color: #c49c48;
+            margin-right: 6px;
+            white-space: nowrap;
+        }
+        .duration-form input[type="number"] {
+            width: 90px;
+            padding: 6px 8px;
+            border: 1.2px solid #c49c48;
+            border-radius: 7px;
+            text-align: center;
+        }
+        .duration-form .main-btn {
+            max-width: none;
+            padding: 8px 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        @media (max-width: 600px) {
+            .duration-form {
+              flex-wrap: wrap;
+            }
+            .duration-form label,
+            .duration-form input[type="number"] {
+              order: 1; /* giữ label + input cùng hàng */
+            }
+            .duration-form .main-btn {
+              order: 2; /* đưa button xuống hàng */
+              width: 100%;
+              max-width: 200px;
+              justify-content: center;
+            }
+            .box{ padding-top: 42px; }               /* chừa chỗ cho nút back */
+            .back-btn{
+                position: absolute;
+                left: 8px; top: 8px; z-index: 2;
+                width: 34px; height: 34px;
+                padding: 0;
+                border-radius: 50%;
+                border: 1px solid #d5c69d;
+                background: #faf7ec;
+                color: #73592c;
+                display: flex; align-items: center; justify-content: center;
+                font-size: 16px;                       /* cỡ icon */
+                min-width: 0;                          /* tránh giãn */
+            }
+            .back-btn span{ display: none; }         /* ẩn chữ, chỉ giữ icon */
+            .back-btn i{ margin: 0; }
+        }
+        /* tuỳ chọn: rất nhỏ thì tăng size touch một chút */
+        @media (max-width: 380px){
+            .back-btn{ width: 36px; height: 36px; font-size: 17px; }
+        }
+        /* Dark mode style cho input number trong form thời gian test */
+        body.dark .duration-form input[type="number"] {
+            background: #3f5250;   /* nền tối */
+            color: #f6f6ef;        /* chữ sáng */
+            border-color: #91b8a2; /* viền xanh nhạt */
+        }
+
+        body.dark .duration-form input[type="number"]::placeholder {
+            color: #d2cfa0; /* màu placeholder */
+        }
     </style>
 </head>
 <body>
@@ -373,8 +446,16 @@
                 {% endif %}
             </span>
         </a>
-        <h2>Hot &amp; Cold Cycle Test</h2>
+        <h2>{{ (title.short if title else (test_key|replace('_',' ')|title)) }}</h2>
         <div class="header-sub">Group: <b>{{ group.upper() }}</b></div>
+        <form method="POST" class="duration-form">
+          <label for="duration">Thời gian test (giờ):</label>
+          <input type="number" name="duration" id="duration"
+                min="1" step="1" value="{{ so_gio_test or 4 }}">
+          <button type="submit" name="set_duration" class="main-btn">
+            <i class="fa fa-clock"></i> Cập nhật
+          </button>
+        </form>
         {% if imgs_mo_ta %}
         <div class="section">
             <div class="test-desc">Mô tả kiểm thử (nhấp vào ảnh mẫu để phóng to xem chi tiết)</div>
@@ -417,7 +498,7 @@
                 <div id="counter-hotcold"></div>
             {% endif %}
             <form method="POST" enctype="multipart/form-data" style="margin-bottom:9px;text-align:center;">
-                <input type="file" name="hotcold_before_{{ group }}_imgs" multiple accept="image/*" style="display:none;" id="before-upload"
+                <input type="file" name="{{ before_tag }}_imgs" multiple accept="image/*" style="display:none;" id="before-upload"
                        onchange="submitTestImgs(this, 'before-fake-btn')">
                 <button type="button" class="main-btn" onclick="triggerUpload('before-upload')">
                     <i class="fa fa-upload"></i><span>Tải ảnh Before</span>
@@ -443,7 +524,7 @@
                 <div class="img-time-label">Thời gian kết thúc: {{ after_upload_time }}</div>
             {% endif %}
             <form method="POST" enctype="multipart/form-data" style="margin-bottom:8px;text-align:center;">
-                <input type="file" name="hotcold_after_{{ group }}_imgs" multiple accept="image/*" style="display:none;" id="after-upload"
+                <input type="file" name="{{ after_tag }}_imgs" multiple accept="image/*" style="display:none;" id="after-upload"
                        onchange="submitTestImgs(this, 'after-fake-btn')">
                 <button type="button" class="main-btn" onclick="triggerUpload('after-upload')">
                     <i class="fa fa-upload"></i><span>Tải ảnh After</span>
@@ -504,7 +585,7 @@
             var parts = "{{ before_upload_time }}".match(/(\d{1,2})\/(\d{1,2})\/(\d{4}) (\d{1,2}):(\d{1,2})/);
             if (parts) {
                 var uploadTime = new Date(parts[3], parts[2]-1, parts[1], parts[4], parts[5], 0);
-                var soGio = {{ so_gio_test }};
+                var soGio = {{ so_gio_test|default(4) }};
                 function updateCounter() {
                   var now = new Date();
                   var elapsed = (now - uploadTime) / (1000 * 60 * 60); // giờ

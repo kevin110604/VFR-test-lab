@@ -9,7 +9,8 @@ from notify_utils import send_teams_message, notify_when_enough_time
 from counter_utils import update_counter, check_and_reset_counter, log_report_complete
 from docx_utils import approve_request_fill_docx_pdf
 from file_utils import safe_write_json, safe_read_json, safe_save_excel, safe_load_excel, safe_write_text, safe_read_text
-import re, os, pytz, json, openpyxl, random, subprocess, traceback, regex, calendar
+import re, os, pytz, json, openpyxl, random, subprocess, traceback, regex, calendar, time
+from contextlib import contextmanager
 from datetime import datetime
 from waitress import serve
 from openpyxl import load_workbook, Workbook
@@ -19,6 +20,10 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
+
+# Những test dùng giao diện Hot & Cold
+HOTCOLD_LIKE = {"hot_cold", "standing_water", "stain"}
+INDOOR_GROUPS = {"indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal"}
 
 def format_excel_date_short(dt):
     """Convert Python datetime/date -> format 'd-mmm' (e.g., 7-Aug) cho Excel."""
@@ -92,6 +97,67 @@ def generate_unique_trq_id(existing_ids):
 
 ARCHIVE_LOG = "tfr_archive.json"
 TFR_LOG_FILE = "tfr_requests.json"
+
+@contextmanager
+def report_lock():
+    lock_path = "tfr_report.lock"
+    while True:
+        try:
+            fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_RDWR)
+            break
+        except FileExistsError:
+            time.sleep(0.05 + random.random() * 0.15)
+    try:
+        yield
+    finally:
+        os.close(fd)
+        try:
+            os.remove(lock_path)
+        except:
+            pass
+
+def bump_report_no(s):
+    m = re.search(r'(\d+)$', str(s))
+    if not m:
+        return f"{s}-1"
+    start, end = m.span(1)
+    n = int(m.group(1)) + 1
+    width = end - start
+    return f"{s[:start]}{str(n).zfill(width)}"
+
+def report_no_exists(report_no, tfr_requests):
+    # trùng trong log đang dùng
+    for r in tfr_requests:
+        if str(r.get("report_no") or "").strip() == str(report_no):
+            return True
+    # trùng file đã sinh
+    output_folder = os.path.join('static', 'TFR')
+    if os.path.exists(os.path.join(output_folder, f"{report_no}.pdf")): return True
+    if os.path.exists(os.path.join(output_folder, f"{report_no}.docx")): return True
+    # trùng trong archive (nếu có)
+    try:
+        archive = safe_read_json(ARCHIVE_LOG)
+        for r in archive:
+            if str(r.get("report_no") or "").strip() == str(report_no):
+                return True
+    except:
+        pass
+    return False
+
+def allocate_unique_report_no(make_report_func, req, tfr_requests, max_try=20):
+    """
+    Gọi hàm sinh file & số report, và đảm bảo số là duy nhất.
+    make_report_func: hàm trả (pdf_path, report_no), ở đây là approve_request_fill_docx_pdf.
+    """
+    with report_lock():
+        pdf_path, report_no = make_report_func(req)
+        tries = 0
+        while report_no_exists(report_no, tfr_requests):
+            report_no = bump_report_no(report_no)
+            tries += 1
+            if tries >= max_try:
+                raise RuntimeError("Không cấp được report_no duy nhất sau nhiều lần thử")
+        return pdf_path, report_no
 
 # ---- ARCHIVE REQUEST LOG ----
 def archive_request(short_data):
@@ -523,7 +589,9 @@ def tfr_request_status():
                     continue
                 req["etd"] = etd
                 req["estimated_completion_date"] = etd
-                pdf_path, report_no = approve_request_fill_docx_pdf(req)
+                pdf_path, report_no = allocate_unique_report_no(
+                    approve_request_fill_docx_pdf, req, tfr_requests
+                )
                 req["status"] = "Approved"
                 req["decline_reason"] = ""
                 req["report_no"] = report_no
@@ -626,7 +694,9 @@ def tfr_request_status():
                     return redirect(url_for('tfr_request_status'))
                 req["etd"] = etd
                 req["estimated_completion_date"] = etd
-                pdf_path, report_no = approve_request_fill_docx_pdf(req)
+                pdf_path, report_no = allocate_unique_report_no(
+                    approve_request_fill_docx_pdf, req, tfr_requests
+                )
                 req["status"] = "Approved"
                 req["decline_reason"] = ""
                 req["report_no"] = report_no
@@ -1340,21 +1410,26 @@ def test_group_page(report, group): # Import trong hàm để tránh circular im
 
 @app.route('/test_group/<report>/<group>/<test_key>', methods=['GET', 'POST'])
 def test_group_item_dynamic(report, group, test_key):
+    # Lưu lại loại test gần nhất
     session[f"last_test_type_{report}"] = get_group_title(group)
-    if test_key == "hot_cold" and group in ["indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal"]:
-        return redirect(url_for("hot_cold_test", report=report, group=group))
 
+    # Hot/Cold chuyển sang route riêng
+    if test_key in HOTCOLD_LIKE and group in INDOOR_GROUPS:
+        return redirect(url_for("hot_cold_test", report=report, group=group, test_key=test_key))
+
+    # Kiểm tra tồn tại test key
     group_titles = TEST_GROUP_TITLES.get(group)
     if not group_titles or test_key not in group_titles:
         return "Mục kiểm tra không tồn tại!", 404
     title = group_titles[test_key]
 
+    # Thư mục theo report
     report_folder = os.path.join(UPLOAD_FOLDER, str(report))
     os.makedirs(report_folder, exist_ok=True)
     status_file = os.path.join(report_folder, f"status_{group}.txt")
     comment_file = os.path.join(report_folder, f"comment_{group}.txt")
 
-    # Xác định đặc thù vùng RH, drop, impact, rot
+    # Đặc thù nhóm TRANSIT
     is_rh_np = (group == "transit_RH_np")
     is_drop = (is_drop_test(title) if group.startswith("transit") else False) or (group == "transit_181_lt68" and test_key == "step4")
     is_impact = is_impact_test(title) if group.startswith("transit") else False
@@ -1368,12 +1443,13 @@ def test_group_item_dynamic(report, group, test_key):
     if request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
         # Kiểm tra các vùng ảnh đặc biệt RH
         imgs = {}
-        # GT68 FACE ZONES
+
+        # ========== GT68 FACE ZONES (chỉ xử lý GT68 ở đây) ==========
         if group == "transit_181_gt68" and test_key == "step4":
             for idx, zone in enumerate(GT68_FACE_ZONES):
                 files = request.files.getlist(f'gt68_face_img_{zone}')
                 if files:
-                    imgs[f'gt68_{idx}'] = []
+                    imgs[str(idx)] = []  # FIX: đồng bộ key "0".."5" để FE đọc data.imgs[zone]
                     for file in files:
                         if file and allowed_file(file.filename):
                             ext = file.filename.rsplit('.', 1)[-1].lower()
@@ -1382,11 +1458,14 @@ def test_group_item_dynamic(report, group, test_key):
                             next_num = max(nums, default=0) + 1
                             fname = f"{prefix}{next_num}.{ext}"
                             file.save(os.path.join(report_folder, fname))
-                            imgs[f'gt68_{idx}'].append(f"/images/{report}/{fname}")
-            # RH Impact zones
-            for zone, _ in rh_impact_zones:
-                files = request.files.getlist(f'rh_impact_img_{zone}')
-                imgs[zone] = []
+                            imgs[str(idx)].append(f"/images/{report}/{fname}")
+
+        # ========== RH Impact zones (tách ra ngoài nhánh GT68) ==========
+        # FIX: các khối RH/Drop/Impact/Rot KHÔNG còn lồng trong nhánh GT68
+        for zone, _ in rh_impact_zones:
+            files = request.files.getlist(f'rh_impact_img_{zone}')
+            if files:
+                imgs.setdefault(zone, [])
                 for file in files:
                     if file and allowed_file(file.filename):
                         ext = file.filename.rsplit('.', 1)[-1].lower()
@@ -1396,10 +1475,12 @@ def test_group_item_dynamic(report, group, test_key):
                         fname = f"{prefix}{next_num}.{ext}"
                         file.save(os.path.join(report_folder, fname))
                         imgs[zone].append(f"/images/{report}/{fname}")
-            # RH Vib zones
-            for zone, _ in rh_vib_zones:
-                files = request.files.getlist(f'rh_vib_img_{zone}')
-                imgs[zone] = []
+
+        # ========== RH Vib zones ==========
+        for zone, _ in rh_vib_zones:
+            files = request.files.getlist(f'rh_vib_img_{zone}')
+            if files:
+                imgs.setdefault(zone, [])
                 for file in files:
                     if file and allowed_file(file.filename):
                         ext = file.filename.rsplit('.', 1)[-1].lower()
@@ -1409,10 +1490,12 @@ def test_group_item_dynamic(report, group, test_key):
                         fname = f"{prefix}{next_num}.{ext}"
                         file.save(os.path.join(report_folder, fname))
                         imgs[zone].append(f"/images/{report}/{fname}")
-            # RH Second impact zones
-            for zone, _ in rh_second_impact_zones:
-                files = request.files.getlist(f'rh_second_impact_img_{zone}')
-                imgs[zone] = []
+
+        # ========== RH Second impact zones ==========
+        for zone, _ in rh_second_impact_zones:
+            files = request.files.getlist(f'rh_second_impact_img_{zone}')
+            if files:
+                imgs.setdefault(zone, [])
                 for file in files:
                     if file and allowed_file(file.filename):
                         ext = file.filename.rsplit('.', 1)[-1].lower()
@@ -1422,10 +1505,12 @@ def test_group_item_dynamic(report, group, test_key):
                         fname = f"{prefix}{next_num}.{ext}"
                         file.save(os.path.join(report_folder, fname))
                         imgs[zone].append(f"/images/{report}/{fname}")
-            # RH step12 zones
-            for zone, _ in rh_step12_zones:
-                files = request.files.getlist(f'rh_step12_img_{zone}')
-                imgs[zone] = []
+
+        # ========== RH step12 zones ==========
+        for zone, _ in rh_step12_zones:
+            files = request.files.getlist(f'rh_step12_img_{zone}')
+            if files:
+                imgs.setdefault(zone, [])
                 for file in files:
                     if file and allowed_file(file.filename):
                         ext = file.filename.rsplit('.', 1)[-1].lower()
@@ -1435,12 +1520,14 @@ def test_group_item_dynamic(report, group, test_key):
                         fname = f"{prefix}{next_num}.{ext}"
                         file.save(os.path.join(report_folder, fname))
                         imgs[zone].append(f"/images/{report}/{fname}")
-            # DROP, IMPACT, ROTATION
-            # Drop
+
+        # ========== DROP, IMPACT, ROTATION (tách ra ngoài nhánh GT68) ==========
+        # Drop
+        if is_drop:
             for idx, zone in enumerate(DROP_ZONES):
                 files = request.files.getlist(f'drop_img_{zone}')
                 if files:
-                    imgs[idx] = []
+                    imgs.setdefault(idx, [])
                     for file in files:
                         if file and allowed_file(file.filename):
                             ext = file.filename.rsplit('.', 1)[-1].lower()
@@ -1450,11 +1537,13 @@ def test_group_item_dynamic(report, group, test_key):
                             fname = f"{prefix}{next_num}.{ext}"
                             file.save(os.path.join(report_folder, fname))
                             imgs[idx].append(f"/images/{report}/{fname}")
-            # Impact
+
+        # Impact
+        if is_impact:
             for idx, zone in enumerate(IMPACT_ZONES):
                 files = request.files.getlist(f'impact_img_{zone}')
                 if files:
-                    imgs[idx] = []
+                    imgs.setdefault(idx, [])
                     for file in files:
                         if file and allowed_file(file.filename):
                             ext = file.filename.rsplit('.', 1)[-1].lower()
@@ -1464,11 +1553,13 @@ def test_group_item_dynamic(report, group, test_key):
                             fname = f"{prefix}{next_num}.{ext}"
                             file.save(os.path.join(report_folder, fname))
                             imgs[idx].append(f"/images/{report}/{fname}")
-            # Rotation
+
+        # Rotation
+        if is_rot:
             for idx, zone in enumerate(ROT_ZONES):
                 files = request.files.getlist(f'rot_img_{zone}')
                 if files:
-                    imgs[idx] = []
+                    imgs.setdefault(idx, [])
                     for file in files:
                         if file and allowed_file(file.filename):
                             ext = file.filename.rsplit('.', 1)[-1].lower()
@@ -1478,6 +1569,7 @@ def test_group_item_dynamic(report, group, test_key):
                             fname = f"{prefix}{next_num}.{ext}"
                             file.save(os.path.join(report_folder, fname))
                             imgs[idx].append(f"/images/{report}/{fname}")
+
         # THƯỜNG
         if request.files.getlist('test_imgs'):
             imgs['normal'] = []
@@ -1490,6 +1582,7 @@ def test_group_item_dynamic(report, group, test_key):
                     fname = f"{prefix}{next_num}.{ext}"
                     file.save(os.path.join(report_folder, fname))
                     imgs['normal'].append(f"/images/{report}/{fname}")
+
         # Xóa ảnh AJAX
         if 'delete_img' in request.form:
             fname = request.form['delete_img']
@@ -1522,10 +1615,10 @@ def test_group_item_dynamic(report, group, test_key):
                     idx = int(idx)
                     zone = GT68_FACE_ZONES[idx]
                     prefix = f"test_{group}_{test_key}_gt68_face_{zone}_"
-                    imgs[f'gt68_{idx}'] = []
+                    imgs[str(idx)] = []  # FIX: trả về key "0".."5" để khớp FE
                     for f in os.listdir(report_folder):
                         if allowed_file(f) and f.startswith(prefix):
-                            imgs[f'gt68_{idx}'].append(f"/images/{report}/{f}")
+                            imgs[str(idx)].append(f"/images/{report}/{f}")
                 else:
                     # RH zones
                     zone = idx
@@ -1540,6 +1633,7 @@ def test_group_item_dynamic(report, group, test_key):
                 for f in os.listdir(report_folder):
                     if allowed_file(f) and f.startswith(f"test_{group}_{test_key}_"):
                         imgs['normal'].append(f"/images/{report}/{f}")
+
         return jsonify(imgs=imgs)
 
     # --- Trạng thái PASS/FAIL/N/A ---
@@ -1856,39 +1950,67 @@ def render_test_group_item(report, group, key, group_titles, comment):
         gt68_face_imgs=gt68_face_imgs,
     )
 
-@app.route("/hot_cold_test/<report>/<group>", methods=["GET", "POST"])
-def hot_cold_test(report, group):
-    from_line = request.args.get("from_line")  # <--- thêm dòng này!
+# Cho phép URL có/không có test_key (mặc định là 'hot_cold' để không phá link cũ)
+@app.route("/hot_cold_test/<report>/<group>", defaults={'test_key': 'hot_cold'}, methods=["GET", "POST"])
+@app.route("/hot_cold_test/<report>/<group>/<test_key>", methods=["GET", "POST"])
+def hot_cold_test(report, group, test_key):
+    from_line = request.args.get("from_line")
 
-    session[f"last_test_type_{report}"] = f"HOT & COLD CYCLE TEST ({group.upper()})"
+    # ====== Lấy tên hiển thị đúng theo test_key ======
+    # Ưu tiên lấy từ TEST_GROUP_TITLES; nếu không có thì prettify từ key
+    try:
+        raw_title = TEST_GROUP_TITLES.get(group, {}).get(test_key)
+    except Exception:
+        raw_title = None
+
+    if isinstance(raw_title, dict):
+        display_title = raw_title.get('short') or raw_title.get('full') or test_key.replace('_', ' ').title()
+    elif raw_title:
+        display_title = raw_title
+    else:
+        display_title = test_key.replace('_', ' ').title()
+
+    session[f"last_test_type_{report}"] = f"{display_title} ({group.upper()})"
+
+    # ====== Chuẩn bị đường dẫn/lưu trữ (tách theo test_key) ======
     vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
     folder = os.path.join(UPLOAD_FOLDER, str(report))
     os.makedirs(folder, exist_ok=True)
-    status_file = os.path.join(folder, f"hotcold_status_{group}.txt")
-    comment_file = os.path.join(folder, f"hotcold_comment_{group}.txt")
-    before_tag = f"hotcold_before_{group}"
-    after_tag = f"hotcold_after_{group}"
-    before_time_file = os.path.join(folder, f"hotcold_before_time_{group}.txt")
-    after_time_file = os.path.join(folder, f"hotcold_after_time_{group}.txt")
 
-    # --- Xử lý POST ---
+    # Prefix riêng cho từng test
+    prefix           = f"{test_key}_{group}"
+    status_file      = os.path.join(folder, f"{prefix}_status.txt")
+    comment_file     = os.path.join(folder, f"{prefix}_comment.txt")
+    before_tag       = f"{test_key}_before_{group}"
+    after_tag        = f"{test_key}_after_{group}"
+    before_time_file = os.path.join(folder, f"{prefix}_before_time.txt")
+    after_time_file  = os.path.join(folder, f"{prefix}_after_time.txt")
+    duration_file    = os.path.join(folder, f"{prefix}_duration.txt")  # <— giờ đếm ngược
+
+    # ====== Xử lý POST ======
     if request.method == "POST":
+        # 1) Cập nhật trạng thái
         if "status" in request.form:
             safe_write_text(status_file, request.form["status"])
+
+        # 2) Lưu ghi chú
         if "save_comment" in request.form:
             safe_write_text(comment_file, request.form.get("comment_input", ""))
+
+        # 3) Upload ảnh (before/after) + ghi mốc thời gian tương ứng
         for tag, time_file in [(before_tag, before_time_file), (after_tag, after_time_file)]:
-            if f"{tag}_imgs" in request.files:
-                files = request.files.getlist(f"{tag}_imgs")
+            field_name = f"{tag}_imgs"
+            if field_name in request.files:
+                files = request.files.getlist(field_name)
                 count = 0
                 for file in files:
                     if file and allowed_file(file.filename):
                         ext = file.filename.rsplit('.', 1)[-1].lower()
-                        prefix = f"{tag}_"
+                        prefix_img = f"{tag}_"
                         nums = [
-                            int(f[len(prefix):].split('.')[0])
-                            for f in os.listdir(folder)
-                            if f.startswith(prefix) and f[len(prefix):].split('.')[0].isdigit()
+                            int(fname[len(prefix_img):].split('.')[0])
+                            for fname in os.listdir(folder)
+                            if fname.startswith(prefix_img) and fname[len(prefix_img):].split('.')[0].isdigit()
                         ]
                         next_num = max(nums) + 1 if nums else 1
                         new_fname = f"{tag}_{next_num}.{ext}"
@@ -1897,6 +2019,8 @@ def hot_cold_test(report, group):
                 if count > 0:
                     now = datetime.now(vn_tz).strftime("%d/%m/%Y %H:%M")
                     safe_write_text(time_file, now)
+
+        # 4) Xoá ảnh (và dọn mốc thời gian nếu hết ảnh)
         if "delete_img" in request.form:
             img = request.form["delete_img"]
             img_path = os.path.join(folder, img)
@@ -1904,47 +2028,71 @@ def hot_cold_test(report, group):
                 try:
                     os.remove(img_path)
                 except Exception:
-                    pass  # Bị xóa bởi thread khác
-            # Xử lý xóa file time nếu không còn ảnh
+                    pass
+            # Nếu không còn ảnh trước/sau thì xoá file time tương ứng
             if img.startswith(before_tag):
-                still_imgs = [f for f in os.listdir(folder) if allowed_file(f) and f.startswith(before_tag)]
-                if not still_imgs and os.path.exists(before_time_file):
-                    try:
-                        os.remove(before_time_file)
-                    except Exception:
-                        pass
+                still = [f for f in os.listdir(folder) if allowed_file(f) and f.startswith(before_tag)]
+                if not still and os.path.exists(before_time_file):
+                    try: os.remove(before_time_file)
+                    except Exception: pass
             if img.startswith(after_tag):
-                still_imgs = [f for f in os.listdir(folder) if allowed_file(f) and f.startswith(after_tag)]
-                if not still_imgs and os.path.exists(after_time_file):
-                    try:
-                        os.remove(after_time_file)
-                    except Exception:
-                        pass
-        session[f"last_test_type_{report}"] = f"HOT & COLD CYCLE TEST ({group.upper()})"
+                still = [f for f in os.listdir(folder) if allowed_file(f) and f.startswith(after_tag)]
+                if not still and os.path.exists(after_time_file):
+                    try: os.remove(after_time_file)
+                    except Exception: pass
+
+        # 5) Cập nhật thời gian test (giờ) — cho phép người dùng chọn
+        if "set_duration" in request.form:
+            raw = (request.form.get("duration") or "").strip()
+            try:
+                dur = float(raw)
+                if dur <= 0: raise ValueError
+                safe_write_text(duration_file, str(dur))
+                flash("Đã cập nhật thời gian test.", "success")
+            except Exception:
+                flash("Giá trị thời gian không hợp lệ.", "danger")
+
+        # quay lại GET để tránh resubmit
+        session[f"last_test_type_{report}"] = f"{display_title} ({group.upper()})"
         return redirect(request.url)
 
-    # --- Lấy trạng thái và comment ---
-    status = safe_read_text(status_file).strip()
-    comment = safe_read_text(comment_file).strip()
-    test_key = "hot_cold"
-    imgs_mo_ta = TEST_GROUP_TITLES[group][test_key]["img"]
-    # --- Lấy danh sách ảnh before/after ---
-    imgs_before = []
-    imgs_after = []
-    for f in sorted(os.listdir(folder)):
-        if allowed_file(f):
-            if f.startswith(before_tag):
-                imgs_before.append(f"/images/{report}/{f}")
-            if f.startswith(after_tag):
-                imgs_after.append(f"/images/{report}/{f}")
-    # --- Lấy thời gian upload nếu có ---
-    before_upload_time = safe_read_text(before_time_file).strip() if os.path.exists(before_time_file) else None
-    after_upload_time = safe_read_text(after_time_file).strip() if os.path.exists(after_time_file) else None
+    # ====== Đọc dữ liệu để render ======
+    status  = (safe_read_text(status_file) or "").strip()
+    comment = (safe_read_text(comment_file) or "").strip()
 
+    # Hình mô tả (nếu có trong TEST_GROUP_TITLES)
+    try:
+        imgs_mo_ta = (TEST_GROUP_TITLES.get(group, {}).get(test_key) or {}).get("img", [])
+    except Exception:
+        imgs_mo_ta = []
+
+    # Danh sách ảnh before/after
+    imgs_before, imgs_after = [], []
+    for fname in sorted(os.listdir(folder)):
+        if allowed_file(fname):
+            if fname.startswith(before_tag):
+                imgs_before.append(f"/images/{report}/{fname}")
+            elif fname.startswith(after_tag):
+                imgs_after.append(f"/images/{report}/{fname}")
+
+    # Thời gian upload
+    before_upload_time = (safe_read_text(before_time_file) or "").strip() if os.path.exists(before_time_file) else None
+    after_upload_time  = (safe_read_text(after_time_file) or "").strip()  if os.path.exists(after_time_file)  else None
+
+    # Thời gian đếm ngược (giờ): đọc từ file; fallback SO_GIO_TEST nếu trống/lỗi
+    raw_duration = safe_read_text(duration_file)
+    try:
+        so_gio_test = float(raw_duration) if raw_duration not in (None, "") else float(SO_GIO_TEST)
+    except Exception:
+        so_gio_test = 4.0  # fallback
+
+    # ====== Render ======
     return render_template(
         "hot_cold_test.html",
         report=report,
         group=group,
+        test_key=test_key,                                    # truyền xuống template để hiển thị tên/đặt field
+        title={'short': display_title, 'full': display_title},
         status=status,
         comment=comment,
         imgs_mo_ta=imgs_mo_ta,
@@ -1952,8 +2100,10 @@ def hot_cold_test(report, group):
         imgs_after=imgs_after,
         before_upload_time=before_upload_time,
         after_upload_time=after_upload_time,
-        so_gio_test=SO_GIO_TEST,
-        from_line=from_line,  # <--- thêm dòng này!
+        so_gio_test=so_gio_test,                              # JS đếm ngược dùng biến này
+        from_line=from_line,
+        before_tag=before_tag,   # <— thêm
+        after_tag=after_tag,     
     )
 
 def get_hotcold_elapsed(report, group):
@@ -2279,6 +2429,12 @@ def view_counter_log():
         type_of_list=type_of_list,
     )
 
+DISPLAY = {
+    "hot_cold": "Hot & Cold cycle test",
+    "standing_water": "Standing water test",
+    "stain": "Stain test",
+}
+
 def auto_notify_all_first_time():
     webhook_url = TEAMS_WEBHOOK_URL_COUNT
     try:
@@ -2305,26 +2461,28 @@ def auto_notify_all_first_time():
 
             # Hotcold test: gửi ngay khi đủ giờ (job mỗi phút)
             for group in ["indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal"]:
-                try:
-                    notify_when_enough_time(
-                        report=report_folder,
-                        so_gio_test=SO_GIO_TEST,
-                        tag_after="hot_cold_after",
-                        time_file_name=f"hotcold_before_time_{group}.txt",
-                        flag_file_name=f"teams_notified_hotcold_{group}.txt",
-                        webhook_url=webhook_url,
-                        notify_msg=f"✅ [TỰ ĐỘNG] Hot & Cold cycle test của REPORT {report_folder} ({group.upper()}) đã đủ {SO_GIO_TEST} tiếng! Vui lòng upload ảnh after.",
-                        force_send=False,
-                        pending_notify_name=f"pending_notify_hotcold_{group}.txt"
-                    )
-                except Exception as e:
-                    print(f"[auto_notify_all_first_time] Error notifying HOTCOLD ({group}) for {report_folder}:", e)
+                for key in HOTCOLD_LIKE:
+                    try:
+                        notify_when_enough_time(
+                            report=report_folder,
+                            so_gio_test=SO_GIO_TEST,
+                            tag_after=f"{key}_after",                             # ví dụ: hot_cold_after
+                            time_file_name=f"{key}_{group}_before_time.txt",      # ví dụ: hot_cold_indoor_thuong_before_time.txt
+                            flag_file_name=f"teams_notified_{key}_{group}.txt",
+                            webhook_url=webhook_url,
+                            notify_msg=(f"✅ [TỰ ĐỘNG] {DISPLAY.get(key, key.title())} của REPORT {report_folder} "
+                                        f"({group.upper()}) đã đủ {SO_GIO_TEST} tiếng! Vui lòng upload ảnh after."),
+                            force_send=False,
+                            pending_notify_name=f"pending_notify_{key}_{group}.txt"
+                        )
+                    except Exception as e:
+                        print(f"[auto_notify_all_first_time] Error notifying {key} ({group}) for {report_folder}:", e)
     except Exception as e:
         print("[auto_notify_all_first_time] Error listing folders:", e)
 
 def auto_notify_all_repeat():
     webhook_url = TEAMS_WEBHOOK_URL_COUNT
-    MAX_REPEAT = 3  # Chỉ nhắc lại 3 lần
+    MAX_REPEAT = 3
 
     def get_repeat_count(folder, file_name):
         path = os.path.join(folder, file_name)
@@ -2372,22 +2530,24 @@ def auto_notify_all_repeat():
 
         # --- HOTCOLD TEST ---
         for group in ["indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal"]:
-            repeat_file_hotcold = f"repeat_notify_hotcold_{group}.txt"
-            count_hotcold = get_repeat_count(folder, repeat_file_hotcold)
-            if count_hotcold < MAX_REPEAT:
-                sent = notify_when_enough_time(
-                    report=report_folder,
-                    so_gio_test=SO_GIO_TEST,
-                    tag_after="hot_cold_after",
-                    time_file_name=f"hotcold_before_time_{group}.txt",
-                    flag_file_name=None,
-                    webhook_url=webhook_url,
-                    notify_msg=f"✅ [TỰ ĐỘNG, NHẮC LẠI 1 TIẾNG] Hot & Cold cycle test của REPORT {report_folder} ({group.upper()}) đã đủ {SO_GIO_TEST} tiếng! Vui lòng upload ảnh after.",
-                    force_send=True,
-                    pending_notify_name=f"pending_notify_hotcold_{group}.txt"
-                )
-                if sent:
-                    increase_repeat_count(folder, repeat_file_hotcold)
+            for key in HOTCOLD_LIKE:
+                repeat_file = f"repeat_notify_{key}_{group}.txt"
+                count = get_repeat_count(folder, repeat_file)
+                if count < MAX_REPEAT:
+                    sent = notify_when_enough_time(
+                        report=report_folder,
+                        so_gio_test=SO_GIO_TEST,
+                        tag_after=f"{key}_after",
+                        time_file_name=f"{key}_{group}_before_time.txt",
+                        flag_file_name=None,
+                        webhook_url=webhook_url,
+                        notify_msg=(f"✅ [TỰ ĐỘNG, NHẮC LẠI 1 TIẾNG] {DISPLAY.get(key, key.title())} của REPORT "
+                                    f"{report_folder} ({group.upper()}) đã đủ {SO_GIO_TEST} tiếng! Vui lòng upload ảnh after."),
+                        force_send=True,
+                        pending_notify_name=f"pending_notify_{key}_{group}.txt"
+                    )
+                    if sent:
+                        increase_repeat_count(folder, repeat_file)
 
 def auto_notify_all_pending():
     webhook_url = TEAMS_WEBHOOK_URL_COUNT
@@ -2412,12 +2572,13 @@ def auto_notify_all_pending():
 
         # Hotcold test
         for group in ["indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal"]:
-            pending_path = os.path.join(folder, f"pending_notify_hotcold_{group}.txt")
-            if os.path.exists(pending_path):
-                with open(pending_path, "r", encoding="utf-8") as f:
-                    msg = f.read()
-                send_teams_message(webhook_url, msg)
-                os.remove(pending_path)
+            for key in HOTCOLD_LIKE:
+                pending_path = os.path.join(folder, f"pending_notify_{key}_{group}.txt")
+                if os.path.exists(pending_path):
+                    with open(pending_path, "r", encoding="utf-8") as f:
+                        msg = f.read()
+                    send_teams_message(webhook_url, msg)
+                    os.remove(pending_path)
 
 # Khởi tạo scheduler
 scheduler = BackgroundScheduler()
