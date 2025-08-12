@@ -91,7 +91,7 @@ def _validate(form):
             if not (form.get("material_type") or "").strip():
                 finishing_errors["material_type"] = True
     return missing, finishing_errors
-
+    
 def format_excel_date_short(dt):
     """Convert Python datetime/date -> format 'd-mmm' (e.g., 7-Aug) cho Excel."""
     if isinstance(dt, str):
@@ -456,7 +456,6 @@ def get_category_component_position(finishing_type, material_type):
             return "LINE TEST_METAL"
     return ""
 
-
 @app.route("/tfr_request_form", methods=["GET", "POST"])
 def tfr_request_form():
     tfr_requests = safe_read_json(TFR_LOG_FILE)
@@ -468,6 +467,7 @@ def tfr_request_form():
     edit_idx = request.args.get("edit_idx") or request.form.get("edit_idx")
     editing = False
 
+    # Khi GET lần đầu (bấm Edit) → load dữ liệu record cũ
     if trq_id is not None and edit_idx is not None:
         try:
             edit_idx = int(edit_idx)
@@ -479,9 +479,9 @@ def tfr_request_form():
         except Exception:
             pass
 
-    # <<< ADDED: giữ lại edit_idx trong form_data để template có thể render hidden input nếu cần
+    # Giữ lại edit_idx để template render hidden input
     if editing:
-        form_data.setdefault("edit_idx", edit_idx)  # <<< ADDED
+        form_data.setdefault("edit_idx", edit_idx)
 
     if request.method == "POST":
         form = request.form
@@ -505,9 +505,9 @@ def tfr_request_form():
             error = "Phải chọn Indoor hoặc Outdoor!"
 
         finishing_type = form.get("finishing_type", "")
-        # ---- LẤY material_type (bổ sung) ----
-        material_type = form.get("material_type", "")   # <== BỔ SUNG DÒNG NÀY
+        material_type = form.get("material_type", "")
 
+        # Lưu dữ liệu form vừa nhập
         form_data = form.to_dict(flat=True)
         form_data["test_group"] = test_group
         form_data["furniture_testing"] = furniture_testing
@@ -516,11 +516,11 @@ def tfr_request_form():
         form_data["sample_return"] = form.get("sample_return", "")
         form_data["remark"] = form.get("remark", "").strip()
         form_data["finishing_type"] = finishing_type
-        form_data["material_type"] = material_type       # <== BỔ SUNG DÒNG NÀY
+        form_data["material_type"] = material_type
 
-        # <<< ADDED: cũng giữ lại edit_idx khi POST để trả về form nếu thiếu trường
-        if edit_idx is not None:                         # <<< ADDED
-            form_data["edit_idx"] = edit_idx             # <<< ADDED
+        # Giữ lại edit_idx khi POST
+        if edit_idx is not None:
+            form_data["edit_idx"] = edit_idx
 
         def na_or_value(key):
             na_key = key + "_na"
@@ -532,6 +532,7 @@ def tfr_request_form():
             missing_fields.append("finishing_type")
             error = "Phải chọn QA TEST hoặc LINE TEST!"
 
+        # Nếu còn thiếu trường → trả lại form với dữ liệu đã nhập
         if missing_fields:
             if not error:
                 error = "Vui lòng điền đủ các trường bắt buộc (*)"
@@ -577,30 +578,32 @@ def tfr_request_form():
             "remark": remark,
             "test_group": test_group,
             "finishing_type": finishing_type,
-            "material_type": material_type,       # <== BỔ SUNG DÒNG NÀY
+            "material_type": material_type,
             "status": "Submitted",
             "decline_reason": "",
             "report_no": ""
         }
 
-        # Tự động tính ETD dựa trên request_date và test_group
-        new_request["etd"] = calculate_default_etd(new_request.get("request_date", ""), new_request.get("test_group", ""))
+        # Tự động tính ETD
+        new_request["etd"] = calculate_default_etd(
+            new_request.get("request_date", ""),
+            new_request.get("test_group", "")
+        )
 
-        # <<< ADDED: Nếu đang EDIT → GIỮ CÁC TRƯỜNG HỆ THỐNG CŨ (không reset nhầm)
-        if editing or (trq_id and edit_idx is not None):                   # <<< ADDED
-            try:                                                           # <<< ADDED
-                _edit_idx_int = int(edit_idx)                              # <<< ADDED
-                matches = [i for i, req in enumerate(tfr_requests)         # <<< ADDED
-                           if req.get("trq_id") == trq_id]                 # <<< ADDED
-                if len(matches) > _edit_idx_int:                           # <<< ADDED
-                    old = tfr_requests[matches[_edit_idx_int]]             # <<< ADDED
-                    # giữ các field hệ thống đã có                                                                              # <<< ADDED
-                    for k in ("status", "report_no", "pdf_path", "docx_path", "etd", "decline_reason"):  # <<< ADDED
-                        if k in old and old.get(k) not in (None, ""):      # <<< ADDED
-                            new_request[k] = old.get(k)                    # <<< ADDED
-            except Exception:                                              # <<< ADDED
-                pass                                                       # <<< ADDED
+        # Nếu edit → giữ lại các trường hệ thống cũ
+        if editing or (trq_id and edit_idx is not None):
+            try:
+                _edit_idx_int = int(edit_idx)
+                matches = [i for i, req in enumerate(tfr_requests) if req.get("trq_id") == trq_id]
+                if len(matches) > _edit_idx_int:
+                    old = tfr_requests[matches[_edit_idx_int]]
+                    for k in ("status", "report_no", "pdf_path", "docx_path", "etd", "decline_reason"):
+                        if k in old and old.get(k) not in (None, ""):
+                            new_request[k] = old.get(k)
+            except Exception:
+                pass
 
+        # Lưu bản ghi mới hoặc update
         if editing or (trq_id and edit_idx is not None):
             try:
                 edit_idx = int(edit_idx)
@@ -614,6 +617,7 @@ def tfr_request_form():
 
         safe_write_json(TFR_LOG_FILE, tfr_requests)
 
+        # Gửi thông báo Teams
         message = (
             f"📝 [TRF] Có yêu cầu Test Request mới!\n"
             f"- Người gửi: {new_request.get('requestor')}\n"
@@ -627,6 +631,7 @@ def tfr_request_form():
 
         return redirect(url_for('tfr_request_status'))
 
+    # Nếu là form mới (không edit) → set mặc định
     if not editing:
         staff_id_full = session.get("staff_id", "").strip()
         if staff_id_full and "-" in staff_id_full:
@@ -641,12 +646,12 @@ def tfr_request_form():
 
     if not form_data.get("trq_id"):
         form_data["trq_id"] = generate_unique_trq_id({r.get("trq_id") for r in tfr_requests if "trq_id" in r})
-    
+
     if not form_data.get("request_date"):
         vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
         today = datetime.now(vn_tz).strftime("%Y-%m-%d")
         form_data["request_date"] = today
-    
+
     return render_template(
         "tfr_request_form.html",
         darkmode=session.get("darkmode", "0"),
