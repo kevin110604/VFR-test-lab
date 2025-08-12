@@ -25,6 +25,73 @@ app.secret_key = SECRET_KEY
 HOTCOLD_LIKE = {"hot_cold", "standing_water", "stain"}
 INDOOR_GROUPS = {"indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal"}
 
+def _gen_new_trq_id(tfr_requests):
+    """Sinh TRQ-ID dạng TRQ-YYYYMMDD-#### tăng dần theo ngày."""
+    today = datetime.now().strftime("%Y%m%d")
+    prefix = f"TRQ-{today}-"
+    nums = []
+    for r in tfr_requests:
+        rid = str(r.get("trq_id") or "")
+        m = re.fullmatch(rf"{re.escape(prefix)}(\d{{4}})", rid)
+        if m:
+            nums.append(int(m.group(1)))
+    nxt = (max(nums) + 1) if nums else 1
+    return f"{prefix}{nxt:04d}"
+
+def _normalize_test_status(form):
+    """Map radio 'nth' + input số về chuỗi 'Nthth'."""
+    ts = (form.get("test_status") or "").strip()
+    if ts == "nth":
+        n = (form.get("test_status_nth") or "").strip()
+        if n.isdigit() and int(n) >= 4:
+            return f"{int(n)}th"
+        # fallback nếu người dùng quên nhập số
+        return "4th"
+    return ts
+
+def _bool(v):
+    return True if v in ("1", "true", "True", "on") else False
+
+def _validate(form):
+    """Trả về (missing_fields:list, finishing_errors:dict) để hiển thị lỗi (phù hợp template hiện tại)."""
+    missing = []
+    # bắt buộc
+    if not (form.get("requestor") or "").strip():      missing.append("requestor")
+    if not (form.get("employee_id") or "").strip():    missing.append("employee_id")
+    if not (form.get("department") or "").strip():     missing.append("department")
+    if not (form.get("request_date") or "").strip():   missing.append("request_date")
+
+    # sample_description bắt buộc nếu không tick N/A
+    if not _bool(form.get("sample_description_na")) and not (form.get("sample_description") or "").strip():
+        missing.append("sample_description")
+    # item_code
+    if not _bool(form.get("item_code_na")) and not (form.get("item_code") or "").strip():
+        missing.append("item_code")
+    # supplier
+    if not _bool(form.get("supplier_na")) and not (form.get("supplier") or "").strip():
+        missing.append("supplier")
+    # subcon
+    if not _bool(form.get("subcon_na")) and not (form.get("subcon") or "").strip():
+        missing.append("subcon")
+
+    if not (form.get("test_group") or "").strip():         missing.append("test_group")
+    if not (_normalize_test_status(form) or "").strip():   missing.append("test_status")
+    if not (form.get("furniture_testing") or "").strip():  missing.append("furniture_testing")
+    if not (form.get("quantity") or "").strip():           missing.append("quantity")
+    if not (form.get("sample_return") or "").strip():      missing.append("sample_return")
+
+    # Finishing → bắt buộc chọn finishing_type, và nếu QA/LINE thì bắt buộc chọn material_type
+    finishing_errors = {"finishing_type": False, "material_type": False}
+    tg = (form.get("test_group") or "").strip()
+    if tg == "FINISHING TEST":
+        ft = (form.get("finishing_type") or "").strip()
+        if not ft:
+            finishing_errors["finishing_type"] = True
+        if ft in ("QA TEST", "LINE TEST"):
+            if not (form.get("material_type") or "").strip():
+                finishing_errors["material_type"] = True
+    return missing, finishing_errors
+
 def format_excel_date_short(dt):
     """Convert Python datetime/date -> format 'd-mmm' (e.g., 7-Aug) cho Excel."""
     if isinstance(dt, str):
@@ -412,6 +479,10 @@ def tfr_request_form():
         except Exception:
             pass
 
+    # <<< ADDED: giữ lại edit_idx trong form_data để template có thể render hidden input nếu cần
+    if editing:
+        form_data.setdefault("edit_idx", edit_idx)  # <<< ADDED
+
     if request.method == "POST":
         form = request.form
 
@@ -446,6 +517,10 @@ def tfr_request_form():
         form_data["remark"] = form.get("remark", "").strip()
         form_data["finishing_type"] = finishing_type
         form_data["material_type"] = material_type       # <== BỔ SUNG DÒNG NÀY
+
+        # <<< ADDED: cũng giữ lại edit_idx khi POST để trả về form nếu thiếu trường
+        if edit_idx is not None:                         # <<< ADDED
+            form_data["edit_idx"] = edit_idx             # <<< ADDED
 
         def na_or_value(key):
             na_key = key + "_na"
@@ -510,6 +585,21 @@ def tfr_request_form():
 
         # Tự động tính ETD dựa trên request_date và test_group
         new_request["etd"] = calculate_default_etd(new_request.get("request_date", ""), new_request.get("test_group", ""))
+
+        # <<< ADDED: Nếu đang EDIT → GIỮ CÁC TRƯỜNG HỆ THỐNG CŨ (không reset nhầm)
+        if editing or (trq_id and edit_idx is not None):                   # <<< ADDED
+            try:                                                           # <<< ADDED
+                _edit_idx_int = int(edit_idx)                              # <<< ADDED
+                matches = [i for i, req in enumerate(tfr_requests)         # <<< ADDED
+                           if req.get("trq_id") == trq_id]                 # <<< ADDED
+                if len(matches) > _edit_idx_int:                           # <<< ADDED
+                    old = tfr_requests[matches[_edit_idx_int]]             # <<< ADDED
+                    # giữ các field hệ thống đã có                                                                              # <<< ADDED
+                    for k in ("status", "report_no", "pdf_path", "docx_path", "etd", "decline_reason"):  # <<< ADDED
+                        if k in old and old.get(k) not in (None, ""):      # <<< ADDED
+                            new_request[k] = old.get(k)                    # <<< ADDED
+            except Exception:                                              # <<< ADDED
+                pass                                                       # <<< ADDED
 
         if editing or (trq_id and edit_idx is not None):
             try:
