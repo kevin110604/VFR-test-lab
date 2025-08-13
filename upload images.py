@@ -19,6 +19,34 @@ tmp_download_folder = "__tmp_sharepoint__"
 if not os.path.exists(tmp_download_folder):
     os.makedirs(tmp_download_folder)
 
+# ==== Tiện ích dọn file .txt rác: repeat / notified ====
+def clean_noise_txt(root_folder: str, dry_run: bool = False) -> int:
+    """
+    Xóa các file .txt có 'repeat' hoặc 'notified' trong tên (không phân biệt hoa/thường).
+    Trả về số lượng file đã (hoặc sẽ) xóa.
+    """
+    keywords = ("repeat", "notified")
+    deleted = 0
+    if not os.path.isdir(root_folder):
+        return 0
+
+    for foldername, _, filenames in os.walk(root_folder):
+        for filename in filenames:
+            name_lower = filename.lower()
+            if name_lower.endswith(".txt") and any(kw in name_lower for kw in keywords):
+                file_path = os.path.join(foldername, filename)
+                if dry_run:
+                    print(f"[DRY-RUN] Sẽ xóa: {file_path}")
+                    deleted += 1
+                else:
+                    try:
+                        os.remove(file_path)
+                        print(f"Đã xóa: {file_path}")
+                        deleted += 1
+                    except Exception as e:
+                        print(f"Lỗi khi xóa {file_path}: {e}")
+    return deleted
+
 # ==== Hàm nén ảnh trực tiếp (chỉ khi cần) ====
 def compress_image_inplace(path, quality=70, max_size=(1920,1080)):
     try:
@@ -119,19 +147,31 @@ if not ctx_auth.acquire_token_for_user(username, password):
     raise Exception("Không kết nối được SharePoint!")
 ctx = ClientContext(site_url, ctx_auth)
 
-# ==== Duyệt từng folder, nén nếu cần, ghi log ====
+# ==== Duyệt từng folder, dọn .txt rác, nén nếu cần, ghi log ====
 folders = [os.path.join(local_images, f) for f in os.listdir(local_images) if os.path.isdir(os.path.join(local_images, f))]
 folders.sort()
 
 folders_by_month = {}
 for folder in folders:
     folder_name = os.path.basename(folder)
+
+    # 1) Dọn file .txt rác trước
+    print(f"Clean .txt (repeat/notified) trong folder {folder_name} ...")
+    removed_count = clean_noise_txt(folder, dry_run=False)
+    if removed_count:
+        print(f"→ Đã xóa {removed_count} file .txt rác.")
+    else:
+        print("→ Không có file .txt rác để xóa.")
+
+    # 2) Nén ảnh thông minh
     print(f"Check nén folder {folder_name} ...")
     nened = compress_folder_inplace_smart(folder, quality=70, max_size=(1920,1080))
     if nened:
         print(f"→ Đã nén lại ảnh mới/chưa nén.")
     else:
         print(f"→ Không có ảnh mới, bỏ qua nén.")
+
+    # 3) Gom nhóm theo tháng
     thang = folder_month(folder)
     if not thang:
         continue
@@ -222,4 +262,4 @@ for thang, month_folders in sorted(folders_by_month.items()):
         os.remove(zip_file)
         print(f"Đã xoá {zip_file} ở local.")
 
-print("\nĐã xử lý xong tất cả các nhóm folder theo tháng (ảnh chỉ nén và up khi có thay đổi).")
+print("\nĐã xử lý xong tất cả các nhóm folder theo tháng (đã dọn .txt rác, ảnh chỉ nén và up khi có thay đổi).")
