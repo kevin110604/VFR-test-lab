@@ -23,8 +23,8 @@ app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
 # Những test dùng giao diện Hot & Cold
-HOTCOLD_LIKE = {"hot_cold", "standing_water", "stain"}
-INDOOR_GROUPS = {"indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal"}
+HOTCOLD_LIKE = {"hot_cold", "standing_water", "stain","corrosion"}
+INDOOR_GROUPS = {"indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal","outdoor_finishing"}
 REPORT_NO_LOCK = Lock()
 def _gen_new_trq_id(tfr_requests):
     """Sinh TRQ-ID dạng TRQ-YYYYMMDD-#### tăng dần theo ngày."""
@@ -2362,6 +2362,8 @@ def store_sample():
 
     # Đọc sample storage an toàn
     SAMPLE_STORAGE = safe_read_json(SAMPLE_STORAGE_FILE)
+    if not isinstance(SAMPLE_STORAGE, dict):
+        SAMPLE_STORAGE = {}
 
     # Kiểm tra đã có mẫu lưu với report+item_code này chưa
     found_location = None
@@ -2396,6 +2398,8 @@ def store_sample():
         location_id = free_slots[0]
         # --- Đọc lại (tránh ghi đè khi có nhiều người thao tác đồng thời) ---
         SAMPLE_STORAGE = safe_read_json(SAMPLE_STORAGE_FILE)
+        if not isinstance(SAMPLE_STORAGE, dict):
+            SAMPLE_STORAGE = {}
         SAMPLE_STORAGE[location_id] = {
             'report': report,
             'item_code': item_code,
@@ -2421,6 +2425,9 @@ def sample_map():
     location_id = request.args.get('location_id')
     # Luôn đọc dữ liệu từ file, không dùng biến toàn cục
     SAMPLE_STORAGE = safe_read_json(SAMPLE_STORAGE_FILE)
+    if not isinstance(SAMPLE_STORAGE, dict):
+        SAMPLE_STORAGE = {}
+
     sample = SAMPLE_STORAGE.get(location_id)
     if not sample:
         return "Không tìm thấy mẫu", 404
@@ -2440,6 +2447,8 @@ def sample_map():
 def list_samples():
     # Luôn đọc file dữ liệu mẫu
     SAMPLE_STORAGE = safe_read_json(SAMPLE_STORAGE_FILE)
+    if not isinstance(SAMPLE_STORAGE, dict):
+        SAMPLE_STORAGE = {}
 
     if request.method == "POST":
         loc = request.form.get("loc")
@@ -2555,6 +2564,7 @@ DISPLAY = {
     "hot_cold": "Hot & Cold cycle test",
     "standing_water": "Standing water test",
     "stain": "Stain test",
+    "corrosion": "Corrosion test",
 }
 
 def auto_notify_all_first_time():

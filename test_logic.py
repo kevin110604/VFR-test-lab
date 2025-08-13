@@ -813,12 +813,12 @@ INDOOR_METAL_TEST_TITLES = {
 }
 
 OUTDOOR_FINISHING_TEST_TITLES = {
-    "muc1": {
+    "corrosion": {
         "full": "1: Corrosion test 5% - Áp dụng kim loại",
         "short": "Corrosion test 5% (kim loại)",
         "img": ["/static/images/buoc 1 outdoor.jpg"]
     },
-    "muc2": {
+    "stain": {
         "full": "2: Stain resistance - Áp dụng đá",
         "short": "Stain resistance (đá)",
         "img": ["/static/images/buoc 2 outdoor.jpg"]
