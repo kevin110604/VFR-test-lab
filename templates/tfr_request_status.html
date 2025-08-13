@@ -100,13 +100,7 @@
             text-shadow: 0 3px 18px #c49c4827;
             margin-top: 40px;
         }
-        .table-wrap {
-            width: 100%;
-            overflow-x: auto;
-            padding-bottom: 8px;
-            display: flex;
-            justify-content: center;
-        }
+        .table-wrap { width: 100%; overflow-x: auto; padding-bottom: 8px; display: flex; justify-content: center; }
         table {
             width: 100%;
             min-width: 820px;
@@ -125,10 +119,7 @@
             vertical-align: middle;
             white-space: nowrap;
             word-break: break-word;
-        }
-        /* Căn đều cột */
-        th, td {
-            width: calc(100% / 8); /* 8 cột, chia đều */
+            width: calc(100% / 8);
         }
         th {
             background: var(--main-th);
@@ -148,130 +139,33 @@
         td.status.Approved  { color: var(--color-green); font-weight: bold;}
         td.status.Declined  { color: var(--color-fail); font-weight: bold;}
         td.reason { color: var(--color-fail); font-style: italic; }
-        .action-cell {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-        }
+        .action-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; }
         .btn-action {
-            padding: 6px 12px;
-            font-size: 13px;
-            border:none;
-            border-radius:100px;
-            font-weight:600;
-            cursor:pointer;
-            transition:background 0.13s, color 0.13s;
-            box-shadow: 0 2px 6px #bca96b13;
+            padding: 6px 12px; font-size: 13px; border:none; border-radius:100px; font-weight:600; cursor:pointer;
+            transition:background 0.13s, color 0.13s; box-shadow: 0 2px 6px #bca96b13;
         }
-        .btn-approve {
-            background: var(--color-green);
-            color: var(--main-th-bright);
-        }
-        .btn-approve:hover {
-            background: #346559;
-            color: #fff;
-        }
-        .btn-decline {
-            background: var(--color-fail);
-            color: var(--main-th-bright);
-        }
-        .btn-decline:hover {
-            background: #be1919;
-            color: #fff;
-        }
-        .input-reason {
-            padding: 4px 8px;
-            border-radius: 100px;
-            border:1.2px solid #c49c48;
-            font-size:13px; width:84px;
-            outline: none;
-            background: #fdf8ea;
-            margin-top: 2px;
-        }
+        .btn-approve { background: var(--color-green); color: var(--main-th-bright); }
+        .btn-approve:hover { background: #346559; color: #fff; }
+        .btn-decline { background: var(--color-fail); color: var(--main-th-bright); }
+        .btn-decline:hover { background: #be1919; color: #fff; }
+        .input-reason { padding: 4px 8px; border-radius: 100px; border:1.2px solid #c49c48; font-size:13px; width:84px; outline: none; background: #fdf8ea; margin-top: 2px; }
         .input-reason:focus { border-color: #35523A;}
         .btn-details, .btn-pdf {
-            background: #fff;
-            color: var(--color-bronze);
-            border: 1.1px solid var(--main-th);
-            border-radius: 100px;
-            padding: 3px 9px;
-            font-size: 13px;
-            font-weight: 600;
-            margin-left: 1px;
-            margin-top: 2px;
-            cursor: pointer;
-            transition: background 0.14s, color 0.13s, border 0.13s;
-            display: inline-block;
+            background: #fff; color: var(--color-bronze); border: 1.1px solid var(--main-th);
+            border-radius: 100px; padding: 3px 9px; font-size: 13px; font-weight: 600; margin-left: 1px; margin-top: 2px;
+            cursor: pointer; transition: background 0.14s, color 0.13s, border 0.13s; display: inline-block;
         }
-        .btn-details:hover, .btn-pdf:hover {
-            background: var(--main-th);
-            color: #25312b;
-            border-color: var(--main-th);
-        }
-        .btn-pdf {
-            color: #43a047;
-            border-color: #43a047;
-        }
-        .btn-pdf:hover {
-            background: #e8fff3;
-            color: #35523A;
-            border-color: #35523A;
-        }
-        .table-toolbar {
-            width: 100%;
-            background: transparent;
-            position: sticky;
-            top: 0;
-            z-index: 3;
-            padding-bottom: 8px;
-            display: flex;
-            justify-content: flex-end;
-            padding-right: 14px;
-        }
-        .table-toolbar input {
-            padding: 7px 13px;
-            font-size: 14px;
-            border-radius: 8px;
-            border:1.2px solid #ccc;
-            width: 185px;
-            background: #fff;
-        }
-        .table-wrap {
-            width: 100vw;
-            max-width: 100vw;
-            overflow-x: auto;
-            background: transparent;
-        }
-        table {
-            min-width: 880px;
-            width: max-content;
-            max-width: 100vw;
-            border-collapse: collapse;
-            background: #fffbe8e5;
-            border-radius: 14px;
-            font-size: 0.96rem;
-            box-shadow: 0 2px 12px #bca96b18;
-            table-layout: auto;
-        }
-        .approve-all-btn {
-            background: var(--color-green);
-            color: var(--main-th-bright);
-            border-radius: 100px;
-            font-size: 13px;
-            font-weight: 600;
-            padding: 5px 15px;
-            box-shadow: 0 2px 8px #bca96b18;
-            margin-top: 4px;
-            min-width: 0;
-        }
-        .approve-all-btn[disabled] {
-            opacity: 0.56;
-            cursor: not-allowed;
-            background: #b1bab6 !important;
-            color: #fff;
-            border: none;
-        }
+        .btn-details:hover, .btn-pdf:hover { background: var(--main-th); color: #25312b; border-color: var(--main-th); }
+        .btn-pdf { color: #43a047; border-color: #43a047; }
+        .btn-pdf:hover { background: #e8fff3; color: #35523A; border-color: #35523A; }
+
+        .table-toolbar { width: 100%; background: transparent; position: sticky; top: 0; z-index: 3; padding-bottom: 8px; display: flex; justify-content: flex-end; padding-right: 14px; }
+        .table-toolbar input { padding: 7px 13px; font-size: 14px; border-radius: 8px; border:1.2px solid #ccc; width: 185px; background: #fff; }
+        .table-wrap { width: 100vw; max-width: 100vw; overflow-x: auto; background: transparent; }
+        table { min-width: 880px; width: max-content; max-width: 100vw; border-collapse: collapse; background: #fffbe8e5; border-radius: 14px; font-size: 0.96rem; box-shadow: 0 2px 12px #bca96b18; table-layout: auto; }
+        .approve-all-btn { background: var(--color-green); color: var(--main-th-bright); border-radius: 100px; font-size: 13px; font-weight: 600; padding: 5px 15px; box-shadow: 0 2px 8px #bca96b18; margin-top: 4px; min-width: 0; }
+        .approve-all-btn[disabled] { opacity: 0.56; cursor: not-allowed; background: #b1bab6 !important; color: #fff; border: none; }
+
         @media (max-width: 1200px) {
             .box { max-width: 98vw; width: 98vw; }
             .table-wrap { max-width: 100vw; }
@@ -282,13 +176,9 @@
             .box { width: 100vw; max-width: 100vw; min-width: 0; }
             .back-home-btn, .back-home-btn[href*="tfr_request_form"],
             .back-home-btn[href*="tfr_request_archive"] {
-                font-size: 13px;
-                padding: 5px 10px 5px 8px;
-                top: 11px;
-                border-radius: 100px;
+                font-size: 13px; padding: 5px 10px 5px 8px; top: 11px; border-radius: 100px;
             }
-            .back-home-btn[href*="tfr_request_form"],
-            .back-home-btn[href*="tfr_request_archive"] { right: 13px; }
+            .back-home-btn[href*="tfr_request_form"], .back-home-btn[href*="tfr_request_archive"] { right: 13px; }
             .back-home-btn { left: 13px; }
             .table-wrap { max-width: 100vw; }
             table { min-width: 580px; font-size: 11px; }
@@ -299,25 +189,21 @@
             .box { max-width: 99vw; width: 99vw; }
             .back-home-btn, .back-home-btn[href*="tfr_request_form"],
             .back-home-btn[href*="tfr_request_archive"] {
-                font-size: 11px;
-                padding: 3px 6px 3px 5px;
-                top: 6px;
-                border-radius: 100px;
+                font-size: 11px; padding: 3px 6px 3px 5px; top: 6px; border-radius: 100px;
             }
-            .back-home-btn[href*="tfr_request_form"],
-            .back-home-btn[href*="tfr_request_archive"] { right: 6px; }
+            .back-home-btn[href*="tfr_request_form"], .back-home-btn[href*="tfr_request_archive"] { right: 6px; }
             .back-home-btn { left: 6px; }
             .table-wrap { max-width: 100vw; }
             table { min-width: 470px; font-size: 10px;}
             th, td { padding: 5px 1.5px;}
             h2 { margin-top: 19px; font-size: 0.99rem;}
         }
-        /* Darkmode chỉ đổi box, không đổi background */
+
+        /* Dark mode overrides */
         body.dark .box { background: var(--main-card) !important; color: var(--main-text) !important; }
-        body.dark h2, body.dark th { color: var(--main-th) !important; background: none !important;}
+        body.dark h2, body.dark th { color: var(--main-th) !important; background: none !重要;}
         body.dark th { color: #25312b !important; background: var(--main-th) !important; }
-        body.dark table { background: #344833 !important; }
-        body.dark tr:nth-child(even), body.dark tr:nth-child(odd) { background: #344833 !important; }
+        body.dark table, body.dark tr:nth-child(even), body.dark tr:nth-child(odd) { background: #344833 !important; }
         body.dark td, body.dark th { color: #25312b !important; }
         body.dark .back-home-btn { background: var(--main-th) !important; color: #344833 !important;}
         body.dark .back-home-btn:hover { background: #c49c48 !important; color: #fff !important;}
@@ -330,6 +216,7 @@
         body.dark .btn-details:hover, body.dark .btn-pdf:hover { background: var(--main-th) !important; color: #25312b !important; border-color: var(--main-th);}
         body.dark .input-reason {background:#3f5250 !important; color:#f6f6ef !important; border-color:#91b8a2;}
         body.dark ::selection {background: #c49c48; color: #25312b;}
+
         #theme-btn {
             position:fixed; right:24px; bottom:26px; z-index:11001;
             background: var(--main-th);
@@ -341,59 +228,71 @@
             transition: background 0.16s, color 0.16s;
         }
         #theme-btn:hover { background: var(--color-green); color: #fff; }
-        body.dark #theme-btn {
-            background: #6c837f;
-            color: #ffe082;
-        }
-        .table-toolbar input, .input-reason {
-            background: #fff;
-            color: var(--main-text);
-            border:1.2px solid var(--main-border);
-        }
-        body.dark .table-toolbar input, body.dark .input-reason {
-            background: #3f5250 !important;
-            color: #f6f6ef !important;
-            border-color: #91b8a2 !important;
-        }
-        body.dark input[type="date"] {
-            background: #3f5250 !important;
-            color: #fff !important;
-            border-color: #91b8a2 !important;
-        }
-        body.dark input[type="date"]::placeholder {
-            color: #ffe082 !important;
-            opacity: 1;
-        }
-        body.dark td {
-            color: #fffbe6 !important;
-        }
-        .top-bar{
-        position:absolute; top:18px; left:26px; right:26px;
-        display:flex; justify-content:space-between; align-items:center; z-index:10;
-        }
+        body.dark #theme-btn { background: #6c837f; color: #ffe082; }
+
+        .table-toolbar input, .input-reason { background: #fff; color: var(--main-text); border:1.2px solid var(--main-border); }
+        body.dark .table-toolbar input, body.dark .input-reason { background: #3f5250 !important; color: #f6f6ef !important; border-color: #91b8a2 !important; }
+        body.dark input[type="date"] { background: #3f5250 !important; color: #fff !important; border-color: #91b8a2 !important; }
+        body.dark input[type="date"]::placeholder { color: #ffe082 !important; opacity: 1; }
+        body.dark td { color: #fffbe6 !important; }
+
+        .top-bar{ position:absolute; top:18px; left:26px; right:26px; display:flex; justify-content:space-between; align-items:center; z-index:10; }
         .top-bar .right{ display:flex; gap:8px; flex-wrap:wrap; }
-
-        /* Ghi đè vị trí tuyệt đối cũ của .back-home-btn */
         .top-bar .back-home-btn{ position:static !important; left:auto !important; right:auto !important; }
-
-        /* Màu như cũ */
         .home-btn{ background:#c49c48; color:#fff; }
         .archive-btn,.create-btn{ background:#ffe082; color:#35523A; }
         .archive-btn:hover,.create-btn:hover{ background:#c49c48; color:#fff; }
 
-        /* Mobile */
         @media (max-width:600px){
-        .top-bar{ top:6px; left:6px; right:6px; }
-        .top-bar .right{ gap:5px; }
-        .top-bar .back-home-btn{ font-size:11px; padding:3px 6px 3px 5px; }
+          .top-bar{ top:6px; left:6px; right:6px; }
+          .top-bar .right{ gap:5px; }
+          .top-bar .back-home-btn{ font-size:11px; padding:3px 6px 3px 5px; }
         }
+
+        /* ===== Progress modal beautify ===== */
+        @keyframes stripeMove {
+          0% { background-position: 0 0; }
+          100% { background-position: 40px 0; }
+        }
+        .progress-outer {
+          width:100%; height:12px; background:#f0e7c0; border-radius:999px; overflow:hidden; position:relative;
+          box-shadow: inset 0 1px 3px rgba(0,0,0,.08);
+        }
+        .progress-inner {
+          height:100%; width:0%;
+          background: repeating-linear-gradient(
+              45deg,
+              rgba(78,133,115,1) 0 16px,
+              rgba(78,133,115,.9) 16px 32px
+          );
+          animation: stripeMove 1.1s linear infinite;
+          transition: width .35s ease;
+        }
+        .progress-percent {
+          position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+          font-size:12px; font-weight:700; color:#35523A;
+          mix-blend-mode: plus-lighter;
+        }
+        .modal-head {
+          display:flex; align-items:center; gap:10px; margin-bottom:10px;
+          font-weight:700; color:#35523A;
+        }
+        .spin {
+          display:inline-block; width:16px; height:16px; border:2px solid #91b8a2; border-top-color:#35523A; border-radius:50%;
+          animation: spin .8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg);} }
+        .badge-done {
+          display:inline-flex; align-items:center; gap:6px; font-weight:700; color:#2e7d32;
+        }
+        .fade-in { animation: fadeIn .25s ease; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(6px);} to { opacity:1; transform:translateY(0);} }
     </style>
 </head>
 <body>
     <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
     <div class="center-wrapper">
     <div class="box">
-            <!-- thay 3 thẻ <a> hiện tại bằng: -->
             <div class="top-bar">
             <div class="left">
                 <a href="/" class="back-home-btn home-btn"><i class="fa fa-chevron-left"></i> Home</a>
@@ -424,7 +323,8 @@
                         {% set can_approve_all = false %}
                     {% endif %}
                 {% endfor %}
-                <form method="post" action="/tfr_request_status" style="display:inline;">
+                <!-- GẮN onsubmit để bật popup & stream; không xóa gì cả -->
+                <form method="post" action="/tfr_request_status" style="display:inline;" onsubmit="startApproveAll(); return false;">
                     <input type="hidden" name="action" value="approve_all">
                     {% for r in requests %}
                         <input type="hidden" name="etd-{{ real_indices[loop.index0] }}" value="{{ r.etd or '' }}">
@@ -529,6 +429,7 @@
             {% endfor %}
         </table>
         </div>
+
         <!-- Modal chi tiết -->
         <div id="modal-detail" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(44,50,36,0.23); align-items:center; justify-content:center; z-index:9999;">
             <div style="background:#fff; color:#222; border-radius:16px; box-shadow:0 6px 28px #4d665c88; max-width:94vw; min-width:220px; padding:24px 10px 14px 17px; position:relative;">
@@ -537,6 +438,7 @@
                 <div id="detail-content" style="font-size:0.98em;white-space:pre-line;"></div>
             </div>
         </div>
+
         <!-- Modal xem PDF -->
         <div id="modal-pdf" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(44,50,36,0.33); align-items:center; justify-content:center; z-index:99999;">
             <div style="background:#222; border-radius:14px; max-width:94vw; width:98vw; height:92vh; box-shadow:0 6px 28px #4d665c88; position:relative; display:flex; flex-direction:column;">
@@ -546,56 +448,38 @@
         </div>
     </div>
     </div>
+
     <script>
         function confirmDelete(requestor, trq_id) {
-            return confirm(
-                "Bạn có chắc muốn xóa request của requestor: " + requestor + " (TRQ-ID: " + trq_id + ") không?"
-            );
+            return confirm("Bạn có chắc muốn xóa request của requestor: " + requestor + " (TRQ-ID: " + trq_id + ") không?");
         }
         function saveETD(input, trq_id, idx) {
             const etd = input.value;
             fetch('/save_etd', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({trq_id: trq_id, etd: etd, idx: idx})
+                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                body: JSON.stringify({trq_id, etd, idx})
             })
             .then(res => res.json())
-            .then(data => {
-                if (!data.success) {
-                    alert('Không lưu được ETD: ' + (data.message || 'Lỗi không xác định!'));
-                }
-            });
+            .then(data => { if (!data.success) alert('Không lưu được ETD: ' + (data.message || 'Lỗi không xác định!')); });
         }
         // Darkmode toggle
         let dark = localStorage.getItem("vfr-darkmode") === "1";
-        function applyDark(b) {
-            document.body.classList.toggle("dark", b);
-            localStorage.setItem("vfr-darkmode", b ? "1" : "0");
-        }
+        function applyDark(b) { document.body.classList.toggle("dark", b); localStorage.setItem("vfr-darkmode", b ? "1" : "0"); }
         applyDark(dark);
-        document.getElementById('theme-btn').onclick = () => {
-            dark = !dark;
-            applyDark(dark);
-        };
+        document.getElementById('theme-btn').onclick = () => { dark = !dark; applyDark(dark); };
 
-        // Hiển thị ô lý do decline
-        function showDecline(idx) {
-            document.getElementById("form-decline-" + idx).style.display = "inline-block";
-        }
-        function hideDecline(idx) {
-            document.getElementById("form-decline-" + idx).style.display = "none";
-        }
+        // Decline form toggle
+        function showDecline(idx) { document.getElementById("form-decline-" + idx).style.display = "inline-block"; }
+        function hideDecline(idx) { document.getElementById("form-decline-" + idx).style.display = "none"; }
 
-        // Xem chi tiết (lấy dữ liệu từ biến JS được render bởi Flask)
+        // Detail modal
         const requests = {{ requests | tojson }};
         function showDetail(idx) {
             const data = requests[idx];
             let html = "";
             for (let k in data) {
-                if (k==="status"||k==="decline_reason") continue; // status/decline_reason show riêng
+                if (k==="status"||k==="decline_reason") continue;
                 html += "<b style='color:#b8922e;'>" + k.replace(/_/g, " ").replace(/\b\w/g, l=>l.toUpperCase()) + ":</b> " + (data[k]||"<span style='color:#ccc;'>N/A</span>") + "<br/>";
             }
             html += "<b style='color:#b8922e;'>Status:</b> " + data.status + "<br/>";
@@ -603,18 +487,12 @@
             document.getElementById("detail-content").innerHTML = html;
             document.getElementById("modal-detail").style.display = "flex";
         }
-        function hideDetail() {
-            document.getElementById("modal-detail").style.display = "none";
-        }
-        // Xem PDF
-        function showPDF(link) {
-            document.getElementById("pdf-frame").src = link;
-            document.getElementById("modal-pdf").style.display = "flex";
-        }
-        function hidePDF() {
-            document.getElementById("pdf-frame").src = "";
-            document.getElementById("modal-pdf").style.display = "none";
-        }
+        function hideDetail() { document.getElementById("modal-detail").style.display = "none"; }
+
+        // PDF modal
+        function showPDF(link) { document.getElementById("pdf-frame").src = link; document.getElementById("modal-pdf").style.display = "flex"; }
+        function hidePDF() { document.getElementById("pdf-frame").src = ""; document.getElementById("modal-pdf").style.display = "none"; }
+
         function searchID() {
             const val = document.getElementById("search-id").value.toUpperCase();
             const rows = document.querySelectorAll("table tr");
@@ -625,5 +503,139 @@
             }
         }
     </script>
+
+<!-- ===== Modal progress approve all (THÊM MỚI) ===== -->
+<div id="modal-progress" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:100000; align-items:center; justify-content:center;">
+  <div style="background:#fff; color:#25312b; border-radius:16px; padding:18px; width:min(460px,92vw); box-shadow:0 8px 30px rgba(0,0,0,0.25);">
+    <div class="modal-head" id="progress-head">
+      <span class="spin" id="progress-spin" aria-hidden="true"></span>
+      <span id="progress-title">Đang duyệt yêu cầu…</span>
+    </div>
+    <div id="progress-text" style="font-size:14px; margin:6px 0 10px 0;">Bắt đầu…</div>
+    <div class="progress-outer" aria-label="Tiến độ duyệt" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div id="progress-bar" class="progress-inner"></div>
+      <div id="progress-percent" class="progress-percent">0%</div>
+    </div>
+    <div id="progress-footer" style="margin-top:12px; display:flex; justify-content:flex-end; gap:8px;">
+      <button id="btn-close-progress" onclick="hideProgress()" style="display:none; border:none; border-radius:10px; padding:7px 12px; background:#2e7d32; color:#fff; font-weight:700;">
+        <i class="fa fa-check-circle"></i> Xong
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+const modalProgress = document.getElementById("modal-progress");
+const bar = document.getElementById("progress-bar");
+const txt = document.getElementById("progress-text");
+const title = document.getElementById("progress-title");
+const spin = document.getElementById("progress-spin");
+const percentEl = document.getElementById("progress-percent");
+const headEl = document.getElementById("progress-head");
+const btnClose = document.getElementById("btn-close-progress");
+
+function showProgress(){ modalProgress.style.display = "flex"; }
+function hideProgress(){ modalProgress.style.display = "none"; }
+
+function setPercent(p){
+  const pct = Math.max(0, Math.min(100, Math.round(p)));
+  bar.style.width = pct + "%";
+  percentEl.textContent = pct + "%";
+  document.querySelector(".progress-outer").setAttribute("aria-valuenow", pct);
+}
+
+async function startApproveAll(){
+  showProgress();
+  setPercent(0);
+  txt.textContent = "Bắt đầu…";
+  title.textContent = "Đang duyệt yêu cầu…";
+  spin.style.display = "inline-block";
+  btnClose.style.display = "none";
+  headEl.classList.remove("badge-done","fade-in");
+
+  // THU THẬP ETD từ tất cả các dòng đang hiển thị
+  const updates = [];
+  document.querySelectorAll('tr').forEach(tr => {
+    const dateInp = tr.querySelector('input[type="date"][name="etd"]');
+    const idxInp  = tr.querySelector('input[type="hidden"][name="edit_idx"]');
+    const idInp   = tr.querySelector('input[type="hidden"][name="trq_id"]');
+    if(dateInp && idxInp && idInp && dateInp.value){
+      updates.push({
+        idx: Number(idxInp.value),
+        trq_id: idInp.value,
+        etd: dateInp.value
+      });
+    }
+  });
+
+  // GỌI STREAM + GỬI ETD CẬP NHẬT HÀNG LOẠT
+  const resp = await fetch("/approve_all_stream", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ updates })
+  });
+
+  if(!resp.body){ txt.textContent = "Không nhận được dữ liệu tiến trình."; return; }
+
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let total = 0, done = 0, currentPct = 0, animTimer = null;
+
+  function tweenTo(targetPct){
+    const start = currentPct, delta = targetPct - start, dur = 350;
+    const t0 = performance.now();
+    if(animTimer) cancelAnimationFrame(animTimer);
+    const step = (t)=>{
+      const x = Math.min(1, (t - t0)/dur);
+      const ease = x<.5 ? 2*x*x : 1 - Math.pow(-2*x+2,2)/2;
+      currentPct = start + delta*ease;
+      setPercent(currentPct);
+      if(x<1) animTimer = requestAnimationFrame(step);
+    };
+    animTimer = requestAnimationFrame(step);
+  }
+
+  while(true){
+    const {value, done: streamDone} = await reader.read();
+    if(streamDone) break;
+    buffer += decoder.decode(value, {stream:true});
+    let idx;
+    while((idx = buffer.indexOf("\n")) >= 0){
+      const line = buffer.slice(0, idx).trim();
+      buffer = buffer.slice(idx+1);
+      if(!line) continue;
+      try{
+        const msg = JSON.parse(line);
+        if(msg.type === "start"){
+          total = msg.total || 0;
+          txt.textContent = `Bắt đầu… 0/${total}`;
+          tweenTo(total ? 3 : 100);
+        }else if(msg.type === "progress"){
+          done = msg.done || 0;
+          const pct = total ? Math.max(1, Math.floor(done*100/total)) : 100;
+          tweenTo(pct);
+          txt.textContent = `Đã duyệt ${done}/${total}`;
+        }else if(msg.type === "done"){
+          tweenTo(100);
+          txt.textContent = `Hoàn tất: ${msg.done}/${msg.total}`;
+          title.textContent = "Hoàn tất duyệt";
+          spin.style.display = "none";
+          headEl.classList.add("badge-done","fade-in");
+          headEl.innerHTML = `<i class="fa fa-circle-check"></i> <span>Hoàn tất duyệt</span>`;
+          btnClose.style.display = "inline-flex";
+          setTimeout(()=>location.reload(), 1200);
+        }else if(msg.type === "error"){
+          spin.style.display = "none";
+          title.textContent = "Có lỗi xảy ra";
+          txt.textContent = msg.message || "Vui lòng thử lại.";
+          headEl.classList.remove("badge-done");
+          btnClose.style.display = "inline-flex";
+        }
+      }catch(e){ /* bỏ qua dòng không phải JSON */ }
+    }
+  }
+}
+</script>
 </body>
 </html>

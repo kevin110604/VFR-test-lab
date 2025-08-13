@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, session, redirect, url_for, jsonify, flash, send_from_directory
+from flask import Flask, request, render_template, session, redirect, url_for, jsonify, flash, send_from_directory, Response, stream_with_context
 from config import SECRET_KEY, local_main, SAMPLE_STORAGE, UPLOAD_FOLDER, TEST_GROUPS, local_complete, qr_folder, SO_GIO_TEST, ALL_SLOTS, TEAMS_WEBHOOK_URL_TRF, TEAMS_WEBHOOK_URL_RATE, TEAMS_WEBHOOK_URL_COUNT
 from excel_utils import get_item_code, get_col_idx, copy_row_with_style, is_img_at_cell, write_tfr_to_excel, append_row_to_trf, ensure_column
 from image_utils import allowed_file, safe_filename, get_img_urls
@@ -17,6 +17,7 @@ from openpyxl import load_workbook, Workbook
 from openpyxl.styles import PatternFill
 from collections import defaultdict, OrderedDict
 from apscheduler.schedulers.background import BackgroundScheduler
+from threading import Lock
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
@@ -24,7 +25,7 @@ app.secret_key = SECRET_KEY
 # Những test dùng giao diện Hot & Cold
 HOTCOLD_LIKE = {"hot_cold", "standing_water", "stain"}
 INDOOR_GROUPS = {"indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal"}
-
+REPORT_NO_LOCK = Lock()
 def _gen_new_trq_id(tfr_requests):
     """Sinh TRQ-ID dạng TRQ-YYYYMMDD-#### tăng dần theo ngày."""
     today = datetime.now().strftime("%Y%m%d")
@@ -236,6 +237,48 @@ def archive_request(short_data):
     archive = [r for r in archive if (now - get_dt(r["request_date"])).days < 14]
     archive.append(short_data)
     safe_write_json(ARCHIVE_LOG, archive)
+
+# --- ADD NEW: cleanup archive file (>14 ngày) ---
+def cleanup_archive_json(days=14):
+    """
+    Xóa các bản ghi archive quá 'days' ngày (xóa thật trong JSON).
+    Ưu tiên ARCHIVE_LOG / TFR_ARCHIVE_FILE nếu có; nếu không suy ra từ TFR_LOG_FILE.
+    """
+    try:
+        archive_path = globals().get("ARCHIVE_LOG") or globals().get("TFR_ARCHIVE_FILE")
+        if not archive_path:
+            base, ext = os.path.splitext(TFR_LOG_FILE)
+            archive_path = f"{base}_archive.json"
+
+        data = safe_read_json(archive_path)
+        if not isinstance(data, list) or not data:
+            return
+
+        from datetime import datetime
+        import pytz
+
+        def _parse_date(s):
+            if not s:
+                return None
+            for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%Y/%m/%d", "%d-%m-%Y"):
+                try:
+                    return datetime.strptime(str(s), fmt).date()
+                except Exception:
+                    pass
+            return None
+
+        today = datetime.now(pytz.timezone("Asia/Ho_Chi_Minh")).date()
+        kept = []
+        for r in data:
+            d = None
+            if isinstance(r, dict):
+                d = _parse_date(r.get("approved_date")) or _parse_date(r.get("etd")) or _parse_date(r.get("request_date"))
+            if not d or (today - d).days <= days:
+                kept.append(r)
+        if len(kept) != len(data):
+            safe_write_json(archive_path, kept)
+    except Exception as _e:
+        print("cleanup_archive_json error:", _e)
 
 # ---- HOME PAGE ----
 @app.route("/", methods=["GET", "POST"])
@@ -667,6 +710,133 @@ def tfr_request_form():
         edit_idx=edit_idx
     )
 
+# --- ADD NEW: gom logic approve 1 request để tái dùng ---
+def approve_all_one(req):
+    """
+    Approve 1 request:
+      - cấp report_no + tạo DOCX/PDF
+      - cập nhật Excel + TRF.xlsx
+      - đẩy vào archive (short_data)
+      - trả về req đã cập nhật (status/report_no/pdf_path/docx_path)
+    """
+    with REPORT_NO_LOCK:
+        # đọc mới nhất để tránh “đua”
+        current_list = safe_read_json(TFR_LOG_FILE)
+        pdf_path, report_no = allocate_unique_report_no(
+            approve_request_fill_docx_pdf, req, current_list
+        )
+
+    req["status"] = "Approved"
+    req["decline_reason"] = ""
+    req["report_no"] = report_no
+
+    output_folder = os.path.join('static', 'TFR')
+    output_docx = os.path.join(output_folder, f"{report_no}.docx")
+    output_pdf = os.path.join(output_folder, f"{report_no}.pdf")
+
+    # FALLBACK PDF: nếu convert lỗi (pythoncom/pywin32), không crash — cho phép dùng DOCX
+    try:
+        # nếu bạn có hàm try_convert_to_pdf thì gọi ở đây, an toàn với try/except
+        if not os.path.exists(output_pdf):
+            from docx_utils import try_convert_to_pdf
+            try_convert_to_pdf(output_docx, output_pdf)  # hàm này sẽ raise nếu thiếu pythoncom
+    except Exception as _pdf_e:
+        # ghi log nhẹ để debug, nhưng KHÔNG dừng approve
+        print("PDF convert failed, fallback to DOCX:", _pdf_e)
+
+    # gán đường dẫn ưu tiên PDF nếu đã tồn tại
+    if os.path.exists(output_pdf):
+        req['pdf_path'] = f"TFR/{report_no}.pdf"
+        req['docx_path'] = None
+    else:
+        req['pdf_path'] = None
+        req['docx_path'] = f"TFR/{report_no}.docx"
+
+    # Ghi Excel (giữ đúng cột/format như code cũ)
+    try:
+        write_tfr_to_excel(local_main, report_no, req)
+        wb = load_workbook(local_main)
+        ws = wb.active
+        report_col = get_col_idx(ws, "report#")
+        row_idx = None
+        for row in range(2, ws.max_row + 1):
+            v = ws.cell(row=row, column=report_col).value
+            if v and str(v).strip() == str(report_no):
+                row_idx = row
+                break
+        if row_idx:
+            def set_val(col_name, value, is_date_col=False):
+                col_idx = get_col_idx(ws, col_name)
+                if col_idx:
+                    cell = ws.cell(row=row_idx, column=col_idx)
+                    if is_date_col:
+                        dt_val = try_parse_excel_date(value)
+                        if dt_val:
+                            cell.value = dt_val
+                            cell.number_format = 'd-mmm'
+                        else:
+                            cell.value = value
+                    else:
+                        cell.value = value.upper() if isinstance(value, str) else value
+
+            def clean_type_of(val):
+                return val[:-5].strip() if val and isinstance(val, str) and val.upper().endswith(" TEST") else val
+
+            set_val("item#", req.get("item_code", ""))
+            set_val("type of", clean_type_of(req.get("test_group", "")))
+            set_val("item name/ description", req.get("sample_description", ""))
+            set_val("furniture testing", req.get("furniture_testing", ""))
+            set_val("submiter in", req.get("requestor", ""))
+            set_val("submited", req.get("department", ""))
+            set_val("qa comment", req.get("remark", ""))
+
+            etd_val = req.get("etd", "")
+            if etd_val:
+                set_val("etd", format_excel_date_short(etd_val), is_date_col=True)
+            else:
+                set_val("etd", "")
+
+            from datetime import datetime
+            import pytz
+            vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
+            log_in_date = datetime.now(vn_tz)
+            set_val("log in date", format_excel_date_short(log_in_date), is_date_col=True)
+
+            finishing_type = req.get("finishing_type", "")
+            material_type  = req.get("material_type", "")
+            cat_comp_pos   = get_category_component_position(finishing_type, material_type)
+            set_val("category / component name / position", cat_comp_pos)
+            wb.save(local_main)
+    except Exception as e:
+        print("Ghi vào Excel bị lỗi:", e)
+
+    # Cập nhật TRF.xlsx
+    try:
+        append_row_to_trf(report_no, local_main, "TRF.xlsx", trq_id=req.get("trq_id", ""))
+    except Exception as e:
+        print("Append TRF lỗi:", e)
+
+    # Đưa vào archive (archive_request của bạn đang tự dọn >14 ngày theo request_date)
+    try:
+        from datetime import datetime
+        import pytz
+        short_data = {
+            "trq_id": req.get("trq_id", ""),
+            "report_no": req.get("report_no", ""),
+            "requestor": req.get("requestor", ""),
+            "department": req.get("department", ""),
+            "request_date": req.get("request_date", ""),
+            "status": req.get("status", ""),
+            "pdf_path": req.get("pdf_path"),
+            "docx_path": req.get("docx_path"),
+            "approved_date": datetime.now(pytz.timezone("Asia/Ho_Chi_Minh")).strftime("%Y-%m-%d"),
+        }
+        archive_request(short_data)
+    except Exception as e:
+        print("Archive lỗi:", e)
+
+    return req
+
 @app.route("/tfr_request_status", methods=["GET", "POST"])
 def tfr_request_status():
     tfr_requests = safe_read_json(TFR_LOG_FILE)
@@ -679,100 +849,30 @@ def tfr_request_status():
         # === APPROVE ALL ===
         if is_admin and action == "approve_all":
             approved_count = 0
-            for idx, req in enumerate(tfr_requests):
+            # duyệt bản copy để có thể remove phần tử trong danh sách gốc
+            current = safe_read_json(TFR_LOG_FILE)
+            for idx, req in enumerate(current[:]):
                 if req.get("status") != "Submitted":
                     continue
                 etd = request.form.get(f"etd-{idx}", "").strip()
                 if not etd:
                     continue
+
+                # cập nhật ETD trước khi approve
                 req["etd"] = etd
                 req["estimated_completion_date"] = etd
-                pdf_path, report_no = allocate_unique_report_no(
-                    approve_request_fill_docx_pdf, req, tfr_requests
-                )
-                req["status"] = "Approved"
-                req["decline_reason"] = ""
-                req["report_no"] = report_no
 
-                output_folder = os.path.join('static', 'TFR')
-                output_docx = os.path.join(output_folder, f"{report_no}.docx")
-                output_pdf = os.path.join(output_folder, f"{report_no}.pdf")
-                if os.path.exists(output_pdf):
-                    req['pdf_path'] = f"TFR/{report_no}.pdf"
-                    req['docx_path'] = None
-                else:
-                    req['pdf_path'] = None
-                    req['docx_path'] = f"TFR/{report_no}.docx"
-
-                write_tfr_to_excel(local_main, report_no, req)
                 try:
-                    wb = load_workbook(local_main)
-                    ws = wb.active
-                    report_col = get_col_idx(ws, "report#")
-                    row_idx = None
-                    for row in range(2, ws.max_row + 1):
-                        v = ws.cell(row=row, column=report_col).value
-                        if v and str(v).strip() == str(report_no):
-                            row_idx = row
-                            break
-                    if row_idx:
-                        def set_val(col_name, value, is_date_col=False):
-                            col_idx = get_col_idx(ws, col_name)
-                            if col_idx:
-                                cell = ws.cell(row=row_idx, column=col_idx)
-                                if is_date_col:
-                                    dt_val = try_parse_excel_date(value)
-                                    if dt_val:
-                                        cell.value = dt_val
-                                        cell.number_format = 'd-mmm'
-                                    else:
-                                        cell.value = value
-                                else:
-                                    cell.value = value.upper() if isinstance(value, str) else value
-                        def clean_type_of(val):
-                            return val[:-5].strip() if val and val.upper().endswith(" TEST") else val
-                        set_val("item#", req.get("item_code", ""))
-                        set_val("type of", clean_type_of(req.get("test_group", "")))
-                        set_val("item name/ description", req.get("sample_description", ""))
-                        set_val("furniture testing", req.get("furniture_testing", ""))
-                        set_val("submiter in", req.get("requestor", ""))
-                        set_val("submited", req.get("department", ""))
-                        set_val("qa comment", req.get("remark", ""))
-                        # ETD format
-                        etd_val = req.get("etd", "")
-                        if etd_val:
-                            set_val("etd", format_excel_date_short(etd_val))
-                        else:
-                            set_val("etd", "")
-
-                        # Log in date format
-                        vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
-                        log_in_date = datetime.now(vn_tz)
-                        set_val("log in date", format_excel_date_short(log_in_date))
-                        # -------- BỔ SUNG ĐOẠN NÀY ----------
-                        finishing_type = req.get("finishing_type", "")
-                        material_type = req.get("material_type", "")
-                        cat_comp_pos = get_category_component_position(finishing_type, material_type)
-                        set_val("category / component name / position", cat_comp_pos)
-                        # -------- HẾT BỔ SUNG ---------------
-                        wb.save(local_main)
+                    # gom toàn bộ logic approve vào 1 hàm (giữ đúng cách ghi excel/trf/archive)
+                    approve_all_one(req)
+                    # XÓA request đã approve khỏi JSON pending để đỡ nặng
+                    trq_id = req.get("trq_id")
+                    current = [r for r in current if r.get("trq_id") != trq_id]
+                    approved_count += 1
                 except Exception as e:
-                    print("Ghi vào Excel bị lỗi:", e)
+                    print("Approve one (approve_all) error:", e)
 
-                append_row_to_trf(report_no, local_main, "TRF.xlsx", trq_id=req.get("trq_id", ""))
-                short_data = {
-                    "trq_id": req.get("trq_id", ""),
-                    "report_no": req.get("report_no", ""),
-                    "requestor": req.get("requestor", ""),
-                    "department": req.get("department", ""),
-                    "request_date": req.get("request_date", ""),
-                    "status": req.get("status", ""),
-                    "pdf_path": req.get("pdf_path"),
-                    "docx_path": req.get("docx_path"),
-                }
-                archive_request(short_data)
-                approved_count += 1
-            safe_write_json(TFR_LOG_FILE, tfr_requests)
+            safe_write_json(TFR_LOG_FILE, current)
             flash(f"Đã duyệt {approved_count} request (chỉ duyệt các dòng đã có ETD)!")
             return redirect(url_for('tfr_request_status'))
         
@@ -790,93 +890,17 @@ def tfr_request_status():
                 if not etd:
                     flash("Bạn cần điền Estimated Completion Date (ETD) trước khi approve!")
                     return redirect(url_for('tfr_request_status'))
+
                 req["etd"] = etd
                 req["estimated_completion_date"] = etd
-                pdf_path, report_no = allocate_unique_report_no(
-                    approve_request_fill_docx_pdf, req, tfr_requests
-                )
-                req["status"] = "Approved"
-                req["decline_reason"] = ""
-                req["report_no"] = report_no
 
-                output_folder = os.path.join('static', 'TFR')
-                output_docx = os.path.join(output_folder, f"{report_no}.docx")
-                output_pdf = os.path.join(output_folder, f"{report_no}.pdf")
-                if os.path.exists(output_pdf):
-                    req['pdf_path'] = f"TFR/{report_no}.pdf"
-                    req['docx_path'] = None
-                else:
-                    req['pdf_path'] = None
-                    req['docx_path'] = f"TFR/{report_no}.docx"
-
-                write_tfr_to_excel(local_main, report_no, req)
                 try:
-                    wb = load_workbook(local_main)
-                    ws = wb.active
-                    report_col = get_col_idx(ws, "report#")
-                    row_idx = None
-                    for row in range(2, ws.max_row + 1):
-                        v = ws.cell(row=row, column=report_col).value
-                        if v and str(v).strip() == str(report_no):
-                            row_idx = row
-                            break
-                    if row_idx:
-                        def set_val(col_name, value, is_date_col=False):
-                            col_idx = get_col_idx(ws, col_name)
-                            if col_idx:
-                                cell = ws.cell(row=row_idx, column=col_idx)
-                                if is_date_col:
-                                    dt_val = try_parse_excel_date(value)
-                                    if dt_val:
-                                        cell.value = dt_val
-                                        cell.number_format = 'd-mmm'
-                                    else:
-                                        cell.value = value
-                                else:
-                                    cell.value = value.upper() if isinstance(value, str) else value
-                        def clean_type_of(val):
-                            return val[:-5].strip() if val and val.upper().endswith(" TEST") else val
-                        set_val("item#", req.get("item_code", ""))
-                        set_val("type of", clean_type_of(req.get("test_group", "")))
-                        set_val("item name/ description", req.get("sample_description", ""))
-                        set_val("furniture testing", req.get("furniture_testing", ""))
-                        set_val("submiter in", req.get("requestor", ""))
-                        set_val("submited", req.get("department", ""))
-                        set_val("qa comment", req.get("remark", ""))
-                        # ---- ETD: always format d-mmm
-                        etd_val = req.get("etd", "")
-                        if etd_val:
-                            set_val("etd", format_excel_date_short(etd_val))
-                        else:
-                            set_val("etd", "")
-
-                        vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
-                        # --- Log in date: format d-mmm
-                        log_in_date = datetime.now(vn_tz)
-                        set_val("log in date", format_excel_date_short(log_in_date))
-                        # -------- BỔ SUNG ĐOẠN NÀY ----------
-                        finishing_type = req.get("finishing_type", "")
-                        material_type = req.get("material_type", "")
-                        cat_comp_pos = get_category_component_position(finishing_type, material_type)
-                        set_val("category / component name / position", cat_comp_pos)
-                        # -------- HẾT BỔ SUNG ---------------
-                        wb.save(local_main)
+                    approve_all_one(req)      # gom full logic approve 1 chỗ
+                    del tfr_requests[idx]     # XÓA ngay khỏi pending để giảm nặng file
+                    safe_write_json(TFR_LOG_FILE, tfr_requests)
                 except Exception as e:
-                    print("Ghi vào Excel bị lỗi:", e)
-
-                append_row_to_trf(report_no, local_main, "TRF.xlsx", trq_id=req.get("trq_id", ""))
-                short_data = {
-                    "trq_id": req.get("trq_id", ""),
-                    "report_no": req.get("report_no", ""),
-                    "requestor": req.get("requestor", ""),
-                    "department": req.get("department", ""),
-                    "request_date": req.get("request_date", ""),
-                    "status": req.get("status", ""),
-                    "pdf_path": req.get("pdf_path"),
-                    "docx_path": req.get("docx_path"),
-                }
-                archive_request(short_data)
-            safe_write_json(TFR_LOG_FILE, tfr_requests)
+                    print("Approve one (single) error:", e)
+                    flash("Có lỗi khi approve, vui lòng thử lại.")
             return redirect(url_for('tfr_request_status'))
 
         # === DECLINE ===
@@ -2693,6 +2717,108 @@ def set_pref():
         session[key] = value
         return jsonify({"success": True})
     return jsonify({"success": False}), 400
+
+@app.post("/approve_all_stream")
+def approve_all_stream():
+    def gen():
+        # (0) Nhận các ETD cập nhật hàng loạt (nếu FE có gửi kèm)
+        try:
+            data = request.get_json(silent=True) or {}
+            updates = data.get("updates", [])
+            if updates:
+                pending0 = safe_read_json(TFR_LOG_FILE)
+                for u in updates:
+                    try:
+                        i = int(u.get("idx"))
+                        if 0 <= i < len(pending0) and pending0[i].get("trq_id") == u.get("trq_id"):
+                            pending0[i]["etd"] = (u.get("etd") or "").strip()
+                    except Exception:
+                        pass
+                safe_write_json(TFR_LOG_FILE, pending0)
+        except Exception as e:
+            yield json.dumps({"type": "error", "message": f"Bulk ETD update: {e}"}) + "\n"
+
+        # (1) Cleanup archive cũ (không chặn tiến trình)
+        try:
+            cleanup_archive_json(days=14)
+        except Exception as e:
+            yield json.dumps({"type": "error", "message": f"Cleanup: {e}"}) + "\n"
+
+        # (2) Lấy danh sách cần duyệt = Submitted + có ETD
+        pending = safe_read_json(TFR_LOG_FILE)
+        todo = [r for r in pending if r.get("status") == "Submitted" and r.get("etd")]
+        total = len(todo)
+        yield json.dumps({"type": "start", "total": total}) + "\n"
+
+        if total == 0:
+            yield json.dumps({"type": "done", "done": 0, "total": 0}) + "\n"
+            return
+
+        done = 0
+        for item in list(todo):
+            trq_id = item.get("trq_id")
+            try:
+                # (3) Cấp report_no + tạo DOCX/PDF với hàm trong docx_utils
+                with REPORT_NO_LOCK:
+                    # Trả về đường dẫn PDF tương đối (vd: "TFR/XXXX.pdf") và report_no
+                    pdf_rel_path, report_no = approve_request_fill_docx_pdf(item)
+
+                    # Cập nhật trạng thái + trường hiển thị
+                    item["status"] = "Approved"
+                    item["decline_reason"] = ""
+                    item["report_no"] = report_no
+                    item["pdf_path"] = pdf_rel_path  # đã có PDF
+                    item["docx_path"] = None         # PDF có sẵn nên ẩn DOCX nếu bạn muốn
+
+                # (4) (Tuỳ code) Ghi Excel TRF nếu bạn có hàm write_tfr_to_excel
+                try:
+                    write_tfr_to_excel(local_main, report_no, item)  # nếu không có, bỏ qua
+                except Exception:
+                    pass  # không chặn luồng approve
+
+                # (5) Archive bản rút gọn
+                try:
+                    short_data = {
+                        "trq_id": trq_id,
+                        "report_no": report_no,
+                        "requestor": item.get("requestor",""),
+                        "department": item.get("department",""),
+                        "request_date": item.get("request_date",""),
+                        "status": item.get("status",""),
+                        "pdf_path": item.get("pdf_path"),
+                        "docx_path": item.get("docx_path"),
+                        "approved_date": datetime.now(pytz.timezone("Asia/Ho_Chi_Minh")).strftime("%Y-%m-%d"),
+                    }
+                    archive_request(short_data)
+                except Exception:
+                    pass
+
+                # (6) Xoá request đã duyệt khỏi pending và lưu file
+                pending = [r for r in pending if r.get("trq_id") != trq_id]
+                safe_write_json(TFR_LOG_FILE, pending)
+
+                # (7) Báo tiến độ 1/n → n/n
+                done += 1
+                yield json.dumps({
+                    "type": "progress",
+                    "done": done,
+                    "total": total,
+                    "trq_id": trq_id,
+                    "report_no": report_no
+                }) + "\n"
+
+            except Exception as e:
+                yield json.dumps({"type": "error", "message": str(e), "trq_id": trq_id}) + "\n"
+
+        # (8) Kết thúc
+        yield json.dumps({"type": "done", "done": done, "total": total}) + "\n"
+
+    headers = {
+        "Content-Type": "application/x-ndjson; charset=utf-8",
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    }
+    return Response(stream_with_context(gen()), headers=headers)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8246,debug=True)
