@@ -523,6 +523,16 @@
         cursor: pointer; box-shadow: 0 4px 12px #c49c4830; transition: background .16s, transform .12s;
     }
     .mode-btn:hover { background: var(--main-btn-hover); color: var(--main-btn-hover-text); transform: translateY(-2px); }
+    /* Trên điện thoại nhỏ, rút gọn chữ */
+    @media (max-width: 480px) {
+        #mode-chip {
+            font-size: 13px;
+            padding: 4px 8px;
+        }
+        #mode-chip i {
+            margin-right: 0 !important;
+        }
+    }
     </style>
 </head>
 <body>
@@ -579,7 +589,7 @@
             </div>
             {% endif %}
 
-            <img src="/static/logo_vfr.jpg" alt="VFR Logo" style="display:block; margin:0 auto 18px auto; max-width:190px;"/>
+            <img src="/static/logo_vfr.jpg" alt="VFR Logo" style="display:block; margin: 30px auto 18px auto; max-width:190px;"/>
             <h2 class="text-title">Product Search</h2>
 
             {# =============== KHỐI KHI CHƯA ĐĂNG NHẬP TEST LAB VÀ CHƯA VFR3_OK =============== #}
@@ -591,10 +601,10 @@
                 </div>
 
                 <!-- Panel VFR3 (sẽ thế chỗ cụm trên khi chuyển sang VFR3 mode) -->
-                <div id="vfr3-panel" class="request-menu-row" aria-hidden="true">
-                    <a href="/vfr3/wax" class="vfr3-btn"><i class="fa fa-cubes"></i> Mẫu sáp</a>
-                    <a href="/vfr3/sand-casting" class="vfr3-btn"><i class="fa fa-mountain"></i> Mẫu đúc cát</a>
-                    <a href="/vfr3/ceramic-plaster" class="vfr3-btn"><i class="fa fa-flask"></i> Mẫu ceramic thạch cao</a>
+                <div id="vfr3-panel" class="request-menu-row">
+                    <a href="/vfr3/wax" class="vfr3-btn"><i class="fa fa-cubes"></i> <span class="text-vfr3-wax">Mẫu sáp</span></a>
+                    <a href="/vfr3/sand-casting" class="vfr3-btn"><i class="fa fa-mountain"></i> <span class="text-vfr3-sand">Mẫu đúc cát</span></a>
+                    <a href="/vfr3/ceramic-plaster" class="vfr3-btn"><i class="fa fa-flask"></i> <span class="text-vfr3-ceramic">Mẫu ceramic thạch cao</span></a>
                 </div>
 
                 <!-- Form tìm item -->
@@ -669,9 +679,9 @@
             {% else %}
                 <!-- Panel VFR3: LUÔN render trong DOM khi đã login; hiển thị khi body.vfr3-mode -->
                 <div id="vfr3-panel" class="request-menu-row">
-                    <a href="/vfr3/wax" class="vfr3-btn"><i class="fa fa-cubes"></i> Mẫu sáp</a>
-                    <a href="/vfr3/sand-casting" class="vfr3-btn"><i class="fa fa-mountain"></i> Mẫu đúc cát</a>
-                    <a href="/vfr3/ceramic-plaster" class="vfr3-btn"><i class="fa fa-flask"></i> Mẫu ceramic thạch cao</a>
+                    <a href="/vfr3/wax" class="vfr3-btn"><i class="fa fa-cubes"></i> <span class="text-vfr3-wax">Mẫu sáp</span></a>
+                    <a href="/vfr3/sand-casting" class="vfr3-btn"><i class="fa fa-mountain"></i> <span class="text-vfr3-sand">Mẫu đúc cát</span></a>
+                    <a href="/vfr3/ceramic-plaster" class="vfr3-btn"><i class="fa fa-flask"></i> <span class="text-vfr3-ceramic">Mẫu ceramic thạch cao</span></a>
                 </div>
 
                 <!-- Góc phải: menu và logout khi đã đăng nhập TEST LAB -->
@@ -964,7 +974,10 @@
                     "text-login-btn": "Đăng nhập",
                     "text-password": "Nhập mật khẩu",
                     "text-staff-id": "Nhập ID Nhân viên",
-                    "text-confirm": "Xác nhận"
+                    "text-confirm": "Xác nhận",
+                    "text-vfr3-wax": "Mẫu sáp",
+                    "text-vfr3-sand": "Mẫu đúc cát",
+                    "text-vfr3-ceramic": "Mẫu ceramic thạch cao",
                 },
                 en: {
                     "text-title": "VFR",
@@ -985,7 +998,10 @@
                     "text-login-btn": "Login",
                     "text-password": "Enter password",
                     "text-staff-id": "Enter Staff ID",
-                    "text-confirm": "Confirm"
+                    "text-confirm": "Confirm",
+                    "text-vfr3-wax": "Wax Sample",
+                    "text-vfr3-sand": "Sand Casting Sample",
+                    "text-vfr3-ceramic": "Ceramic Plaster Sample",
                 }
             };
             for (const key in LANG[lang]) {

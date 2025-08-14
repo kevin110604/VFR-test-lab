@@ -1,6 +1,6 @@
 from flask import Flask, request, render_template, session, redirect, url_for, jsonify, flash, send_from_directory, Response, stream_with_context, abort
 from config import SECRET_KEY, local_main, SAMPLE_STORAGE, UPLOAD_FOLDER, TEST_GROUPS, local_complete, qr_folder, SO_GIO_TEST, ALL_SLOTS, TEAMS_WEBHOOK_URL_TRF, TEAMS_WEBHOOK_URL_RATE, TEAMS_WEBHOOK_URL_COUNT
-from excel_utils import get_item_code, get_col_idx, copy_row_with_style, is_img_at_cell, write_tfr_to_excel, append_row_to_trf
+from excel_utils import get_item_code, get_col_idx, copy_row_with_style, write_tfr_to_excel, append_row_to_trf
 from image_utils import allowed_file, get_img_urls
 from auth import login, get_user_type
 from test_logic import load_group_notes, get_group_test_status, is_drop_test, is_impact_test, is_rotational_test,  TEST_GROUP_TITLES, TEST_TYPE_VI, DROP_ZONES, DROP_LABELS, GT68_FACE_LABELS, GT68_FACE_ZONES
@@ -1128,24 +1128,32 @@ def logout():
     session.pop("staff_id", None)  # Đăng xuất thì xóa luôn staff_id
     return "<h3 style='text-align:center;margin-top:80px;'>Đã đăng xuất!<br><a href='/' style='color:#4d665c;'>Về trang chọn sản phẩm</a></h3>"
 
-@app.route("/vfr3/wax")
-def vfr3_wax():
-    _require_staff()
-    # Quyền nâng cao nếu đã login vfr3; nếu chưa login thì chỉ xem
-    role = session.get('role') or session.get('user_type') or 'wtl'
-    return f"<h2>VFR3 - Mẫu sáp</h2><p>Role hiện tại: <b>{role}</b></p><p>Trang sẽ cập nhật sau.</p>"
+@app.get("/vfr3/wax")
+def vfr3_wax_menu():
+    return render_template(
+        "vfr3_area.html",
+        area="vfr3/wax",
+        area_name="Mẫu sáp",
+        logout_url=url_for("logout")
+    )
 
-@app.route("/vfr3/sand-casting")
-def vfr3_sand_casting():
-    _require_staff()
-    role = session.get('role') or session.get('user_type') or 'wtl'
-    return f"<h2>VFR3 - Mẫu đúc cát</h2><p>Role hiện tại: <b>{role}</b></p><p>Trang sẽ cập nhật sau.</p>"
+@app.get("/vfr3/sand-casting")
+def vfr3_sand_menu():
+    return render_template(
+        "vfr3_area.html",
+        area="vfr3/sand-casting",
+        area_name="Mẫu đúc cát",
+        logout_url=url_for("logout")
+    )
 
-@app.route("/vfr3/ceramic-plaster")
-def vfr3_ceramic_plaster():
-    _require_staff()
-    role = session.get('role') or session.get('user_type') or 'wtl'
-    return f"<h2>VFR3 - Mẫu ceramic thạch cao</h2><p>Role hiện tại: <b>{role}</b></p><p>Trang sẽ cập nhật sau.</p>"
+@app.get("/vfr3/ceramic-plaster")
+def vfr3_ceramic_menu():
+    return render_template(
+        "vfr3_area.html",
+        area="vfr3/ceramic-plaster",
+        area_name="Mẫu ceramic thạch cao",
+        logout_url=url_for("logout")
+    )
 
 @app.route("/update", methods=["GET", "POST"])
 def update():

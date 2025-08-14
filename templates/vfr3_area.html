@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>VFR3 - Menu</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <style>
+    /* ======= Tập biến màu giống home ======= */
+    :root {
+      --main-bg: #fffdfc;
+      --main-card: #fffdfccf;
+      --main-text: #333;
+      --main-th: #4d665c;
+      --main-border: #4d665c55;
+      --main-btn: #c49c48;
+      --main-btn-hover: #35523A;
+      --main-btn-text: #fff;
+      --main-btn-hover-text: #ffe082;
+    }
+    body.darkmode {
+      --main-bg: #2b3938;
+      --main-card: #374B4A;
+      --main-text: #f6f6ef;
+      --main-th: #ffe082;
+      --main-border: #263d3a;
+      --main-btn: #97722a;
+      --main-btn-hover: #35523A;
+      --main-btn-text: #fff;
+      --main-btn-hover-text: #ffe082;
+    }
+
+    /* ======= Layout chung ======= */
+    html, body { height: 100%; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+      margin: 0;
+      background: var(--main-bg);
+      color: var(--main-text);
+      transition: background .3s, color .3s;
+    }
+    .center-form {
+      max-width: 820px;
+      margin: 60px auto;
+      background: var(--main-card);
+      border-radius: 22px;
+      box-shadow: 0 4px 28px var(--main-border);
+      padding: 40px 24px;
+      position: relative;
+    }
+    h2 {
+      text-align: center;
+      font-size: 28px;
+      color: var(--main-th);
+      margin: 10px 0 6px 0;
+    }
+    .staff-id {
+      text-align: center;
+      font-size: 14.3px;
+      font-style: italic;
+      margin: 6px 0 20px;
+      color: #968015;
+    }
+    body.darkmode .staff-id { color: #ffe082; }
+
+    /* ======= 3 nút chức năng ======= */
+    .button-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .action-btn {
+      min-width: 180px;
+      max-width: 320px;
+      padding: 14px 18px;
+      border-radius: 14px;
+      border: none;
+      background: var(--main-btn);
+      color: var(--main-btn-text);
+      font-weight: 800;
+      font-size: 17px;
+      letter-spacing: .02em;
+      box-shadow: 0 4px 14px #c49c4840;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background .16s, transform .12s, color .16s, box-shadow .16s;
+    }
+    .action-btn:hover {
+      background: var(--main-btn-hover);
+      color: var(--main-btn-hover-text);
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 6px 18px #c49c4840;
+    }
+
+    /* ======= Nút quay lại ======= */
+    .back-btn {
+    background: #faf7ec;
+    color: #73592c !important;
+    border: 1px solid #d5c69d;
+    border-radius: 11px;
+    font-family: 'Inter', 'Open Sans', Arial, sans-serif;
+    font-size: 13.3px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 4px 12px 4px 11px;
+    min-width: 0;
+    box-shadow: 0 1px 6px #d4c8942a;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: background 0.13s, color 0.13s, border-color 0.13s;
+    }
+    .back-btn:hover {
+    background: #ffe082;
+    color: #25312b !important;
+    border-color: #ffe082;
+    }
+    .back-btn svg {
+    margin: 0 !important;
+    }
+
+    /* ======= Nút theme (dark/light) ======= */
+    #theme-btn {
+      position: fixed;
+      right: 24px;
+      bottom: 26px;
+      z-index: 11001;
+      background: #8B6B1E;
+      color: #fff;
+      border-radius: 100px;
+      font-size: 17px;
+      padding: 6px 11px;
+      border: none;
+      height: 38px;
+      width: 38px;
+      min-width: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: .96;
+      box-shadow: 0 2px 10px rgba(0,0,0,.10);
+      cursor: pointer;
+      transition: background .16s, color .16s;
+    }
+    #theme-btn:hover { background: #C49C48; color: #fff; }
+    body.darkmode #theme-btn { background: #6c837f !important; color: #fefefe !important; }
+
+    /* ======= Responsive nhỏ gọn ======= */
+    @media (max-width: 800px) {
+      .center-form { padding: 24px 14px; }
+      h2 { font-size: 22px; }
+    }
+    @media (max-width: 520px) {
+      .center-form { padding: 18px 10px; margin: 40px 8px; }
+      h2 { font-size: 18px; }
+      .action-btn { font-size: 15px; min-width: 150px; padding: 12px 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="center-form">
+    <!-- Logo + tiêu đề -->
+    <img src="/static/logo_vfr.jpg" alt="VFR Logo"
+         style="display:block; margin:30px auto 18px; max-width:190px;"/>
+    <div style="text-align:center; margin-bottom:20px;">
+    <a href="/" class="back-btn" style="position:absolute; top:15px; left:15px; z-index:1000;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+            viewBox="0 0 16 16">
+        <path fill-rule="evenodd" 
+                d="M15 8a.5.5 0 0 1-.5.5H3.707l3.147 3.146a.5.5 0 
+                1 1-.708.708l-4-4a.5.5 0 0 
+                1 0-.708l4-4a.5.5 0 0 1 
+                .708.708L3.707 7.5H14.5A.5.5 
+                0 0 1 15 8z"/>
+        </svg>
+        Quay lại Home
+    </a>
+    </div>
+    <h2>Menu</h2>
+
+    <!-- Hiển thị ID nếu có -->
+    {% if session.get('staff_id') %}
+    <div class="staff-id">
+      <b>ID Nhân viên:</b> {{ session.get('staff_id') }}
+    </div>
+    {% endif %}
+
+    <!-- 3 nút: Mượn / Trả / (DS sản phẩm chỉ hiện khi đăng nhập VFR3) -->
+    <div class="button-wrap">
+      <a href="/{{ area }}/borrow" class="action-btn">
+        <i class="fa fa-arrow-right-to-bracket"></i><span>Mượn hàng</span>
+      </a>
+
+      <a href="/{{ area }}/return" class="action-btn">
+        <i class="fa fa-rotate-left"></i><span>Trả hàng</span>
+      </a>
+
+      {% if session.get('role') == 'vfr3' %}
+      <a href="/{{ area }}/inventory" class="action-btn">
+        <i class="fa fa-table"></i><span>Danh sách sản phẩm</span>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Nút dark/light -->
+  <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
+
+  <script>
+    // ======= Darkmode giống home (tối giản, tự lưu localStorage) =======
+    function applyDarkMode(dark) {
+      document.body.classList.toggle('darkmode', dark);
+      const themeBtn = document.getElementById('theme-btn');
+      if (themeBtn) themeBtn.innerHTML = dark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
+      try { localStorage.setItem('vfr-darkmode', dark ? '1' : '0'); } catch(e) {}
+    }
+    (function initDark() {
+      let dark = false;
+      try {
+        const saved = localStorage.getItem('vfr-darkmode');
+        if (saved !== null) dark = saved === '1';
+      } catch(e) {}
+      applyDarkMode(dark);
+      const btn = document.getElementById('theme-btn');
+      if (btn) btn.onclick = function(){ dark = !dark; applyDarkMode(dark); };
+    })();
+
+    // (Tuỳ chọn) ép mode VFR3 để đồng bộ hành vi nếu bạn có dùng ở nơi khác
+    try { localStorage.setItem('vfr-mode', 'VFR3'); } catch(e) {}
+  </script>
+</body>
+</html>
