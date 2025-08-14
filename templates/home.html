@@ -44,6 +44,7 @@
         border-radius: 22px;
         box-shadow: 0 4px 28px var(--main-border);
         padding: 40px;
+        position: relative; /* để #mode-chip bám vào */
     }
     h2 {
         text-align: center;
@@ -113,7 +114,6 @@
         max-width: 430px;
         width: 90%;
     }
-
     .item-search-form-modern label {
         display: flex;
         align-items: center;
@@ -124,7 +124,6 @@
         white-space: nowrap;
         min-width: 68px;
     }
-
     .item-search-form-modern input {
         font-size: 15px;
         border-radius: 6px;
@@ -141,12 +140,7 @@
         transition: border 0.13s;
         height: 32px;
     }
-
-    .item-search-form-modern input:focus {
-        border-color: #c49c48;
-        outline: none;
-    }
-
+    .item-search-form-modern input:focus { border-color: #c49c48; outline: none; }
     .item-search-form-modern button {
         font-size: 13.5px;
         padding: 4px 14px;
@@ -163,219 +157,70 @@
         transition: background 0.13s, color 0.13s;
         box-shadow: 0 1px 7px #c49c4830;
         letter-spacing: 0.01em;
-        flex: 0 0 auto; /* Nút chỉ chiếm độ rộng vừa nội dung */
+        flex: 0 0 auto;
     }
-    .item-search-form-modern button:hover {
-        background: var(--main-btn-hover);
-        color: var(--main-btn-hover-text);
-    }
-    body.darkmode .item-search-form-modern button {
-        background: var(--main-btn);
-        color: var(--main-btn-text);
-    }
-    body.darkmode .item-search-form-modern button:hover {
-        background: var(--main-btn-hover);
-        color: var(--main-btn-hover-text);
-    }
+    .item-search-form-modern button:hover { background: var(--main-btn-hover); color: var(--main-btn-hover-text); }
 
     /* Mobile responsive */
     @media (max-width: 600px) {
-        .item-search-form-modern {
-            flex-direction: row;
-            gap: 4px;
-            padding: 2px 3vw;
-            max-width: 99vw;
-        }
+        .item-search-form-modern { flex-direction: row; gap: 4px; padding: 2px 3vw; max-width: 99vw; }
         .item-search-form-modern label,
         .item-search-form-modern button,
-        .item-search-form-modern input {
-            font-size: 12px;
-            height: 28px;
-        }
-        .item-search-form-modern input {
-            min-width: 60px;
-            max-width: 200px;
-            width: 77px;
-            padding: 3px 7px;
-        }
-        .item-search-form-modern button {
-            padding: 2.5px 9px;
-            border-radius: 6px;
-            min-width: 43px;
-        }
+        .item-search-form-modern input { font-size: 12px; height: 28px; }
+        .item-search-form-modern input { min-width: 60px; max-width: 200px; width: 77px; padding: 3px 7px; }
     }
-
     @media (max-width: 420px) {
-        .item-search-form-modern {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 5px;
-            padding: 2px 2vw;
-        }
+        .item-search-form-modern { flex-direction: column; align-items: stretch; gap: 5px; padding: 2px 2vw; }
         .item-search-form-modern label,
         .item-search-form-modern input,
-        .item-search-form-modern button {
-            width: 100%;
-            min-width: 0;
-            max-width: 99vw;
-        }
+        .item-search-form-modern button { width: 100%; min-width: 0; max-width: 99vw; }
         .item-search-form-modern input { margin-right: 0; }
     }
     h3 { color: var(--main-th); }
+
     /* ---------- FILTER BAR STYLE (MỚI) --------- */
     .type-filter-form {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 9px 13px;
-        margin-bottom: 10px;
-        margin-top: 8px;
-        font-size: 15px;
+        display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start;
+        gap: 9px 13px; margin-bottom: 10px; margin-top: 8px; font-size: 15px;
+        width: 100%;
     }
-    .type-filter-label {
-        font-size: 14px;
-        font-weight: 600;
-        color: #c49c48;
-        margin-bottom: 0;
-        margin-right: 3px;
+    .type-filter-label { font-size: 14px; font-weight: 600; color: #c49c48; margin-bottom: 0; margin-right: 3px; }
+    .type-filter-select, .dropdown-status-btn {
+        font-size: 14px; padding: 6px 12px; border-radius: 7px; border: 1.3px solid #ffe082;
+        background: #fffbe8; color: #775d17; font-weight: 600; outline: none; box-shadow: 0 1px 8px #f7cf3a10;
+        min-width: 85px; max-width: 145px; width: auto; margin-right: 2px; margin-bottom: 0;
     }
-    .type-filter-select,
-    .dropdown-status-btn {
-        font-size: 14px;
-        padding: 6px 12px;
-        border-radius: 7px;
-        border: 1.3px solid #ffe082;
-        background: #fffbe8;
-        color: #775d17;
-        font-weight: 600;
-        outline: none;
-        box-shadow: 0 1px 8px #f7cf3a10;
-        min-width: 85px;
-        max-width: 145px;
-        width: auto;
-        margin-right: 2px;
-        margin-bottom: 0;
-    }
-    .dropdown-status-btn {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        min-width: 92px;
-    }
-    .dropdown-status-filter {
-        position: relative;
-        display: inline-block;
-        vertical-align: middle;
-    }
+    .dropdown-status-btn { display: flex; align-items: center; gap: 6px; min-width: 92px; }
+    .dropdown-status-filter { position: relative; display: inline-block; vertical-align: middle; }
     .dropdown-status-menu {
-        position: absolute;
-        top: 115%;
-        right: 0;
-        min-width: 105px;
-        max-width: 97vw;
-        background: #fffbe8;
-        border: 1.3px solid #ffe082;
-        border-radius: 10px;
-        box-shadow: 0 5px 20px #3331;
-        z-index: 1100;
-        margin-top: 5px;
-        animation: fadeIn 0.23s;
-        padding: 7px 0 1px 0;
-        font-size: 13px;
+        position: absolute; top: 115%; right: 0; min-width: 105px; max-width: 97vw; background: #fffbe8;
+        border: 1.3px solid #ffe082; border-radius: 10px; box-shadow: 0 5px 20px #3331; z-index: 1100;
+        margin-top: 5px; animation: fadeIn 0.23s; padding: 7px 0 1px 0; font-size: 13px;
     }
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-9px);}
-        to   { opacity: 1; transform: translateY(0);}
-    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-9px);} to { opacity: 1; transform: translateY(0);} }
     .dropdown-status-menu label {
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        font-size: 13.2px;
-        padding: 4px 12px 3px 10px;
-        cursor: pointer;
-        user-select: none;
-        transition: background 0.16s, color 0.12s;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        display: flex; align-items: center; gap: 7px; font-size: 13.2px; padding: 4px 12px 3px 10px; cursor: pointer;
+        user-select: none; transition: background 0.16s, color 0.12s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         max-width: 92vw;
     }
-    .dropdown-status-menu label:hover {
-        background: #ffe08233;
-    }
-    .dropdown-status-menu input[type="checkbox"] {
-        accent-color: #b78e24;
-        margin-right: 4px;
-        width: 16px;
-        height: 16px;
-    }
-    .dropdown-status-menu .status-filter-btn-box {
-        padding: 7px 12px 3px 12px;
-        text-align: right;
-    }
+    .dropdown-status-menu label:hover { background: #ffe08233; }
+    .dropdown-status-menu input[type="checkbox"] { accent-color: #b78e24; margin-right: 4px; width: 16px; height: 16px; }
+    .dropdown-status-menu .status-filter-btn-box { padding: 7px 12px 3px 12px; text-align: right; }
     .dropdown-status-menu button[type="submit"] {
-        padding: 5px 18px;
-        border-radius: 7px;
-        font-size: 14px;
-        font-weight: 600;
-        background: #c49c48;
-        color: #fff;
-        border: none;
-        cursor: pointer;
-        transition: background 0.16s;
+        padding: 5px 18px; border-radius: 7px; font-size: 14px; font-weight: 600; background: #c49c48; color: #fff; border: none; cursor: pointer; transition: background 0.16s;
     }
-    .dropdown-status-menu button[type="submit"]:hover {
-        background: #35523A;
-        color: #ffe082;
-    }
-    /* --------- END FILTER BAR STYLE ---------- */
-    .overview-board {
-        display: flex;
-        gap: 20px;
-        margin: 10px 0 20px 0;
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-    .stat-card {
-        background: #fffbe8;
-        border-radius: 13px;
-        min-width: 90px;
-        min-height: 65px;
-        flex: 1 1 0;
-        padding: 10px 18px;
-        text-align: center;
-        box-shadow: 0 2px 8px #c49c4822;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        opacity: 1;
-        transition: opacity 0.2s;
-        max-width: 180px;
-    }
+    .dropdown-status-menu button[type="submit"]:hover { background: #35523A; color: #ffe082; }
+
+    .overview-board { display: flex; gap: 20px; margin: 10px 0 20px 0; justify-content: center; flex-wrap: wrap; }
+    .stat-card { background: #fffbe8; border-radius: 13px; min-width: 90px; min-height: 65px; flex: 1 1 0; padding: 10px 18px; text-align: center; box-shadow: 0 2px 8px #c49c4822; display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 1; transition: opacity 0.2s; max-width: 180px; }
     .stat-card.late { border: 2.2px solid #df2323; }
     .stat-card.due { border: 2.2px solid #fbc02d; }
     .stat-card.must { border: 2.2px solid #00bcd4; }
     .stat-card.active { border: 2.2px solid #43a047; }
-    .stat-num {
-        font-size: 25px;
-        font-weight: bold;
-        margin-bottom: 3px;
-    }
-    .stat-label {
-        font-size: 12.7px;
-        font-weight: 600;
-        letter-spacing: 0.01em;
-    }
+    .stat-num { font-size: 25px; font-weight: bold; margin-bottom: 3px; }
+    .stat-label { font-size: 12.7px; font-weight: 600; letter-spacing: 0.01em; }
     .stat-label span { display: block; font-size: 11px; color: #a1887f; font-weight: 400;}
-    .info-row {
-        text-align: center;
-        font-size: 13.4px;
-        color: #b78e24;
-        margin-bottom: 8px;
-    }
+    .info-row { text-align: center; font-size: 13.4px; color: #b78e24; margin-bottom: 8px; }
     .info-row span { font-weight: 600; }
     .info-row .late { color: #df2323; }
     .info-row .due { color: #ff9800; }
@@ -383,101 +228,39 @@
     .info-row .active { color: #43a047; }
     form { text-align: center; margin-bottom: 20px; }
     input[type=text], input[type=password] {
-        font-size: 18px;
-        padding: 10px 14px;
-        width: 80%;
-        margin: 10px 0;
-        border-radius: 9px;
-        border: 1.7px solid var(--main-th);
-        color: var(--main-text);
-        background: var(--main-bg);
+        font-size: 18px; padding: 10px 14px; width: 80%; margin: 10px 0; border-radius: 9px;
+        border: 1.7px solid var(--main-th); color: var(--main-text); background: var(--main-bg);
         transition: background 0.3s, color 0.3s;
     }
     button {
-        font-size: 17px;
-        padding: 9px 24px;
-        border-radius: 9px;
-        background: var(--main-th);
-        color: white;
-        border: none;
-        cursor: pointer;
-        transition: background 0.3s;
+        font-size: 17px; padding: 9px 24px; border-radius: 9px; background: var(--main-th); color: white;
+        border: none; cursor: pointer; transition: background 0.3s;
     }
-    button:hover {
-        box-shadow: 0 3px 12px #0002;
-        transform: scale(1.02);
-    }
-    .error-message {
-        color: #e33;
-        margin-top: 10px;
-        text-align: center;
-    }
+    button:hover { box-shadow: 0 3px 12px #0002; transform: scale(1.02); }
+    .error-message { color: #e33; margin-top: 10px; text-align: center; }
+
     .table-responsive { width: 100%; overflow-x: auto; margin-top: 18px; }
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        min-width: 680px;
-        font-size: 16px;
-        background: var(--main-bg);
-        color: var(--main-text);
-    }
-    th, td {
-        border: 1px solid #999;
-        padding: 10px 12px;
-        text-align: center;
-    }
-    th {
-        background-color: var(--main-th);
-        color: white;
-    }
-    td button {
-        font-size: 15px;
-        padding: 6px 12px;
-    }
+    table { width: 100%; border-collapse: collapse; min-width: 680px; font-size: 16px; background: var(--main-bg); color: var(--main-text); }
+    th, td { border: 1px solid #999; padding: 10px 12px; text-align: center; }
+    th { background-color: var(--main-th); color: white; }
+    td button { font-size: 15px; padding: 6px 12px; }
+
     .logout-link { display: inline-block; margin-top: 16px; text-align: center; }
     .logout-link a {
-        color: #4d665c;
-        font-weight: bold;
-        text-decoration: none;
-        font-size: 14px;
-        transition: color 0.3s ease;
+        color: #4d665c; font-weight: bold; text-decoration: none; font-size: 14px; transition: color 0.3s ease;
     }
-    .logout-link a:hover {
-        text-decoration: underline;
-    }
-    body.darkmode .logout-link a {
-        color: #ffe082;  /* vàng sáng, nổi bật trên nền #374B4A */
-    }
-    .status-late {
-        color: #d32f2f;
-        font-weight: bold;
-        -webkit-text-stroke: 0.5px #222;
-        text-shadow: 0 1px 2px #000c;
-        letter-spacing: 1px;
-    }
-    .status-must {
-        color: #FFD600;
-        font-weight: bold;
-        -webkit-text-stroke: 0.5px #222;
-        text-shadow: 0 1px 2px #000c;
-        letter-spacing: 1px;
-    }
-    .status-due {
-        color: #FF9800;
-        font-weight: bold;
-        -webkit-text-stroke: 0.5px #222;
-        text-shadow: 0 1px 2px #000c;
-        letter-spacing: 1px;
-    }
+    .logout-link a:hover { text-decoration: underline; }
+    body.darkmode .logout-link a { color: #ffe082; }
+
+    .status-late { color: #d32f2f; font-weight: bold; -webkit-text-stroke: 0.5px #222; text-shadow: 0 1px 2px #000c; letter-spacing: 1px; }
+    .status-must { color: #FFD600; font-weight: bold; -webkit-text-stroke: 0.5px #222; text-shadow: 0 1px 2px #000c; letter-spacing: 1px; }
+    .status-due  { color: #FF9800; font-weight: bold; -webkit-text-stroke: 0.5px #222; text-shadow: 0 1px 2px #000c; letter-spacing: 1px; }
+
     .counter-block { color: #232323 }
+
     /* --------- Darkmode --------- */
-    body.darkmode, body.darkmode td, body.darkmode .stat-label, body.darkmode .stat-num {
-        color: #f6f6ef !important;
-    }
-    body.darkmode .counter-block {
-        background: #272917;
-        color: #232323 !important;
-    }
+    body.darkmode, body.darkmode td, body.darkmode .stat-label, body.darkmode .stat-num { color: #f6f6ef !important; }
+    body.darkmode .counter-block { background: #272917; color: #232323 !important; }
     body.darkmode th { color: #222 !important; }
     body.darkmode h2, body.darkmode h3, body.darkmode .info-row { color: #ffe082 !important; }
     body.darkmode table { background: #23252c; }
@@ -486,64 +269,26 @@
     body.darkmode .overview-board .stat-card.due { border-color: #fbbf24; }
     body.darkmode .overview-board .stat-card.must { border-color: #38bdf8; }
     body.darkmode .overview-board .stat-card.active { border-color: #4ade80; }
+
     /* Darkmode filter */
-    body.darkmode .type-filter-label {
-        color: #b78e24 !important;
-    }
+    body.darkmode .type-filter-label { color: #b78e24 !important; }
     body.darkmode .type-filter-select,
     body.darkmode .dropdown-status-btn,
-    body.darkmode .dropdown-status-menu {
-        background: #ffe082 !important;
-        color: #232 !important;
-        border-color: #ffe082 !important;
-    }
-    body.darkmode .dropdown-status-menu label {
-        color: #232 !important;
-    }
-    body.darkmode button,
-    body.darkmode button[type="submit"] {
-        color: #232323 !important;
-        background: #ffe082 !important;
-    }
-    body.darkmode a button {
-        color: #232323 !important;
-        background: #ffe082 !important;
-    }
+    body.darkmode .dropdown-status-menu { background: #ffe082 !important; color: #232 !important; border-color: #ffe082 !important; }
+    body.darkmode .dropdown-status-menu label { color: #232 !important; }
+    body.darkmode button, body.darkmode button[type="submit"] { color: #232323 !important; background: #ffe082 !important; }
+    body.darkmode a button { color: #232323 !important; background: #ffe082 !important; }
+
     /* Responsive filter bar for mobile */
     @media (max-width: 600px) {
-        .type-filter-form {
-            flex-direction: row;
-            flex-wrap: wrap;
-            gap: 4px 3px;
-            font-size: 12.7px;
-        }
-        .type-filter-label {
-            font-size: 12px;
-            margin-right: 2px;
-        }
-        .type-filter-select,
-        .dropdown-status-btn {
-            font-size: 12.3px;
-            padding: 5px 7px;
-            min-width: 62px;
-            max-width: 99vw;
-            width: auto;
-        }
-        .dropdown-status-menu {
-            font-size: 12px;
-        }
+        .type-filter-form { flex-direction: row; flex-wrap: wrap; gap: 4px 3px; font-size: 12.7px; }
+        .type-filter-label { font-size: 12px; margin-right: 2px; }
+        .type-filter-select, .dropdown-status-btn { font-size: 12.3px; padding: 5px 7px; min-width: 62px; max-width: 99vw; width: auto; }
+        .dropdown-status-menu { font-size: 12px; }
     }
     @media (max-width: 430px) {
-        .type-filter-form {
-            gap: 2px 1px;
-            font-size: 11px;
-        }
-        .type-filter-select,
-        .dropdown-status-btn {
-            font-size: 11px;
-            padding: 4px 5px;
-            min-width: 48px;
-        }
+        .type-filter-form { gap: 2px 1px; font-size: 11px; }
+        .type-filter-select, .dropdown-status-btn { font-size: 11px; padding: 4px 5px; min-width: 48px; }
     }
     @media (max-width: 800px) {
         .center-form { padding: 16px 1vw; }
@@ -563,25 +308,14 @@
         .stat-card { min-width: 47px; min-height: 32px; padding: 4px 3px; }
         .stat-num { font-size: 13px;}
     }
+
     .status-info-box {
-        background: #fffbe8;
-        border-radius: 12px;
-        box-shadow: 0 1px 8px #f7cf3a18;
-        padding: 8px 15px 7px 15px;
-        margin: 28px auto 8px auto;
-        max-width: 430px;
-        border: 1.5px solid #ffe082;
+        background: #fffbe8; border-radius: 12px; box-shadow: 0 1px 8px #f7cf3a18;
+        padding: 8px 15px 7px 15px; margin: 28px auto 8px auto; max-width: 430px; border: 1.5px solid #ffe082;
     }
     .status-info-row {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: center;
-        gap: 9px;
-        font-size: 14.2px;
-        font-weight: 500;
-        letter-spacing: 0.01em;
-        color: #b78e24;
+        display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 9px;
+        font-size: 14.2px; font-weight: 500; letter-spacing: 0.01em; color: #b78e24;
     }
     .status-label { font-weight: 700; }
     .status-label.late   { color: #df2323; }
@@ -589,454 +323,211 @@
     .status-label.must   { color: #00bcd4; }
     .status-label.active { color: #43a047; }
     .status-sep { color: #ccc; margin: 0 4px; font-weight: 300;}
-    body.darkmode .status-info-box {
-        background: #ffe082;
-        border-color: #ffe082;
-    }
-    body.darkmode .status-info-row { color: #222 !important; }
-    body.darkmode .status-label { color: #222 !important; }
+    body.darkmode .status-info-box { background: #ffe082; border-color: #ffe082; }
+    body.darkmode .status-info-row, body.darkmode .status-label { color: #222 !important; }
     body.darkmode .status-label.late   { color: #d32f2f !important; }
     body.darkmode .status-label.due    { color: #b98509 !important; }
     body.darkmode .status-label.must   { color: #0c6bb0 !important; }
     body.darkmode .status-label.active { color: #0a7422 !important; }
+
     .status-summary-board {
-        margin-left: auto;
-        margin-right: auto;
-        width: 100%;
-        max-width: 700px;
-        background: var(--main-card);
-        border-radius: 13px;
-        box-shadow: 0 2px 16px #fbc02d23;
-        padding: 12px 10px 8px 10px;
-        overflow: visible;
+        margin-left: auto; margin-right: auto; width: 100%; max-width: 700px;
+        background: var(--main-card); border-radius: 13px; box-shadow: 0 2px 16px #fbc02d23; padding: 12px 10px 8px 10px; overflow: visible;
     }
     .status-summary-scroll { width: 100%; overflow-x: auto; }
     .status-summary-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        font-size: 15px;
-        background: transparent;
-        min-width: 340px;
-        max-width: 100%;
-        margin: 0 auto;
+        width: 100%; border-collapse: separate; border-spacing: 0; font-size: 15px; background: transparent;
+        min-width: 340px; max-width: 100%; margin: 0 auto;
     }
-    .status-summary-table th, .status-summary-table td {
-        padding: 8px 9px;
-        border-bottom: 1.2px solid #ffe08288;
-        text-align: center;
-        background: none;
-        white-space: nowrap;
-    }
+    .status-summary-table th, .status-summary-table td { padding: 8px 9px; border-bottom: 1.2px solid #ffe08288; text-align: center; background: none; white-space: nowrap; }
     .status-summary-table th {
-        background: #fffbe8;
-        color: #b78e24;
-        font-size: 13.5px;
-        font-weight: 800;
-        border-top: none;
-        border-bottom: 2px solid #ffe082;
-        letter-spacing: 0.04em;
+        background: #fffbe8; color: #b78e24; font-size: 13.5px; font-weight: 800; border-top: none; border-bottom: 2px solid #ffe082; letter-spacing: 0.04em;
     }
     .status-summary-table td { background: transparent; font-size: 13.5px; }
     .status-summary-table .late-col   { color: #df2323 !important; font-weight: 700;}
     .status-summary-table .due-col    { color: #ff9800 !important; font-weight: 700;}
     .status-summary-table .must-col   { color: #00bcd4 !important; font-weight: 700;}
     .status-summary-table .active-col { color: #43a047 !important; font-weight: 700;}
+
     @media (max-width: 600px) {
         .status-summary-board { padding: 7px 0 7px 0; }
-        .status-summary-table th, .status-summary-table td {
-            padding: 3px 1px;
-            font-size: 13px;
-        }
+        .status-summary-table th, .status-summary-table td { padding: 3px 1px; font-size: 13px; }
         .status-summary-table th { font-size: 14px; }
     }
     @media (max-width: 370px) {
         .status-summary-table { min-width: 80px;}
         .status-summary-table th, .status-summary-table td { padding: 1.7px 1px; font-size: 8px;}
     }
-    body.darkmode .status-summary-board {
-        background: #ffe082 !important;
-        box-shadow: 0 1px 10px #2222;
-    }
-    body.darkmode .status-summary-table th {
-        background: #ffe082 !important;
-        color: #222 !important;
-    }
+    body.darkmode .status-summary-board { background: #ffe082 !important; box-shadow: 0 1px 10px #2222; }
+    body.darkmode .status-summary-table th { background: #ffe082 !important; color: #222 !important; }
     body.darkmode .status-summary-table td { background: transparent !important; }
     body.darkmode .status-summary-table .late-col   { color: #df2323 !important; }
     body.darkmode .status-summary-table .due-col    { color: #ff9800 !important; }
     body.darkmode .status-summary-table .must-col   { color: #00bcd4 !important; }
     body.darkmode .status-summary-table .active-col { color: #43a047 !important; }
+
     /* Pagination style */
-    .pagination-box {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 5px;
-        margin: 18px 0 12px 0;
-    }
+    .pagination-box { display: flex; justify-content: center; align-items: center; gap: 5px; margin: 18px 0 12px 0; }
     .pagination-btn {
-        display: inline-block;
-        min-width: 32px;
-        padding: 6px 12px;
-        margin: 0 2px;
-        font-size: 16px;
-        font-weight: 500;
-        color: #b78e24;
-        background: #fffbe8;
-        border: 1.2px solid #ffe082;
-        border-radius: 7px;
-        cursor: pointer;
-        text-decoration: none;
-        transition: background 0.15s, color 0.15s, border 0.15s;
-        z-index: 11;
-        position: relative;
-        user-select: none;
-        touch-action: manipulation;
-        -webkit-tap-highlight-color: rgba(0,0,0,0.15);
+        display: inline-block; min-width: 32px; padding: 6px 12px; margin: 0 2px; font-size: 16px; font-weight: 500;
+        color: #b78e24; background: #fffbe8; border: 1.2px solid #ffe082; border-radius: 7px; cursor: pointer; text-decoration: none;
+        transition: background 0.15s, color 0.15s, border 0.15s; z-index: 11; position: relative; user-select: none; touch-action: manipulation; -webkit-tap-highlight-color: rgba(0,0,0,0.15);
     }
-    .pagination-btn.active,
-    .pagination-btn:hover {
-        background: #ffe082;
-        color: #232323;
-        border-color: #fbc02d;
-        font-weight: 700;
-        pointer-events: none;
-    }
-    body.darkmode .pagination-btn {
-        background: #ffe082 !important;
-        color: #222 !important;
-        border-color: #ffe082 !important;
-    }
-    body.darkmode .pagination-btn.active {
-        background: #fffbe8 !important;
-        color: #dcb300 !important;
-        border-color: #ffe082 !important;
-    }
-    .main-btn:hover {
-        background: #c49c48 !important;
-        color: #232826 !important;
-    }
+    .pagination-btn.active, .pagination-btn:hover { background: #ffe082; color: #232323; border-color: #fbc02d; font-weight: 700; pointer-events: none; }
+
+    body.darkmode .pagination-btn { background: #ffe082 !important; color: #222 !important; border-color: #ffe082 !important; }
+    body.darkmode .pagination-btn.active { background: #fffbe8 !important; color: #dcb300 !important; border-color: #ffe082 !important; }
+
+    .main-btn:hover { background: #c49c48 !important; color: #232826 !important; }
+
     .btn-more {
-        background: #c49c48;
-        color: #fff;
-        border: none;
-        border-radius: 100px;
-        width: 44px;
-        height: 44px;
-        font-size: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 18px #a3936840, 0 1.5px 8px #c49c4822;
-        transition: background 0.15s, color 0.12s, box-shadow 0.13s;
-        cursor: pointer;
-        outline: none;
+        background: #c49c48; color: #fff; border: none; border-radius: 100px; width: 44px; height: 44px; font-size: 20px;
+        display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 18px #a3936840, 0 1.5px 8px #c49c4822;
+        transition: background 0.15s, color 0.12s, box-shadow 0.13s; cursor: pointer; outline: none;
     }
     .btn-more:hover { background: #35523A; color: #ffe082; }
+
     .dropdown-content {
-        display: none;
-        position: absolute;
-        right: 0;
-        top: 52px;
-        min-width: 175px;
-        background: #fff;
-        border-radius: 13px;
-        box-shadow: 0 4px 16px #bca04044;
-        font-size: 15.5px;
-        overflow: hidden;
-        z-index: 1001;
-        border: 1.5px solid #f3e1a2;
+        display: none; position: absolute; right: 0; top: 52px; min-width: 175px; background: #fff; border-radius: 13px;
+        box-shadow: 0 4px 16px #bca04044; font-size: 15.5px; overflow: hidden; z-index: 1001; border: 1.5px solid #f3e1a2;
     }
     .dropdown-content a {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: #333;
-        padding: 12px 19px 12px 14px;
-        text-decoration: none;
-        border-bottom: 1px solid #eee2b8;
-        font-weight: 500;
-        transition: background 0.16s, color 0.13s;
+        display: flex; align-items: center; gap: 8px; color: #333; padding: 12px 19px 12px 14px; text-decoration: none; border-bottom: 1px solid #eee2b8;
+        font-weight: 500; transition: background 0.16s, color 0.13s;
     }
     .dropdown-content a:last-child { border-bottom: none; }
     .dropdown-content a:hover { background: #ffe082; color: #35523A; }
+
     .show { display: block; }
+
     .form-pw.login-row {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        justify-content: stretch;
-        width: 100%;
-        margin-bottom: 0;
-        margin-top: 0;
+        display: flex; gap: 8px; align-items: center; justify-content: stretch; width: 100%; margin-bottom: 0; margin-top: 0;
     }
-    .form-pw .pw-input {
-        width: 100%;
-        min-width: 0;
-        flex: 1 1 0;
-        box-sizing: border-box;
-        height: 44px;
-    }
-    .form-pw .pw-btn {
-        flex: 0 0 auto;
-        padding-left: 20px;
-        padding-right: 20px;
-        margin-left: 0;
-        height: 44px;
-        white-space: nowrap;
-        border-radius: 9px;
-        background: var(--main-th);
-        color: white;
-        border: none;
-        font-size: 17px;
-        font-weight: 600;
-        transition: background 0.3s;
-        box-sizing: border-box;
-    }
+    .form-pw .pw-input { width: 100%; min-width: 0; flex: 1 1 0; box-sizing: border-box; height: 44px; }
+    .form-pw .pw-btn { flex: 0 0 auto; padding-left: 20px; padding-right: 20px; margin-left: 0; height: 44px; white-space: nowrap; border-radius: 9px; background: var(--main-th); color: white; border: none; font-size: 17px; font-weight: 600; transition: background 0.3s; box-sizing: border-box; }
     .form-pw .pw-btn:hover { background: #35523A; color: #ffe082; }
     .form-pw #toggle-pw {
-        right: 10px;
-        top: 0;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        color: #b78e24;
-        font-size: 18px;
-        opacity: 0.84;
-        z-index: 2;
-        padding: 0 2px;
-        position: absolute;
+        right: 10px; top: 0; height: 100%; display: flex; align-items: center; background: transparent; border: none; cursor: pointer;
+        color: #b78e24; font-size: 18px; opacity: 0.84; z-index: 2; padding: 0 2px; position: absolute;
     }
-    .toolbar-top {
-        width: 100%;
-        max-width: 700px;
-        margin: 0 auto 10px auto;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0;
-    }
-    .stat-btn-bar {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        margin-bottom: 10px;
-    }
-    .type-filter-form {
-        width: 100%;
-        justify-content: flex-end;
-    }
+
+    .toolbar-top { width: 100%; max-width: 700px; margin: 0 auto 10px auto; display: flex; flex-direction: column; align-items: center; gap: 0; }
+    .stat-btn-bar { width: 100%; display: flex; justify-content: center; margin-bottom: 10px; }
+    .type-filter-form { width: 100%; justify-content: flex-end; }
+
     @media (max-width: 600px) {
-        .form-pw.login-row {
-            flex-direction: column;
-            gap: 6px;
-            align-items: stretch;
-        }
-        .form-pw .pw-btn {
-            width: 100%;
-            margin-left: 0;
-            margin-top: 6px;
-        }
+        .form-pw.login-row { flex-direction: column; gap: 6px; align-items: stretch; }
+        .form-pw .pw-btn { width: 100%; margin-left: 0; margin-top: 6px; }
         .form-pw .pw-input { width: 100%; }
         .toolbar-top, .stat-btn-bar { max-width: 98vw; }
         .stat-btn-bar { margin-bottom: 7px; }
         .type-filter-form { margin-top: 8px; }
     }
-    input[type=text], input[type=password], button {
-        box-sizing: border-box;
-    }
+
+    input[type=text], input[type=password], button { box-sizing: border-box; }
     /* Thêm tối ưu cho select/option cho mobile không tràn */
-    select, .type-filter-select, .dropdown-status-btn {
-        max-width: 100vw;
-        width: auto;
-        min-width: 0;
-    }
+    select, .type-filter-select, .dropdown-status-btn { max-width: 100vw; width: auto; min-width: 0; }
+
     #theme-btn {
-        position: fixed;
-        right: 24px;
-        bottom: 26px;
-        z-index: 11001;
-        background: #8B6B1E; /* vàng đồng */
-        color: #fff;
-        border-radius: 100px;
-        font-size: 17px;
-        padding: 6px 11px;
-        border: none;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.10);
-        cursor: pointer;
-        height: 38px;
-        width: 38px;
-        min-width: 36px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        opacity: 0.96;
-        transition: background 0.16s, color 0.16s;
-        font-family: 'Inter', sans-serif;
+        position: fixed; right: 24px; bottom: 26px; z-index: 11001; background: #8B6B1E; color: #fff; border-radius: 100px; font-size: 17px; padding: 6px 11px; border: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.10); cursor: pointer; height: 38px; width: 38px; min-width: 36px; display: flex; align-items: center; justify-content: center; opacity: 0.96;
+        transition: background 0.16s, color 0.16s; font-family: 'Inter', sans-serif;
     }
-    #theme-btn:hover {
-        background: #C49C48; /* vàng sáng */
-        color: #fff;
-        opacity: 1;
-    }
-    body.dark #theme-btn, body.darkmode #theme-btn {
-        background: #6c837f !important;
-        color: #fefefe !important;
-        transition: background 0.23s, color 0.23s;
-    }
-    .item-search-form {
-        display: flex;
-        align-items: center;  /* CĂN GIỮA label với input/nút */
-        gap: 10px;
-        margin-bottom: 12px;
-        flex-wrap: wrap;
-    }
-    .item-search-label {
-        font-size: 14px;
-        font-weight: 600;
-        color: #c49c48;
-        margin-bottom: 0;
-        /* Đảm bảo label sát input */
-        white-space: nowrap;
-        /* Căn chỉnh cho cùng chiều cao với input */
-        height: 38px;
-        display: flex;
-        align-items: center;
-    }
+    #theme-btn:hover { background: #C49C48; color: #fff; opacity: 1; }
+    body.dark #theme-btn, body.darkmode #theme-btn { background: #6c837f !important; color: #fefefe !important; transition: background 0.23s, color 0.23s; }
+
+    .item-search-form { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .item-search-label { font-size: 14px; font-weight: 600; color: #c49c48; margin-bottom: 0; white-space: nowrap; height: 38px; display: flex; align-items: center; }
     .item-search-input {
-        font-size: 15px;
-        padding: 7px 13px;
-        border-radius: 7px;
-        border: 1.3px solid #ffe082;
-        background: #fffbe8;
-        color: #775d17;
-        font-weight: 600;
-        outline: none;
-        min-width: 140px;
-        max-width: 220px;
-        width: 180px;
-        box-sizing: border-box;
+        font-size: 15px; padding: 7px 13px; border-radius: 7px; border: 1.3px solid #ffe082; background: #fffbe8; color: #775d17; font-weight: 600; outline: none;
+        min-width: 140px; max-width: 220px; width: 180px; box-sizing: border-box;
     }
-    .item-search-btn {
-        font-size: 15px;
-        padding: 7px 22px;
-        border-radius: 7px;
-        background: #c49c48;
-        color: #fff;
-        border: none;
-        cursor: pointer;
-        font-weight: 600;
-        transition: background 0.17s, color 0.17s;
-        display: flex;
-        align-items: center;
-        height: 38px;
-    }
-    .item-search-btn:hover {
-        background: #35523A;
-        color: #ffe082;
-    }
-    /* Responsive nhỏ gọn trên đth */
+    .item-search-btn { font-size: 15px; padding: 7px 22px; border-radius: 7px; background: #c49c48; color: #fff; border: none; cursor: pointer; font-weight: 600; transition: background 0.17s, color 0.17s; display: flex; align-items: center; height: 38px; }
+    .item-search-btn:hover { background: #35523A; color: #ffe082; }
+
     @media (max-width: 600px) {
-        .item-search-form {
-            gap: 4px;
-        }
-        .item-search-label {
-            font-size: 12px;
-            height: 32px;
-        }
-        .item-search-input {
-            font-size: 13px;
-            padding: 6px 9px;
-            min-width: 130px;   /* tăng từ 85px */
-            max-width: 200px;   /* tăng từ 120px */
-            width: 170px;       /* tăng từ 100px */
-            height: 32px;
-        }
-        .item-search-btn {
-            font-size: 13px;
-            padding: 6px 13px;
-            height: 32px;
-        }
+        .item-search-form { gap: 4px; }
+        .item-search-label { font-size: 12px; height: 32px; }
+        .item-search-input { font-size: 13px; padding: 6px 9px; min-width: 130px; max-width: 200px; width: 170px; height: 32px; }
+        .item-search-btn { font-size: 13px; padding: 6px 13px; height: 32px; }
     }
     @media (max-width: 430px) {
-        .item-search-form {
-            flex-direction: column;
-            align-items: stretch;
-        }
-        .item-search-label,
-        .item-search-input,
-        .item-search-btn {
-            width: 50%;
-            min-width: 0;
-            max-width: 99vw;
-            justify-content: flex-start;
-        }
-        .item-search-label {
-            margin-bottom: 3px;
-            height: auto;
-        }
-    }
-    .staff-id {
-        text-align: right;
-        font-size: 14.3px;
-        font-style: italic;
-        margin-top: -6px;
-        color: #968015; /* màu sáng dùng cho lightmode */
+        .item-search-form { flex-direction: column; align-items: stretch; }
+        .item-search-label, .item-search-input, .item-search-btn { width: 50%; min-width: 0; max-width: 99vw; justify-content: flex-start; }
+        .item-search-label { margin-bottom: 3px; height: auto; }
     }
 
-    body.darkmode .staff-id {
-        color: #ffe082;  /* sáng hơn, dễ đọc trên nền #374B4A */
-    }
-    .item-search-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 15px;
-        background: var(--main-bg);
-        color: var(--main-text);
-        margin-top: 10px;
-    }
-    .item-search-table th, .item-search-table td {
-        border: 1px solid #bbb;
-        padding: 8px 9px;
-        text-align: center;
-        background: transparent;
-    }
-    .item-search-table th {
-        background: #ffe082;
-        color: #b78e24;
-        font-weight: 800;
-        font-size: 13.5px;
-    }
-    .item-search-table .status-late   { color: #d32f2f; font-weight: bold; }
-    .item-search-table .status-must   { color: #FFD600; font-weight: bold; }
-    .item-search-table .status-due    { color: #FF9800; font-weight: bold; }
+    .staff-id { text-align: right; font-size: 14.3px; font-style: italic; margin-top: -6px; color: #968015; }
+    body.darkmode .staff-id { color: #ffe082; }
+
+    .item-search-table { width: 100%; border-collapse: collapse; font-size: 15px; background: var(--main-bg); color: var(--main-text); margin-top: 10px; }
+    .item-search-table th, .item-search-table td { border: 1px solid #bbb; padding: 8px 9px; text-align: center; background: transparent; }
+    .item-search-table th { background: #ffe082; color: #b78e24; font-weight: 800; font-size: 13.5px; }
+    .item-search-table .status-late { color: #d32f2f; font-weight: bold; }
+    .item-search-table .status-must { color: #FFD600; font-weight: bold; }
+    .item-search-table .status-due  { color: #FF9800; font-weight: bold; }
     .item-search-table .status-active { color: #43a047; font-weight: bold; }
-    @media (max-width: 600px) {
-        .item-search-table {
-            font-size: 12px;
-            min-width: 360px;
-        }
-        .item-search-table th, .item-search-table td {
-            padding: 5px 4px;
-        }
+
+    /* Ẩn các khối TEST LAB khi vào VFR3 – KHÔNG ẩn logout nữa */
+    body.vfr3-mode .request-menu-row:not(#vfr3-panel),
+    body.vfr3-mode .item-search-form-modern,
+    body.vfr3-mode .dropdown,
+    /* body.vfr3-mode .logout-link,  <-- đã bỏ để còn logout */
+    body.vfr3-mode .toolbar-top,
+    body.vfr3-mode #report-table-box,
+    body.vfr3-mode .status-info-box,
+    body.vfr3-mode .status-summary-board,
+    body.vfr3-mode .counter-block,
+    body.vfr3-mode form[action="/go_report"],
+    body.vfr3-mode .table-responsive .item-search-table,
+    body.vfr3-mode h3,
+    body.vfr3-mode .info-row,
+    body.vfr3-mode .overview-board,
+    body.vfr3-mode .pagination-box {
+        display: none !important;
     }
-    @media (max-width: 430px) {
-        .item-search-table {
-            font-size: 10px;
-            min-width: 240px;
-        }
-        .item-search-table th, .item-search-table td {
-            padding: 3px 2px;
-        }
+
+    /* Panel VFR3 — hiển thị thay thế cụm request khi ở VFR3 mode */
+    #vfr3-panel { display: none; }
+    body.vfr3-mode #vfr3-panel { display: flex !important; }
+
+    /* Style cho panel VFR3 và nút */
+    #vfr3-panel {
+        justify-content: center; align-items: center; gap: 16px; margin: 20px auto 10px; flex-wrap: wrap;
     }
+    .vfr3-btn {
+        min-width: 180px; max-width: 260px; padding: 14px 18px; border-radius: 14px; border: none; background: var(--main-btn);
+        color: var(--main-btn-text); font-weight: 800; font-size: 17px; letter-spacing: .02em; box-shadow: 0 4px 14px #c49c4840;
+        display: inline-flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; cursor: pointer;
+        transition: background .16s, transform .12s, color .16s, box-shadow .16s;
+    }
+    .vfr3-btn:hover { background: var(--main-btn-hover); color: var(--main-btn-hover-text); transform: translateY(-2px) scale(1.03); box-shadow: 0 6px 18px #c49c4840; }
+
+    /* Chip đổi chế độ — bám góc trái của .center-form */
+    #mode-chip {
+        position: absolute; top: 20px; left: 24px; z-index: 2002; padding: 6px 12px; border-radius: 999px; background: #fffbe8; color: #775d17;
+        font-weight: 700; border: 1.3px solid #ffe082; box-shadow: 0 2px 10px #f7cf3a25; display: none; cursor: pointer;
+    }
+    body.vfr3-mode #mode-chip { display: inline-flex; }
+    body.darkmode #mode-chip { background:#ffe082; color:#232; }
+
+    /* Overlay chọn chế độ */
+    #mode-overlay {
+        position: fixed; inset: 0; z-index: 30000; display: none; align-items: center; justify-content: center; background: rgba(35,42,55,0.22); backdrop-filter: blur(2px);
+    }
+    #mode-card { background: #fffbe8; border-radius: 20px; padding: 24px; box-shadow: 0 8px 40px #c49c4844; width: min(560px, 92vw); text-align: center; }
+    #mode-card h3 { margin: 0 0 14px; color: #c49c48; }
+    .mode-actions { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+    .mode-btn {
+        min-width: 160px; padding: 12px 18px; border-radius: 12px; border: none; background: var(--main-btn); color: var(--main-btn-text); font-weight: 800;
+        cursor: pointer; box-shadow: 0 4px 12px #c49c4830; transition: background .16s, transform .12s;
+    }
+    .mode-btn:hover { background: var(--main-btn-hover); color: var(--main-btn-hover-text); transform: translateY(-2px); }
     </style>
 </head>
 <body>
     {% if not session.get('staff_id') %}
+    <!-- Staff ID overlay -->
     <div id="staff-id-overlay" style="position:fixed;z-index:30000;top:0;left:0;width:100vw;height:100vh;background:rgba(35,42,55,0.22);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;">
         <form method="POST" id="staff-id-form"
             style="background:#fffbe8; border-radius:18px; padding:34px 36px; box-shadow:0 8px 40px #c49c4844; min-width:330px; max-width:94vw;">
@@ -1057,124 +548,151 @@
     </div>
     {% endif %}
 
+    {% if session.get('staff_id') %}
+    <!-- Chọn chế độ -->
+    <div id="mode-overlay">
+      <div id="mode-card">
+        <h3>Chọn chế độ</h3>
+        <div class="mode-actions">
+            <button class="mode-btn" id="btn-mode-testlab"><i class="fa fa-flask"></i> TEST LAB</button>
+            <button class="mode-btn" id="btn-mode-vfr3"><i class="fa fa-industry"></i> VFR3</button>
+        </div>
+        <div style="margin-top:10px; font-size:13px; color:#8b6b1e;">(Có thể đổi lại ở góc trên trái)</div>
+      </div>
+    </div>
+    {% endif %}
+
     <div style="opacity:{% if not session.get('staff_id') %}0.22{% else %}1{% endif %}; pointer-events:{% if not session.get('staff_id') %}none{% else %}auto{% endif %}; transition:opacity 0.22s;">
-        <div class="center-form" style="margin-top:60px; margin-bottom:42px; position:relative;">
+        <div class="center-form">
             <!-- Nút chuyển ngôn ngữ -->
             <div style="position:absolute; top:20px; right:32px; z-index:22;">
                 <button id="lang-btn" title="Đổi ngôn ngữ/Change language" style="background:#ffe082; color:#35523A; border-radius:100px; font-size:15px; padding:5px 16px; border:none; font-weight:600; box-shadow:0 2px 10px #bca96b22; cursor:pointer;">
                     <i class="fa fa-language"></i> <span>EN</span>
                 </button>
             </div>
-            <img src="/static/logo_vfr.jpg" alt="VFR Logo"
-                style="display:block; margin:0 auto 18px auto; max-width:190px;"/>
+
+            <!-- Mode chip: đặt bên trong .center-form để bám góc trái khung -->
+            {% if session.get('staff_id') %}
+            <div id="mode-chip" title="Đổi chế độ">
+                <i class="fa fa-layer-group" style="margin-right:6px;"></i>
+                <span id="mode-chip-text">Mode: TEST LAB</span>
+            </div>
+            {% endif %}
+
+            <img src="/static/logo_vfr.jpg" alt="VFR Logo" style="display:block; margin:0 auto 18px auto; max-width:190px;"/>
             <h2 class="text-title">Product Search</h2>
-            {% if not session.get('auth_ok') %}
-            <!-- Request button hàng ngang -->
-            <div class="request-menu-row">
-                <a href="/tfr_request_form" class="request-btn"><i class="fa fa-file-circle-plus"></i> <span class="text-create-rq">Create Request</span></a>
-                <a href="/tfr_request_status" class="request-btn"><i class="fa fa-search"></i> <span class="text-rq-status">RQ Submitted</span></a>
-            </div>
-            <!-- Form tìm item -->
-            <form method="GET" action="/" class="item-search-form-modern">
-                <label for="item_search" class="item-search-label text-item-label">🔎 ITEM#</label>
-                <input type="text"
-                    id="item_search"
-                    name="item_search"
-                    maxlength="32"
-                    placeholder="ITEM#"
-                    value="{{ request.args.get('item_search', '') }}">
-                <button type="submit">
-                    <i class="fa fa-search" style="margin-right:4px;"></i> <span class="text-search-btn">Tìm</span>
-                </button>
-            </form>
-            {% if request.args.get('item_search') %}
-                {% if report_list %}
-                    <div class="table-responsive">
-                        <table class="item-search-table">
-                            <thead>
-                                <tr>
-                                    <th class="text-th-item">ITEM#</th>
-                                    <th class="text-th-report">REPORT#</th>
-                                    <th class="text-th-type">TYPE OF</th>
-                                    <th class="text-th-status">STATUS</th>
-                                    <th class="text-th-action">Hành động</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            {% for r in report_list %}
-                                <tr>
-                                    <td>{{ r.item }}</td>
-                                    <td>{{ r.report or '-' }}</td>
-                                    <td>{{ r.type_of or '-' }}</td>
-                                    <td>
-                                        <span class="
-                                            {% if r.status == 'LATE' %}status-late
-                                            {% elif r.status == 'MUST' %}status-must
-                                            {% elif r.status == 'DUE' %}status-due
-                                            {% elif r.status == 'ACTIVE' %}status-active
-                                            {% endif %}
-                                        ">
-                                            {{ r.status or '-' }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                    {% if r.report %}
-                                        <a href="{{ url_for('update', report=r.report) }}">
-                                            <button type="button"><i class="fa fa-edit"></i> <span class="text-view-report">Xem report</span></button>
-                                        </a>
-                                    {% else %}
-                                        <span style="color:#b78e24;">-</span>
-                                    {% endif %}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <div class="error-message text-notfound">Không tìm thấy mã ITEM này!</div>
-                {% endif %}
-            {% endif %}
-            <!-- Form đăng nhập -->
-            <form method="POST" class="form-pw login-row" style="margin-top:26px;">
-                <div style="position:relative; flex:1; min-width:0;">
-                    <input type="password" name="password" id="login-password"
-                        placeholder="Nhập mật khẩu" required
-                        class="pw-input text-password"
-                        style="padding-right:38px;">
-                    <button type="button" id="toggle-pw"
-                        tabindex="-1"
-                        title="Hiện/Ẩn mật khẩu"
-                        aria-label="Hiện/Ẩn mật khẩu"
-                        style="position:absolute; right:10px; top:0; height:100%; background:transparent; border:none; cursor:pointer;">
-                        <i class="fa fa-eye" id="eye-icon"></i>
-                    </button>
+
+            {# =============== KHỐI KHI CHƯA ĐĂNG NHẬP TEST LAB VÀ CHƯA VFR3_OK =============== #}
+            {% if not session.get('auth_ok') and not session.get('vfr3_ok') %}
+                <!-- Cụm nút TEST LAB mặc định -->
+                <div class="request-menu-row">
+                    <a href="/tfr_request_form" class="request-btn"><i class="fa fa-file-circle-plus"></i> <span class="text-create-rq">Create Request</span></a>
+                    <a href="/tfr_request_status" class="request-btn"><i class="fa fa-search"></i> <span class="text-rq-status">RQ Submitted</span></a>
                 </div>
-                <button name="action" value="login" class="pw-btn text-login-btn">Đăng nhập</button>
-            </form>
-            {% if message %}
-                <div class="error-message">{{ message }}</div>
-            {% endif %}
-            {% else %}
-            <!-- Đã đăng nhập: Drop góc phải, logout -->
-            <div style="position: fixed; top: 22px; right: 28px; z-index: 2001;">
-              <div class="dropdown">
-                <button class="btn-more" onclick="toggleRequestDropdown()" title="Test Request">
-                  <i class="fa fa-list-ul"></i>
-                </button>
-                <div id="requestDropdownMenu" class="dropdown-content">
-                    <a href="/tfr_request_form"><i class="fa fa-file-circle-plus"></i> <span class="text-create-rq">Create Request</span></a>
-                    <a href="/tfr_request_status"><i class="fa fa-search"></i> <span class="text-rq-status">RQ Submitted</span></a>
-                    <a href="/tfr_request_archive"><i class="fa fa-archive"></i> <span class="text-trf">TRF</span></a>
-                    {% if session.get('role') == 'stl' %}
-                        <a href="javascript:void(0)" onclick="confirmExportExcel()"><i class="fa fa-file-export"></i> <span class="text-update-inf">Update INF</span></a>
+
+                <!-- Panel VFR3 (sẽ thế chỗ cụm trên khi chuyển sang VFR3 mode) -->
+                <div id="vfr3-panel" class="request-menu-row" aria-hidden="true">
+                    <a href="/vfr3/wax" class="vfr3-btn"><i class="fa fa-cubes"></i> Mẫu sáp</a>
+                    <a href="/vfr3/sand-casting" class="vfr3-btn"><i class="fa fa-mountain"></i> Mẫu đúc cát</a>
+                    <a href="/vfr3/ceramic-plaster" class="vfr3-btn"><i class="fa fa-flask"></i> Mẫu ceramic thạch cao</a>
+                </div>
+
+                <!-- Form tìm item -->
+                <form method="GET" action="/" class="item-search-form-modern">
+                    <label for="item_search" class="item-search-label text-item-label">🔎 ITEM#</label>
+                    <input type="text" id="item_search" name="item_search" maxlength="32" placeholder="ITEM#" value="{{ request.args.get('item_search', '') }}">
+                    <button type="submit"><i class="fa fa-search" style="margin-right:4px;"></i> <span class="text-search-btn">Tìm</span></button>
+                </form>
+
+                {% if request.args.get('item_search') %}
+                    {% if report_list %}
+                        <div class="table-responsive">
+                            <table class="item-search-table">
+                                <thead>
+                                    <tr>
+                                        <th class="text-th-item">ITEM#</th>
+                                        <th class="text-th-report">REPORT#</th>
+                                        <th class="text-th-type">TYPE OF</th>
+                                        <th class="text-th-status">STATUS</th>
+                                        <th class="text-th-action">Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                {% for r in report_list %}
+                                    <tr>
+                                        <td>{{ r.item }}</td>
+                                        <td>{{ r.report or '-' }}</td>
+                                        <td>{{ r.type_of or '-' }}</td>
+                                        <td>
+                                            <span class="
+                                                {% if r.status == 'LATE' %}status-late
+                                                {% elif r.status == 'MUST' %}status-must
+                                                {% elif r.status == 'DUE' %}status-due
+                                                {% elif r.status == 'ACTIVE' %}status-active
+                                                {% endif %}
+                                            ">{{ r.status or '-' }}</span>
+                                        </td>
+                                        <td>
+                                        {% if r.report %}
+                                            <a href="{{ url_for('update', report=r.report) }}">
+                                                <button type="button"><i class="fa fa-edit"></i> <span class="text-view-report">Xem report</span></button>
+                                            </a>
+                                        {% else %}
+                                            <span style="color:#b78e24;">-</span>
+                                        {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="error-message text-notfound">Không tìm thấy mã ITEM này!</div>
                     {% endif %}
+                {% endif %}
+
+                <!-- Form đăng nhập (chỉ hiện khi chưa VFR3_OK) -->
+                <form method="POST" class="form-pw login-row" style="margin-top:26px;">
+                    <div style="position:relative; flex:1; min-width:0;">
+                        <input type="password" name="password" id="login-password" placeholder="Nhập mật khẩu" required class="pw-input text-password" style="padding-right:38px;">
+                        <button type="button" id="toggle-pw" tabindex="-1" title="Hiện/Ẩn mật khẩu" aria-label="Hiện/Ẩn mật khẩu" style="position:absolute; right:10px; top:0; height:100%; background:transparent; border:none; cursor:pointer;">
+                            <i class="fa fa-eye" id="eye-icon"></i>
+                        </button>
+                    </div>
+                    <button name="action" value="login" class="pw-btn text-login-btn">Đăng nhập</button>
+                </form>
+                {% if message %}
+                    <div class="error-message">{{ message }}</div>
+                {% endif %}
+
+            {# =============== KHỐI TEST LAB / VFR3 SAU KHI ĐĂNG NHẬP =============== #}
+            {% else %}
+                <!-- Panel VFR3: LUÔN render trong DOM khi đã login; hiển thị khi body.vfr3-mode -->
+                <div id="vfr3-panel" class="request-menu-row">
+                    <a href="/vfr3/wax" class="vfr3-btn"><i class="fa fa-cubes"></i> Mẫu sáp</a>
+                    <a href="/vfr3/sand-casting" class="vfr3-btn"><i class="fa fa-mountain"></i> Mẫu đúc cát</a>
+                    <a href="/vfr3/ceramic-plaster" class="vfr3-btn"><i class="fa fa-flask"></i> Mẫu ceramic thạch cao</a>
                 </div>
-              </div>
-            </div>
-            <div class="logout-link">
-                <a href="/logout"><i class="fa fa-sign-out-alt"></i> <span class="text-logout">Đăng xuất</span></a>
-            </div>
+
+                <!-- Góc phải: menu và logout khi đã đăng nhập TEST LAB -->
+                <div style="position: fixed; top: 22px; right: 28px; z-index: 2001;">
+                  <div class="dropdown">
+                    <button class="btn-more" onclick="toggleRequestDropdown()" title="Test Request">
+                      <i class="fa fa-list-ul"></i>
+                    </button>
+                    <div id="requestDropdownMenu" class="dropdown-content">
+                        <a href="/tfr_request_form"><i class="fa fa-file-circle-plus"></i> <span class="text-create-rq">Create Request</span></a>
+                        <a href="/tfr_request_status"><i class="fa fa-search"></i> <span class="text-rq-status">RQ Submitted</span></a>
+                        <a href="/tfr_request_archive"><i class="fa fa-archive"></i> <span class="text-trf">TRF</span></a>
+                        {% if session.get('role') == 'stl' %}
+                            <a href="javascript:void(0)" onclick="confirmExportExcel()"><i class="fa fa-file-export"></i> <span class="text-update-inf">Update INF</span></a>
+                        {% endif %}
+                    </div>
+                  </div>
+                </div>
+                <div class="logout-link">
+                    <a href="/logout"><i class="fa fa-sign-out-alt"></i> <span class="text-logout">Đăng xuất</span></a>
+                </div>
             {% endif %}
 
         {% if session.get('auth_ok') and session.get('staff_id') and report_list %}
@@ -1223,7 +741,7 @@
                 </table>
               </div>
             </div>
-            <div class="counter-block"; style="margin-top:24px; padding:14px 0; background:#f6f3e9; border-radius:10px; text-align:center; font-size:17px; font-weight:bold;margin-bottom: 18px;">
+            <div class="counter-block" style="margin-top:24px; padding:14px 0; background:#f6f3e9; border-radius:10px; text-align:center; font-size:17px; font-weight:bold;margin-bottom: 18px;">
                 <div>Đơn hoàn thành giờ HC (8:00–16:45): <span style="color:#2e7d32;">{{ counter.office }}</span></div>
                 <div>Đơn hoàn thành giờ OT (16:45–23:59): <span style="color:#a32121;">{{ counter.ot }}</span></div>
             </div>
@@ -1238,15 +756,8 @@
                 </div>
                 <form method="get" id="item-search-form" class="item-search-form">
                     <label for="item_search" class="item-search-label">Tìm ITEM#</label>
-                    <input type="text"
-                        id="item_search"
-                        name="item_search"
-                        placeholder="Nhập mã ITEM#"
-                        value="{{ request.args.get('item_search', '') }}"
-                        class="item-search-input">
-                    <button type="submit" class="item-search-btn">
-                        <i class="fa fa-search"></i> Tìm
-                    </button>
+                    <input type="text" id="item_search" name="item_search" placeholder="Nhập mã ITEM#" value="{{ request.args.get('item_search', '') }}" class="item-search-input">
+                    <button type="submit" class="item-search-btn"><i class="fa fa-search"></i> Tìm</button>
                 </form>
                 <form method="get" class="type-filter-form" id="filter-form" style="margin:0; text-align:left;">
                     <label for="type_of" class="type-filter-label">Type of</label>
@@ -1267,18 +778,11 @@
                         <i class="fa fa-caret-down" style="margin-left:4px;"></i>
                     </button>
                     <div class="dropdown-status-menu" id="dropdown-status-menu" style="display:none;">
-                        <label>
-                            <input type="checkbox" name="status" value="" {% if not selected_status or selected_status == [''] %}checked{% endif %}> All
-                        </label>
+                        <label><input type="checkbox" name="status" value="" {% if not selected_status or selected_status == [''] %}checked{% endif %}> All</label>
                         {% for s in status_set %}
-                        <label>
-                            <input type="checkbox" name="status" value="{{s}}" {% if s in selected_status %}checked{% endif %}>
-                            {{ s }}
-                        </label>
+                        <label><input type="checkbox" name="status" value="{{s}}" {% if s in selected_status %}checked{% endif %}>{{ s }}</label>
                         {% endfor %}
-                        <div class="status-filter-btn-box">
-                        <button type="submit">Lọc</button>
-                        </div>
+                        <div class="status-filter-btn-box"><button type="submit">Lọc</button></div>
                     </div>
                     </div>
                     <label for="page_size" class="type-filter-label">Hiển thị</label>
@@ -1290,6 +794,7 @@
                     <span style="font-size:12px;color:#a1887f;">/trang</span>
                 </form>
             </div>
+
             <div class="table-responsive">
             <div id="report-table-box">
                 <table id="report-table">
@@ -1310,32 +815,21 @@
                             <td>{{ r.report }}</td>
                             <td>{{ r.item }}</td>
                             <td>{{ r.type_of }}</td>
-                            <td>
-                            <span class="{% if r.status == 'LATE' %}status-late{% elif r.status == 'MUST' %}status-must{% elif r.status == 'DUE' %}status-due{% endif %}">
-                                {{ r.status }}
-                            </span>
-                            </td>
+                            <td><span class="{% if r.status == 'LATE' %}status-late{% elif r.status == 'MUST' %}status-must{% elif r.status == 'DUE' %}status-due{% endif %}">{{ r.status }}</span></td>
                             <td>{{ r.log_date }}</td>
                             <td>{{ r.etd or "" }}</td>
-                            <td>
-                                <a href="/update?report={{ r.report }}">
-                                    <button><i class="fa fa-edit"></i> Xem</button>
-                                </a>
-                            </td>
+                            <td><a href="/update?report={{ r.report }}"><button><i class="fa fa-edit"></i> Xem</button></a></td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
                 <div style="text-align:center; margin:18px 0;">
-                    <button id="prev-btn" style="display:none; font-size:17px; padding:8px 24px; border-radius:8px; background:#ffe082; color:#232323; border:none; cursor:pointer; margin-right:10px;">
-                        &#8592; Quay lại
-                    </button>
-                    <button id="load-more-btn" style="display:none; font-size:17px; padding:8px 32px; border-radius:8px; background:#ffe082; color:#232323; border:none; cursor:pointer;">
-                        Tiếp theo
-                    </button>
+                    <button id="prev-btn" style="display:none; font-size:17px; padding:8px 24px; border-radius:8px; background:#ffe082; color:#232323; border:none; cursor:pointer; margin-right:10px;">&#8592; Quay lại</button>
+                    <button id="load-more-btn" style="display:none; font-size:17px; padding:8px 32px; border-radius:8px; background:#ffe082; color:#232323; border:none; cursor:pointer;">Tiếp theo</button>
                 </div>
             </div>
             </div>
+
             <div class="status-info-box">
                 <div class="status-info-row">
                     <span class="status-label late">LATE</span>: trễ hạn
@@ -1350,17 +844,14 @@
         {% endif %}
         </div>
     </div>
+
     <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
+
     <script>
         // --- PREF SYNC (darkmode, lang) ---
         function setPref(key, value) {
             localStorage.setItem("vfr-" + key, value);
-            // Sync lên server (Flask session)
-            fetch('/set_pref', {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ key, value })
-            });
+            fetch('/set_pref', { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key, value }) });
         }
 
         // --- INIT VAR from backend/session ---
@@ -1369,28 +860,18 @@
 
         // --- STAFF ID AUTOCOMPLETE & VALIDATION ---
         document.addEventListener("DOMContentLoaded", function() {
-            setTimeout(function(){
-                var inp = document.getElementById('staff_id_input');
-                if(inp) inp.focus();
-            }, 180);
+            setTimeout(function(){ var inp = document.getElementById('staff_id_input'); if(inp) inp.focus(); }, 180);
             let staffIdInput = document.getElementById("staff_id_input");
             let datalist = document.getElementById("staff_id_history");
             if (staffIdInput && datalist) {
                 let history = [];
                 try { history = JSON.parse(localStorage.getItem("staff_id_history") || "[]"); } catch {}
                 datalist.innerHTML = "";
-                history.forEach(function(id) {
-                    let opt = document.createElement("option");
-                    opt.value = id;
-                    datalist.appendChild(opt);
-                });
+                history.forEach(function(id) { let opt = document.createElement("option"); opt.value = id; datalist.appendChild(opt); });
                 if(history.length) staffIdInput.value = history[history.length-1];
 
-                // Thêm kiểm tra định dạng khi submit form Staff ID
                 staffIdInput.form.addEventListener('submit', function(e) {
                     let val = staffIdInput.value.trim();
-                    // Regex: bắt đầu là số, dấu -, rồi họ tên (chữ cái, khoảng trắng)
-                    // Sử dụng cờ 'u' để hỗ trợ Unicode (cho tên tiếng Việt)
                     let regex = /^\d+\s*-\s*[\p{L}\s]+$/u;
                     if (!regex.test(val)) {
                         e.preventDefault();
@@ -1398,7 +879,6 @@
                         staffIdInput.focus();
                         return false;
                     }
-                    // Lưu lại lịch sử nhập
                     if(val) {
                         let idx = history.indexOf(val);
                         if(idx !== -1) history.splice(idx,1);
@@ -1413,24 +893,19 @@
         // --- DARKMODE SYNC ---
         function applyDarkMode(dark) {
             document.body.classList.toggle('darkmode', dark);
-            document.body.classList.toggle('dark', dark); // để hỗ trợ cả class "dark"
+            document.body.classList.toggle('dark', dark);
             let themeBtn = document.getElementById('theme-btn');
             if (themeBtn) themeBtn.innerHTML = dark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
             setPref("darkmode", dark ? "1" : "0");
         }
         document.addEventListener('DOMContentLoaded', function() {
             let dark = (typeof INIT_DARK === "boolean" ? INIT_DARK : (INIT_DARK == "true"));
-            if (localStorage.getItem("vfr-darkmode") !== null)
-                dark = localStorage.getItem("vfr-darkmode") === "1";
+            if (localStorage.getItem("vfr-darkmode") !== null) dark = localStorage.getItem("vfr-darkmode") === "1";
             applyDarkMode(dark);
             let themeBtn = document.getElementById('theme-btn');
-            if (themeBtn) {
-                themeBtn.onclick = function() {
-                    dark = !dark;
-                    applyDarkMode(dark);
-                };
-            }
-            // PHÂN TRANG (nếu có bảng report-row)
+            if (themeBtn) { themeBtn.onclick = function() { dark = !dark; applyDarkMode(dark); }; }
+
+            // PHÂN TRANG
             let chunkSize = typeof PAGE_SIZE !== "undefined" ? PAGE_SIZE : (typeof page_size !== "undefined" ? page_size : 10);
             if (typeof chunkSize !== "number") { try { chunkSize = parseInt(chunkSize); } catch {} }
             if (!chunkSize || isNaN(chunkSize)) chunkSize = 10;
@@ -1441,33 +916,16 @@
                 const btnPrev = document.getElementById('prev-btn');
                 let startIdx = 0;
                 function showChunk(idx) {
-                    rows.forEach((row, i) => {
-                        row.style.display = (i >= idx && i < idx + chunkSize) ? '' : 'none';
-                    });
+                    rows.forEach((row, i) => { row.style.display = (i >= idx && i < idx + chunkSize) ? '' : 'none'; });
                     btnPrev && (btnPrev.style.display = (idx <= 0) ? 'none' : '');
                     btnNext && (btnNext.style.display = (idx + chunkSize >= rows.length) ? 'none' : '');
-                    if (rows.length > 0) {
-                        window.scrollTo({ top: tableBox.offsetTop, behavior: 'smooth' });
-                    }
+                    if (rows.length > 0) { window.scrollTo({ top: tableBox.offsetTop, behavior: 'smooth' }); }
                 }
-                btnNext && btnNext.addEventListener('click', function() {
-                    if (startIdx + chunkSize < rows.length) {
-                        startIdx += chunkSize;
-                        showChunk(startIdx);
-                    }
-                });
-                btnPrev && btnPrev.addEventListener('click', function() {
-                    startIdx = Math.max(0, startIdx - chunkSize);
-                    showChunk(startIdx);
-                });
-                if (rows.length > chunkSize) {
-                    btnNext && (btnNext.style.display = '');
-                }
+                btnNext && btnNext.addEventListener('click', function() { if (startIdx + chunkSize < rows.length) { startIdx += chunkSize; showChunk(startIdx); } });
+                btnPrev && btnPrev.addEventListener('click', function() { startIdx = Math.max(0, startIdx - chunkSize); showChunk(startIdx); });
+                if (rows.length > chunkSize) { btnNext && (btnNext.style.display = ''); }
                 showChunk(0);
-                window.updatePageSize = function() {
-                    let form = document.getElementById("filter-form");
-                    if(form){ form.submit(); }
-                }
+                window.updatePageSize = function() { let form = document.getElementById("filter-form"); if(form){ form.submit(); } }
             }
         });
 
@@ -1478,15 +936,8 @@
                 togglePw.onclick = function() {
                     var pw = document.getElementById('login-password');
                     var icon = document.getElementById('eye-icon');
-                    if (pw.type === "password") {
-                        pw.type = "text";
-                        icon.classList.remove('fa-eye');
-                        icon.classList.add('fa-eye-slash');
-                    } else {
-                        pw.type = "password";
-                        icon.classList.remove('fa-eye-slash');
-                        icon.classList.add('fa-eye');
-                    }
+                    if (pw.type === "password") { pw.type = "text"; icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
+                    else { pw.type = "password"; icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
                 };
             }
         });
@@ -1495,7 +946,7 @@
         function applyLang(lang) {
             const LANG = {
                 vi: {
-                    "text-title": "TRA CỨU SẢN PHẨM",
+                    "text-title": "VFR",
                     "text-create-rq": "Tạo Request",
                     "text-rq-status": "Trạng thái đã gửi",
                     "text-trf": "Lưu trữ",
@@ -1516,7 +967,7 @@
                     "text-confirm": "Xác nhận"
                 },
                 en: {
-                    "text-title": "PRODUCT SEARCH",
+                    "text-title": "VFR",
                     "text-create-rq": "Create Request",
                     "text-rq-status": "RQ Submitted",
                     "text-trf": "TRF",
@@ -1556,25 +1007,17 @@
         }
         document.addEventListener('DOMContentLoaded', function() {
             let lang = INIT_LANG || "vi";
-            if (localStorage.getItem("vfr-lang"))
-                lang = localStorage.getItem("vfr-lang");
+            if (localStorage.getItem("vfr-lang")) lang = localStorage.getItem("vfr-lang");
             applyLang(lang);
             let langBtn = document.getElementById('lang-btn');
-            if (langBtn) {
-                langBtn.onclick = function() {
-                    lang = (lang === "en" ? "vi" : "en");
-                    applyLang(lang);
-                };
-            }
+            if (langBtn) { langBtn.onclick = function() { lang = (lang === "en" ? "vi" : "en"); applyLang(lang); }; }
         });
 
         // --- DROPDOWN FILTER STATUS ---
         function toggleStatusDropdown() {
             var el = document.getElementById('dropdown-status-menu');
             el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
-            setTimeout(function() {
-                document.addEventListener('click', closeStatusDropdown);
-            }, 20);
+            setTimeout(function() { document.addEventListener('click', closeStatusDropdown); }, 20);
         }
         function closeStatusDropdown(event) {
             var el = document.getElementById('dropdown-status-menu');
@@ -1599,11 +1042,7 @@
         });
 
         // --- EXPORT EXCEL (nếu có) ---
-        function confirmExportExcel() {
-            if(confirm("Bạn chắc chắn muốn chạy Update INF?")) {
-                runExportExcel();
-            }
-        }
+        function confirmExportExcel() { if(confirm("Bạn chắc chắn muốn chạy Update INF?")) { runExportExcel(); } }
         function runExportExcel() {
             document.getElementById('loading-overlay').style.display = 'flex';
             fetch('/run_export_excel', {method: 'POST'})
@@ -1618,17 +1057,60 @@
                     alert('Lỗi không kết nối được server!');
                 });
         }
-        document.addEventListener('DOMContentLoaded', function() {
-            var overlay = document.getElementById('loading-overlay');
-            if(overlay) overlay.style.display = 'none';
+        document.addEventListener('DOMContentLoaded', function() { var overlay = document.getElementById('loading-overlay'); if(overlay) overlay.style.display = 'none'; });
+
+        // === MODE (TEST LAB / VFR3) ===
+        const STAFF_OK = {{ 'true' if session.get('staff_id') else 'false' }};
+
+        function applyMode(mode) {
+            const body = document.body;
+            const chip = document.getElementById('mode-chip');
+            const chipText = document.getElementById('mode-chip-text');
+            if (mode === 'VFR3') {
+                body.classList.add('vfr3-mode');
+                if (chip) chip.style.display = 'inline-flex';
+                if (chipText) chipText.textContent = 'Mode: VFR3';
+            } else {
+                body.classList.remove('vfr3-mode');
+                if (chip) chip.style.display = 'inline-flex';
+                if (chipText) chipText.textContent = 'Mode: TEST LAB';
+            }
+        }
+        function setMode(mode) {
+            localStorage.setItem('vfr-mode', mode);
+            applyMode(mode);
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const overlay = document.getElementById('mode-overlay');
+            const btnTL   = document.getElementById('btn-mode-testlab');
+            const btnV3   = document.getElementById('btn-mode-vfr3');
+            const chip    = document.getElementById('mode-chip');
+
+            // Luôn áp dụng mode lưu trước
+            const saved = localStorage.getItem('vfr-mode');
+            if (saved) { applyMode(saved); } else { applyMode('TEST_LAB'); }
+
+            // Chỉ bật overlay chọn mode nếu đã có staff_id và chưa từng chọn
+            if (STAFF_OK && overlay && !saved) { overlay.style.display = 'flex'; }
+
+            if (btnTL) btnTL.onclick = () => { setMode('TEST_LAB'); if (overlay) overlay.style.display='none'; };
+            if (btnV3) btnV3.onclick = () => { setMode('VFR3');     if (overlay) overlay.style.display='none'; };
+
+            if (chip) chip.onclick = function () {
+                const current = localStorage.getItem('vfr-mode') || 'TEST_LAB';
+                const next = (current === 'VFR3') ? 'TEST_LAB' : 'VFR3';
+                setMode(next);
+            };
         });
     </script>
+
     <div id="loading-overlay" style="display:none;position:fixed;z-index:20005;top:0;left:0;width:100vw;height:100vh;background:rgba(60,60,60,0.34);backdrop-filter:blur(1px);display:flex;align-items:center;justify-content:center;">
       <div style="background:#fffbe8ee;padding:32px 44px;border-radius:18px;box-shadow:0 2px 16px #2224;display:flex;flex-direction:column;align-items:center;">
         <div class="loader" style="margin-bottom:18px;">
           <i class="fa fa-spinner fa-spin" style="font-size:44px;color:#c49c48;"></i>
         </div>
-        <div style="font-size:19px;font-weight:600;color:#b78e24;text-align:center;">
+        <div style="font-size:19px; font-weight:600; color:#b78e24; text-align:center;">
           Đang xuất dữ liệu Excel...<br>Vui lòng chờ 1-2 phút!
         </div>
       </div>

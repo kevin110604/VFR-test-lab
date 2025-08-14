@@ -1,8 +1,8 @@
-from flask import Flask, request, render_template, session, redirect, url_for, jsonify, flash, send_from_directory, Response, stream_with_context
+from flask import Flask, request, render_template, session, redirect, url_for, jsonify, flash, send_from_directory, Response, stream_with_context, abort
 from config import SECRET_KEY, local_main, SAMPLE_STORAGE, UPLOAD_FOLDER, TEST_GROUPS, local_complete, qr_folder, SO_GIO_TEST, ALL_SLOTS, TEAMS_WEBHOOK_URL_TRF, TEAMS_WEBHOOK_URL_RATE, TEAMS_WEBHOOK_URL_COUNT
-from excel_utils import get_item_code, get_col_idx, copy_row_with_style, is_img_at_cell, write_tfr_to_excel, append_row_to_trf, ensure_column
-from image_utils import allowed_file, safe_filename, get_img_urls
-from auth import login, logout, is_logged_in, get_user_type
+from excel_utils import get_item_code, get_col_idx, copy_row_with_style, is_img_at_cell, write_tfr_to_excel, append_row_to_trf
+from image_utils import allowed_file, get_img_urls
+from auth import login, get_user_type
 from test_logic import load_group_notes, get_group_test_status, is_drop_test, is_impact_test, is_rotational_test,  TEST_GROUP_TITLES, TEST_TYPE_VI, DROP_ZONES, DROP_LABELS, GT68_FACE_LABELS, GT68_FACE_ZONES
 from test_logic import IMPACT_ZONES, IMPACT_LABELS, ROT_LABELS, ROT_ZONES, RH_IMPACT_ZONES, RH_VIB_ZONES, RH_SECOND_IMPACT_ZONES, RH_STEP12_ZONES, update_group_note_file, get_group_note_value, F2057_TEST_TITLES
 from notify_utils import send_teams_message, notify_when_enough_time
@@ -26,73 +26,42 @@ app.secret_key = SECRET_KEY
 HOTCOLD_LIKE = {"hot_cold", "standing_water", "stain","corrosion"}
 INDOOR_GROUPS = {"indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal","outdoor_finishing"}
 REPORT_NO_LOCK = Lock()
-def _gen_new_trq_id(tfr_requests):
-    """Sinh TRQ-ID dạng TRQ-YYYYMMDD-#### tăng dần theo ngày."""
-    today = datetime.now().strftime("%Y%m%d")
-    prefix = f"TRQ-{today}-"
-    nums = []
-    for r in tfr_requests:
-        rid = str(r.get("trq_id") or "")
-        m = re.fullmatch(rf"{re.escape(prefix)}(\d{{4}})", rid)
-        if m:
-            nums.append(int(m.group(1)))
-    nxt = (max(nums) + 1) if nums else 1
-    return f"{prefix}{nxt:04d}"
+BLANK_TOKENS = {"", "-", "—"}
 
-def _normalize_test_status(form):
-    """Map radio 'nth' + input số về chuỗi 'Nthth'."""
-    ts = (form.get("test_status") or "").strip()
-    if ts == "nth":
-        n = (form.get("test_status_nth") or "").strip()
-        if n.isdigit() and int(n) >= 4:
-            return f"{int(n)}th"
-        # fallback nếu người dùng quên nhập số
-        return "4th"
-    return ts
+def _is_blank_cell(v):
+    if v is None:
+        return True
+    if isinstance(v, str):
+        s = (v.replace("\u00A0","").replace("\u200B","")
+               .replace("\r","").replace("\n","").replace("\t","").strip())
+        return s in BLANK_TOKENS or s == ""
+    return False
 
-def _bool(v):
-    return True if v in ("1", "true", "True", "on") else False
+def row_is_filled_for_report(excel_path, report_no):
+    """True nếu dòng có B == report_no ĐÃ có dữ liệu ở bất kỳ cột C..X; False nếu vẫn trống."""
+    wb = load_workbook(excel_path, data_only=True)
+    ws = wb.active
+    target_row = None
+    for r in range(2, ws.max_row + 1):
+        v = ws.cell(row=r, column=2).value  # cột B
+        if (str(v).strip() if v is not None else "") == str(report_no).strip():
+            target_row = r
+            break
+    if target_row is None:
+        wb.close()
+        # Không thấy mã trong cột B (khác thiết kế) -> coi như đã dùng để tránh ghi bậy
+        return True
+    for c in range(3, 25):  # C..X
+        if not _is_blank_cell(ws.cell(row=target_row, column=c).value):
+            wb.close()
+            return True   # ĐÃ có dữ liệu
+    wb.close()
+    return False          # C..X đều trống => CHƯA dùng
+def _require_staff():
+    # Yêu cầu đã nhập Staff ID để vào VFR3
+    if not session.get('staff_id'):
+        abort(403)
 
-def _validate(form):
-    """Trả về (missing_fields:list, finishing_errors:dict) để hiển thị lỗi (phù hợp template hiện tại)."""
-    missing = []
-    # bắt buộc
-    if not (form.get("requestor") or "").strip():      missing.append("requestor")
-    if not (form.get("employee_id") or "").strip():    missing.append("employee_id")
-    if not (form.get("department") or "").strip():     missing.append("department")
-    if not (form.get("request_date") or "").strip():   missing.append("request_date")
-
-    # sample_description bắt buộc nếu không tick N/A
-    if not _bool(form.get("sample_description_na")) and not (form.get("sample_description") or "").strip():
-        missing.append("sample_description")
-    # item_code
-    if not _bool(form.get("item_code_na")) and not (form.get("item_code") or "").strip():
-        missing.append("item_code")
-    # supplier
-    if not _bool(form.get("supplier_na")) and not (form.get("supplier") or "").strip():
-        missing.append("supplier")
-    # subcon
-    if not _bool(form.get("subcon_na")) and not (form.get("subcon") or "").strip():
-        missing.append("subcon")
-
-    if not (form.get("test_group") or "").strip():         missing.append("test_group")
-    if not (_normalize_test_status(form) or "").strip():   missing.append("test_status")
-    if not (form.get("furniture_testing") or "").strip():  missing.append("furniture_testing")
-    if not (form.get("quantity") or "").strip():           missing.append("quantity")
-    if not (form.get("sample_return") or "").strip():      missing.append("sample_return")
-
-    # Finishing → bắt buộc chọn finishing_type, và nếu QA/LINE thì bắt buộc chọn material_type
-    finishing_errors = {"finishing_type": False, "material_type": False}
-    tg = (form.get("test_group") or "").strip()
-    if tg == "FINISHING TEST":
-        ft = (form.get("finishing_type") or "").strip()
-        if not ft:
-            finishing_errors["finishing_type"] = True
-        if ft in ("QA TEST", "LINE TEST"):
-            if not (form.get("material_type") or "").strip():
-                finishing_errors["material_type"] = True
-    return missing, finishing_errors
-    
 def format_excel_date_short(dt):
     """Convert Python datetime/date -> format 'd-mmm' (e.g., 7-Aug) cho Excel."""
     if isinstance(dt, str):
@@ -194,37 +163,94 @@ def bump_report_no(s):
     return f"{s[:start]}{str(n).zfill(width)}"
 
 def report_no_exists(report_no, tfr_requests):
-    # trùng trong log đang dùng
+    """
+    ĐÃ DÙNG khi:
+    - Dòng B==report_no trong Excel có dữ liệu C..X (không còn trống), HOẶC
+    - File đầu ra cho mã đó đã tồn tại (pdf/docx), HOẶC
+    - Mã này đã nằm trong archive/log (đã approve).
+    """
+    # 1) Excel: dòng đã có dữ liệu?
+    try:
+        if row_is_filled_for_report(local_main, report_no):
+            return True
+    except Exception:
+        pass
+
+    # 2) Trùng file đã sinh?
+    output_folder = os.path.join('static', 'TFR')
+    if os.path.exists(os.path.join(output_folder, f"{report_no}.pdf")):
+        return True
+    if os.path.exists(os.path.join(output_folder, f"{report_no}.docx")):
+        return True
+
+    # 3) Trùng trong log pending đang dùng?
     for r in tfr_requests:
         if str(r.get("report_no") or "").strip() == str(report_no):
             return True
-    # trùng file đã sinh
-    output_folder = os.path.join('static', 'TFR')
-    if os.path.exists(os.path.join(output_folder, f"{report_no}.pdf")): return True
-    if os.path.exists(os.path.join(output_folder, f"{report_no}.docx")): return True
-    # trùng trong archive (nếu có)
+
+    # 4) Trùng trong archive (đã approve)?
     try:
         archive = safe_read_json(ARCHIVE_LOG)
         for r in archive:
             if str(r.get("report_no") or "").strip() == str(report_no):
                 return True
-    except:
+    except Exception:
         pass
+
     return False
 
-def allocate_unique_report_no(make_report_func, req, tfr_requests, max_try=20):
+def allocate_unique_report_no(make_report_func, req, tfr_requests, max_try=2):
     """
-    Gọi hàm sinh file & số report, và đảm bảo số là duy nhất.
-    make_report_func: hàm trả (pdf_path, report_no), ở đây là approve_request_fill_docx_pdf.
+    Cấp và cố định report_no đúng logic:
+    - Nếu req đã có report_no: kiểm tra dòng B==report_no còn trống (C..X). Nếu đã có dữ liệu -> báo lỗi.
+    - Nếu chưa có: để make_report_func chọn DÒNG TRỐNG (C..X trống) và trả về report_no tương ứng.
+    - Không bump tuần hoàn theo 'mã có trong Excel' vì cột B luôn có sẵn toàn bộ mã.
+    - Có retry nhẹ (2 lần) để chống race-condition hiếm gặp.
     """
     with report_lock():
-        pdf_path, report_no = make_report_func(req)
         tries = 0
-        while report_no_exists(report_no, tfr_requests):
-            report_no = bump_report_no(report_no)
+
+        # Case A: đã có report_no trong req -> validate & dùng đúng số này
+        fixed_req = dict(req)
+        preset = str(fixed_req.get("report_no", "")).strip()
+        if preset:
+            if row_is_filled_for_report(local_main, preset):
+                raise RuntimeError(f"Mã report {preset} đã có dữ liệu, không thể ghi đè.")
+            pdf_path, report_no = make_report_func(fixed_req)  # docx_utils ưu tiên số đã set
+            return pdf_path, report_no
+
+        # Case B: chưa có -> để make_report_func chọn dòng C..X trống
+        while True:
+            pdf_path, report_no = make_report_func(req)
+            # xác nhận lại: dòng vẫn còn trống?
+            if not row_is_filled_for_report(local_main, report_no):
+                return pdf_path, report_no
+
+            # hi hữu: ai đó vừa điền vào dòng này giữa chừng -> thử lại một lần
+            tries += 1
+            if tries >= max_try:
+                raise RuntimeError("Không tìm được dòng trống để cấp mã report.")
+            # xoá file vừa sinh (đi nhầm dòng)
+            try:
+                outdir = os.path.join('static', 'TFR')
+                for ext in ('.pdf', '.docx'):
+                    fp = os.path.join(outdir, f"{report_no}{ext}")
+                    if os.path.exists(fp):
+                        os.remove(fp)
+            except Exception:
+                pass
+
+            # Bump số và tái tạo với số cố định
             tries += 1
             if tries >= max_try:
                 raise RuntimeError("Không cấp được report_no duy nhất sau nhiều lần thử")
+
+            bumped = bump_report_no(report_no)
+            # ép số mới vào req để make_report_func dùng đúng số này
+            fixed_req = dict(req)
+            fixed_req["report_no"] = bumped
+            pdf_path, report_no = make_report_func(fixed_req)
+
         return pdf_path, report_no
 
 # ---- ARCHIVE REQUEST LOG ----
@@ -291,13 +317,10 @@ def home():
         if item_search:
             return redirect(url_for("home", item_search=item_search))
         if request.form.get("action") == "login":
-            password_input = request.form.get("password")
+            password_input = request.form.get("password", "")
             if login(password_input):
-                session['auth_ok'] = True
-                if 'stl' in password_input.lower() or (session.get("staff_id") and session["staff_id"].lower().startswith('stl')):
-                    session['role'] = 'stl'
-                else:
-                    session['role'] = 'wtl'
+                # auth.login đã set session['auth_ok'] và session['user_type']
+                session['role'] = get_user_type()  # 'stl' / 'wtl' / 'vfr3'
                 return redirect(url_for("home"))
             else:
                 message = "Incorrect password. Please try again."
@@ -1104,6 +1127,25 @@ def logout():
     session.pop("auth_ok", None)
     session.pop("staff_id", None)  # Đăng xuất thì xóa luôn staff_id
     return "<h3 style='text-align:center;margin-top:80px;'>Đã đăng xuất!<br><a href='/' style='color:#4d665c;'>Về trang chọn sản phẩm</a></h3>"
+
+@app.route("/vfr3/wax")
+def vfr3_wax():
+    _require_staff()
+    # Quyền nâng cao nếu đã login vfr3; nếu chưa login thì chỉ xem
+    role = session.get('role') or session.get('user_type') or 'wtl'
+    return f"<h2>VFR3 - Mẫu sáp</h2><p>Role hiện tại: <b>{role}</b></p><p>Trang sẽ cập nhật sau.</p>"
+
+@app.route("/vfr3/sand-casting")
+def vfr3_sand_casting():
+    _require_staff()
+    role = session.get('role') or session.get('user_type') or 'wtl'
+    return f"<h2>VFR3 - Mẫu đúc cát</h2><p>Role hiện tại: <b>{role}</b></p><p>Trang sẽ cập nhật sau.</p>"
+
+@app.route("/vfr3/ceramic-plaster")
+def vfr3_ceramic_plaster():
+    _require_staff()
+    role = session.get('role') or session.get('user_type') or 'wtl'
+    return f"<h2>VFR3 - Mẫu ceramic thạch cao</h2><p>Role hiện tại: <b>{role}</b></p><p>Trang sẽ cập nhật sau.</p>"
 
 @app.route("/update", methods=["GET", "POST"])
 def update():

@@ -8,7 +8,7 @@ import pandas as pd
 import os
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment, Font, Border, Side, PatternFill
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 import re
 
@@ -61,48 +61,88 @@ def _attach_current_year_if_missing(text: str) -> str:
     s = (text or "").strip()
     if not s:
         return s
-    # đã có năm
     if _has_year_pat.search(s):
         return s
 
-    # cố gắng bắt dd-sep-mm(token) với tháng dạng chữ hoặc số
     m = _missing_year_pat.match(s)
     if m:
         day = m.group(1)
         mon_token = m.group(2)
         mon = _month_to_int(mon_token)
         if mon is None:
-            # không nhận ra tháng => gắn năm hiện tại ở cuối
             return f"{s} {CURRENT_YEAR}"
 
         if mon == 12:
             year = CURRENT_YEAR - 1
-        elif mon == 1:
-            year = CURRENT_YEAR
         else:
             year = CURRENT_YEAR
 
-        # nếu tháng dạng chữ thì dùng dd-MMM-YYYY, nếu số thì dd/MM/YYYY
         if mon_token.isdigit():
             s2 = re.sub(r"[.\- ]", "/", s)  # chuẩn hoá phân cách
             return f"{s2}/{year}"
         else:
-            # dùng '-' để nhất quán khi có tháng chữ
             return f"{s}-{year}"
 
-    # không khớp pattern, vẫn gắn năm hiện tại
     return f"{s} {CURRENT_YEAR}"
 
 def parse_login_dates(series: pd.Series) -> pd.Series:
-    # Thêm năm theo quy tắc Jan/Dec rồi parse
     tmp = series.astype(str).map(_attach_current_year_if_missing)
     dt = pd.to_datetime(tmp, errors="coerce", dayfirst=True, infer_datetime_format=True)
     if dt.isna().mean() > 0.8:
         dt2 = pd.to_datetime(tmp, errors="coerce", dayfirst=False, infer_datetime_format=True)
         if dt2.notna().sum() > dt.notna().sum():
             dt = dt2
-    # NaT coi là rất cũ để bị loại khi chỉ giữ phần cuối
     return dt.fillna(pd.Timestamp(1900, 1, 1))
+
+# ==== HÀM ẨN DÒNG TRONG OPENPYXL DỰA VÀO CỘT LOGIN DATE ====
+def hide_rows_by_login_date(ws, login_col_name_or_idx, today=None):
+    """
+    Ẩn các dòng có ngày <= (today - 2 ngày)  => cũ hơn hôm qua.
+    - login_col_name_or_idx: tên cột (header) hoặc index 1-based.
+    """
+    if today is None:
+        today = datetime.now().date()
+    hide_threshold = today - timedelta(days=2)   # ví dụ 10/08 -> ẩn <= 08/08
+
+    # Xác định cột index theo header nếu truyền vào là tên
+    if isinstance(login_col_name_or_idx, int):
+        login_col_idx = login_col_name_or_idx
+    else:
+        login_col_idx = None
+        header = [cell.value for cell in ws[1]]
+        # khớp chính xác normalize
+        for i, name in enumerate(header, start=1):
+            if name and normalize_col(name) == normalize_col(login_col_name_or_idx):
+                login_col_idx = i
+                break
+        # tìm mờ nếu chưa ra
+        if login_col_idx is None:
+            for i, name in enumerate(header, start=1):
+                if name and ("log" in normalize_col(name) and "date" in normalize_col(name)):
+                    login_col_idx = i
+                    break
+
+    if not login_col_idx:
+        # Không tìm thấy cột -> không ẩn
+        return
+
+    # Duyệt từng hàng dữ liệu
+    for r in range(2, ws.max_row + 1):
+        raw = ws.cell(row=r, column=login_col_idx).value
+        raw_str = "" if raw is None else str(raw).strip()
+        if not raw_str:
+            continue  # bỏ qua ô trống
+
+        # Gắn năm và parse
+        s_with_year = _attach_current_year_if_missing(raw_str)
+        dt = pd.to_datetime(s_with_year, errors="coerce", dayfirst=True)
+        if pd.isna(dt):
+            dt = pd.to_datetime(s_with_year, errors="coerce", dayfirst=False)
+        if pd.isna(dt):
+            continue  # không parse được thì thôi, không ẩn
+
+        if dt.date() <= hide_threshold:
+            ws.row_dimensions[r].hidden = True
 
 # ==== HÀM ĐẢM BẢO FOLDER SHAREPOINT TỒN TẠI (TỰ TẠO TỪNG CẤP) ====
 def ensure_folder(ctx, folder_url):
@@ -210,7 +250,7 @@ qr_url_dict = {}
 for idx, row in df_out.iterrows():
     report_raw = str(row[report_col_main]).strip()
     if report_raw and report_raw.lower() != "nan":
-        url = f"http://103.77.166.187:2004/update?report={report_raw}"
+        url = f"http://103.77.166.187:8246/update?report={report_raw}"
         qr_url_dict[report_raw] = url
 df_out["QR Code"] = df_out[report_col_main].astype(str).map(qr_url_dict).fillna("")
 
@@ -312,7 +352,7 @@ for i, name in enumerate(header):
         status_col_idx = i + 1
         break
 
-valid_statuses = ("active", "pending", "late", "due", "must")
+valid_statuses = ("active", "pending", "late", "due", "must", "complete")
 for col in ws.columns:
     max_length = 0
     col_letter = col[0].column_letter
@@ -340,7 +380,7 @@ for row in range(2, ws.max_row + 1):
             fill = fill_must
         elif status_val_norm == "complete":
             fill = fill_complete
-        if status_val_norm not in valid_statuses:
+        if status_val_norm and status_val_norm not in valid_statuses:
             ws.row_dimensions[row].hidden = True
         if fill:
             for c in range(1, ws.max_column + 1):
@@ -354,40 +394,23 @@ completed_file = "completed_items.xlsx"
 if not os.path.exists(completed_file):
     print("Khong tim thay file {} o local. Khong up len SharePoint.".format(completed_file))
 else:
-    df = pd.read_excel(completed_file, dtype=str)  # Đọc tất cả dạng chuỗi
+    # Đọc nguyên vẹn, KHÔNG xóa bớt dòng
+    df_cpl = pd.read_excel(completed_file, dtype=str)
 
-    keep_n = 200
-    login_col = find_login_date_col(df)
-    if login_col is None:
-        # Không tìm thấy cột log in date => fallback giữ 200 dòng cuối theo vị trí
-        total_rows = len(df)
-        if total_rows > keep_n:
-            df = df.iloc[-keep_n:].copy()
-            print(f"[completed_items] Khong tim thay cot 'log in date'. Da xoa {total_rows - keep_n} dong dau, giu {keep_n} dong cuoi.")
-        else:
-            print(f"[completed_items] File hien chi co {total_rows} dong, khong can xoa.")
-    else:
-        # Sắp xếp theo log in date (thêm năm theo quy tắc Jan/Dec)
-        dt = parse_login_dates(df[login_col])
-        df = df.assign(__login_dt__=dt).sort_values(["__login_dt__", login_col], ascending=[True, True], kind="mergesort")
-        total_rows = len(df)
-        if total_rows > keep_n:
-            df = df.tail(keep_n).copy()
-            print(f"[completed_items] Da xoa {total_rows - keep_n} dong cu (theo '{login_col}'), giu {keep_n} dong moi nhat.")
-        else:
-            print(f"[completed_items] File hien chi co {total_rows} dong, khong can xoa.")
-        df.drop(columns="__login_dt__", inplace=True, errors="ignore")
+    # Xác định cột Log in date (nếu có) để biết dòng nào cần ẩn
+    login_col_cpl = find_login_date_col(df_cpl)
 
-    # Xuất lại file giữ nguyên heading và định dạng
-    df.to_excel(completed_file, index=False)
+    # Ghi lại file giữ nguyên dữ liệu
+    df_cpl.to_excel(completed_file, index=False)
 
-    # Định dạng lại file
+    # Mở bằng openpyxl để định dạng + ẩn dòng cũ hơn hôm qua
     wb = load_workbook(completed_file)
     ws = wb.active
 
     thin = Side(border_style="thin", color="888888")
     header_fill = PatternFill("solid", fgColor="B7E1CD")
 
+    # Định dạng cột
     for col in ws.columns:
         max_length = 0
         col_letter = col[0].column_letter
@@ -400,6 +423,10 @@ else:
             if cell.value:
                 max_length = max(max_length, len(str(cell.value)))
         ws.column_dimensions[col_letter].width = max(max_length + 2, 15)
+
+    # Ẩn dòng theo ngày nếu tìm được cột
+    if login_col_cpl:
+        hide_rows_by_login_date(ws, login_col_cpl, today=datetime.now().date())
 
     wb.save(completed_file)
     print("Da xuat file: {}".format(completed_file))
@@ -421,30 +448,16 @@ trf_file = "TRF.xlsx"
 if not os.path.exists(trf_file):
     print("Khong tim thay file {} o local. Khong up len SharePoint.".format(trf_file))
 else:
-    df = pd.read_excel(trf_file, dtype=str)
+    # Đọc nguyên vẹn, KHÔNG xóa bớt dòng
+    df_trf = pd.read_excel(trf_file, dtype=str)
 
-    keep_n = 200
-    login_col = find_login_date_col(df)
-    if login_col is None:
-        total_rows = len(df)
-        if total_rows > keep_n:
-            df = df.iloc[-keep_n:].copy()
-            print(f"[TRF] Khong tim thay cot 'log in date'. Da xoa {total_rows - keep_n} dong dau, giu {keep_n} dong cuoi.")
-        else:
-            print(f"[TRF] File hien chi co {total_rows} dong, khong can xoa.")
-    else:
-        dt = parse_login_dates(df[login_col])
-        df = df.assign(__login_dt__=dt).sort_values(["__login_dt__", login_col], ascending=[True, True], kind="mergesort")
-        total_rows = len(df)
-        if total_rows > keep_n:
-            df = df.tail(keep_n).copy()
-            print(f"[TRF] Da xoa {total_rows - keep_n} dong cu (theo '{login_col}'), giu {keep_n} dong moi nhat.")
-        else:
-            print(f"[TRF] File hien chi co {total_rows} dong, khong can xoa.")
-        df.drop(columns="__login_dt__", inplace=True, errors="ignore")
+    # Xác định cột Log in date (nếu có)
+    login_col_trf = find_login_date_col(df_trf)
 
-    df.to_excel(trf_file, index=False)
+    # Ghi lại file giữ nguyên dữ liệu
+    df_trf.to_excel(trf_file, index=False)
 
+    # Định dạng + ẩn theo ngày
     wb = load_workbook(trf_file)
     ws = wb.active
 
@@ -463,6 +476,10 @@ else:
             if cell.value:
                 max_length = max(max_length, len(str(cell.value)))
         ws.column_dimensions[col_letter].width = max(max_length + 2, 15)
+
+    # Ẩn dòng theo ngày nếu tìm được cột
+    if login_col_trf:
+        hide_rows_by_login_date(ws, login_col_trf, today=datetime.now().date())
 
     wb.save(trf_file)
     print("Da xuat file: {}".format(trf_file))

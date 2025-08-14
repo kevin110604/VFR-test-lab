@@ -2,6 +2,7 @@ import os
 import zipfile
 import hashlib
 import json
+import time
 from datetime import datetime
 from PIL import Image
 from office365.sharepoint.client_context import ClientContext
@@ -19,32 +20,54 @@ tmp_download_folder = "__tmp_sharepoint__"
 if not os.path.exists(tmp_download_folder):
     os.makedirs(tmp_download_folder)
 
-# ==== Tiện ích dọn file .txt rác: repeat / notified ====
-def clean_noise_txt(root_folder: str, dry_run: bool = False) -> int:
+# ==== Tiện ích dọn file .txt rác: repeat / notified, chỉ xóa khi ≥ 2 ngày ====
+def clean_noise_txt(root_folder: str, dry_run: bool = False, min_age_days: int = 2) -> int:
     """
-    Xóa các file .txt có 'repeat' hoặc 'notified' trong tên (không phân biệt hoa/thường).
-    Trả về số lượng file đã (hoặc sẽ) xóa.
+    Xóa các file .txt có 'repeat' hoặc 'notified' trong tên (không phân biệt hoa/thường)
+    CHỈ KHI file đã tồn tại ít nhất `min_age_days` ngày (dựa trên mtime).
+
+    - root_folder: thư mục gốc để quét
+    - dry_run: True -> chỉ in ra file sẽ xóa, không xóa thật
+    - min_age_days: số ngày tối thiểu file phải "già" để được xóa
+
+    Trả về: số lượng file đã (hoặc sẽ) xóa.
     """
     keywords = ("repeat", "notified")
     deleted = 0
     if not os.path.isdir(root_folder):
         return 0
 
+    now = time.time()
+    threshold_seconds = min_age_days * 24 * 60 * 60
+
     for foldername, _, filenames in os.walk(root_folder):
         for filename in filenames:
             name_lower = filename.lower()
-            if name_lower.endswith(".txt") and any(kw in name_lower for kw in keywords):
-                file_path = os.path.join(foldername, filename)
+            if not (name_lower.endswith(".txt") and any(kw in name_lower for kw in keywords)):
+                continue
+
+            file_path = os.path.join(foldername, filename)
+            try:
+                mtime = os.path.getmtime(file_path)  # thời điểm sửa đổi cuối cùng
+            except FileNotFoundError:
+                # Có thể file vừa bị xóa/di chuyển
+                continue
+            age_seconds = now - mtime
+
+            if age_seconds >= threshold_seconds:
                 if dry_run:
-                    print(f"[DRY-RUN] Sẽ xóa: {file_path}")
+                    print(f"[DRY-RUN] Sẽ xóa: {file_path} (tuổi ~ {age_seconds/86400:.2f} ngày)")
                     deleted += 1
                 else:
                     try:
                         os.remove(file_path)
-                        print(f"Đã xóa: {file_path}")
+                        print(f"Đã xóa: {file_path} (tuổi ~ {age_seconds/86400:.2f} ngày)")
                         deleted += 1
                     except Exception as e:
                         print(f"Lỗi khi xóa {file_path}: {e}")
+            else:
+                # File còn mới (< 2 ngày), không xóa
+                print(f"Giữ lại (mới < {min_age_days} ngày): {file_path}")
     return deleted
 
 # ==== Hàm nén ảnh trực tiếp (chỉ khi cần) ====
@@ -147,7 +170,7 @@ if not ctx_auth.acquire_token_for_user(username, password):
     raise Exception("Không kết nối được SharePoint!")
 ctx = ClientContext(site_url, ctx_auth)
 
-# ==== Duyệt từng folder, dọn .txt rác, nén nếu cần, ghi log ====
+# ==== Duyệt từng folder, dọn .txt rác (≥2 ngày), nén nếu cần, ghi log ====
 folders = [os.path.join(local_images, f) for f in os.listdir(local_images) if os.path.isdir(os.path.join(local_images, f))]
 folders.sort()
 
@@ -155,13 +178,13 @@ folders_by_month = {}
 for folder in folders:
     folder_name = os.path.basename(folder)
 
-    # 1) Dọn file .txt rác trước
-    print(f"Clean .txt (repeat/notified) trong folder {folder_name} ...")
-    removed_count = clean_noise_txt(folder, dry_run=False)
+    # 1) Dọn file .txt rác trước (chỉ xóa khi ≥ 2 ngày)
+    print(f"Clean .txt (repeat/notified, tuổi ≥ 2 ngày) trong folder {folder_name} ...")
+    removed_count = clean_noise_txt(folder, dry_run=False, min_age_days=2)
     if removed_count:
         print(f"→ Đã xóa {removed_count} file .txt rác.")
     else:
-        print("→ Không có file .txt rác để xóa.")
+        print("→ Không có file .txt rác đủ điều kiện để xóa.")
 
     # 2) Nén ảnh thông minh
     print(f"Check nén folder {folder_name} ...")
@@ -262,4 +285,4 @@ for thang, month_folders in sorted(folders_by_month.items()):
         os.remove(zip_file)
         print(f"Đã xoá {zip_file} ở local.")
 
-print("\nĐã xử lý xong tất cả các nhóm folder theo tháng (đã dọn .txt rác, ảnh chỉ nén và up khi có thay đổi).")
+print("\nĐã xử lý xong tất cả các nhóm folder theo tháng (đã dọn .txt rác cũ ≥2 ngày, ảnh chỉ nén và up khi có thay đổi).")
