@@ -746,22 +746,21 @@
         }
 
         // ===================== DARKMODE TOGGLE =====================
-        let dark = localStorage.getItem("vfr-darkmode") === "1";
+        let INIT_DARK = {{ 'true' if darkmode in ('1', 1, True) else 'false' }};
         function applyDark(b) {
-            document.body.classList.toggle("darkmode", b);
+            // gắn cả 2 class để khớp CSS cũ và mới
+            document.body.classList.toggle('darkmode', b);
+            document.body.classList.toggle('dark', b);
             let btn = document.getElementById('theme-btn');
             if (btn) btn.innerHTML = b ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
-            setPref("darkmode", b ? "1" : "0");
+            setPref('darkmode', b ? '1' : '0');
         }
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
+            // ưu tiên localStorage, fallback INIT_DARK từ server
+            let dark = (localStorage.getItem('vfr-darkmode') ?? (INIT_DARK ? '1' : '0')) === '1';
             applyDark(dark);
-            let themeBtn = document.getElementById('theme-btn');
-            if (themeBtn) {
-                themeBtn.onclick = function() {
-                    dark = !dark;
-                    applyDark(dark);
-                };
-            }
+            const themeBtn = document.getElementById('theme-btn');
+            if (themeBtn) themeBtn.onclick = () => { dark = !dark; applyDark(dark); };
         });
 
         // ===================== LANGUAGE TOGGLE (multi-language, có bổ sung) =====================
