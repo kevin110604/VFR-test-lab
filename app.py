@@ -860,6 +860,99 @@ def approve_all_one(req):
 
     return req
 
+@app.post("/approve_all_stream")
+def approve_all_stream():
+    def gen():
+        # (0) Nhận các ETD cập nhật hàng loạt (từ FE) và lưu vào pending
+        try:
+            data = request.get_json(silent=True) or {}
+            updates = data.get("updates", [])
+            if updates:
+                pending0 = safe_read_json(TFR_LOG_FILE)
+                for u in updates:
+                    try:
+                        i = int(u.get("idx"))
+                        if 0 <= i < len(pending0) and pending0[i].get("trq_id") == u.get("trq_id"):
+                            pending0[i]["etd"] = (u.get("etd") or "").strip()
+                    except Exception:
+                        pass
+                safe_write_json(TFR_LOG_FILE, pending0)
+        except Exception as e:
+            yield json.dumps({"type": "error", "message": f"Bulk ETD update: {e}"}) + "\n"
+
+        # (1) Dọn archive cũ (không chặn tiến trình)
+        try:
+            cleanup_archive_json(days=14)
+        except Exception as e:
+            yield json.dumps({"type": "error", "message": f"Cleanup: {e}"}) + "\n"
+
+        # (2) Lấy danh sách cần duyệt = Submitted + có ETD
+        pending = safe_read_json(TFR_LOG_FILE)
+        todo = [r for r in pending if r.get("status") == "Submitted" and r.get("etd")]
+        total = len(todo)
+        yield json.dumps({"type": "start", "total": total}) + "\n"
+
+        if total == 0:
+            yield json.dumps({"type": "done", "done": 0, "total": 0}) + "\n"
+            return
+
+        # (2.1) Map nhanh trq_id -> request để xóa chính xác sau khi duyệt
+        pending_by_id = {r.get("trq_id"): r for r in pending}
+
+        done = 0
+        for item in list(todo):
+            trq_id = item.get("trq_id")
+            try:
+                # (3) Duyệt theo cùng một luồng với Approve single
+                #     approve_all_one PHẢI thực hiện đầy đủ:
+                #     - cấp report_no
+                #     - fill DOCX/PDF
+                #     - ghi local_main: ETD + LOG IN DATE (định dạng ngày)
+                #     - append sang TRF.xlsx
+                #     - archive request
+                #     và trả về dict có ít nhất: report_no, pdf_path/docx_path
+                approved = approve_all_one(item)
+
+                # (4) Đồng bộ lại field hiển thị cho FE
+                report_no = (approved or {}).get("report_no") or item.get("report_no")
+                item.update({
+                    "status": "Approved",
+                    "decline_reason": "",
+                    "report_no": report_no,
+                    "pdf_path": (approved or {}).get("pdf_path"),
+                    "docx_path": (approved or {}).get("docx_path"),
+                })
+
+                # (5) Xoá request đã duyệt khỏi pending và lưu file
+                if trq_id in pending_by_id:
+                    pending_by_id.pop(trq_id, None)
+                pending = list(pending_by_id.values())
+                safe_write_json(TFR_LOG_FILE, pending)
+
+                # (6) Báo tiến độ
+                done += 1
+                yield json.dumps({
+                    "type": "progress",
+                    "done": done,
+                    "total": total,
+                    "trq_id": trq_id,
+                    "report_no": report_no
+                }) + "\n"
+
+            except Exception as e:
+                # Không dừng toàn bộ, chỉ báo lỗi mục này
+                yield json.dumps({"type": "error", "message": str(e), "trq_id": trq_id}) + "\n"
+
+        # (7) Kết thúc
+        yield json.dumps({"type": "done", "done": done, "total": total}) + "\n"
+
+    headers = {
+        "Content-Type": "application/x-ndjson; charset=utf-8",
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    }
+    return Response(stream_with_context(gen()), headers=headers)
+
 @app.route("/tfr_request_status", methods=["GET", "POST"])
 def tfr_request_status():
     tfr_requests = safe_read_json(TFR_LOG_FILE)
@@ -2777,110 +2870,6 @@ def set_pref():
         session[key] = value
         return jsonify({"success": True})
     return jsonify({"success": False}), 400
-
-@app.post("/approve_all_stream")
-def approve_all_stream():
-    def gen():
-        # (0) Nhận các ETD cập nhật hàng loạt (nếu FE có gửi kèm)
-        try:
-            data = request.get_json(silent=True) or {}
-            updates = data.get("updates", [])
-            if updates:
-                pending0 = safe_read_json(TFR_LOG_FILE)
-                for u in updates:
-                    try:
-                        i = int(u.get("idx"))
-                        if 0 <= i < len(pending0) and pending0[i].get("trq_id") == u.get("trq_id"):
-                            pending0[i]["etd"] = (u.get("etd") or "").strip()
-                    except Exception:
-                        pass
-                safe_write_json(TFR_LOG_FILE, pending0)
-        except Exception as e:
-            yield json.dumps({"type": "error", "message": f"Bulk ETD update: {e}"}) + "\n"
-
-        # (1) Cleanup archive cũ (không chặn tiến trình)
-        try:
-            cleanup_archive_json(days=14)
-        except Exception as e:
-            yield json.dumps({"type": "error", "message": f"Cleanup: {e}"}) + "\n"
-
-        # (2) Lấy danh sách cần duyệt = Submitted + có ETD
-        pending = safe_read_json(TFR_LOG_FILE)
-        todo = [r for r in pending if r.get("status") == "Submitted" and r.get("etd")]
-        total = len(todo)
-        yield json.dumps({"type": "start", "total": total}) + "\n"
-
-        if total == 0:
-            yield json.dumps({"type": "done", "done": 0, "total": 0}) + "\n"
-            return
-
-        done = 0
-        for item in list(todo):
-            trq_id = item.get("trq_id")
-            try:
-                # (3) Cấp report_no + tạo DOCX/PDF với hàm trong docx_utils
-                with REPORT_NO_LOCK:
-                    # Trả về đường dẫn PDF tương đối (vd: "TFR/XXXX.pdf") và report_no
-                    pdf_rel_path, report_no = approve_request_fill_docx_pdf(item)
-
-                    # Cập nhật trạng thái + trường hiển thị
-                    item["status"] = "Approved"
-                    item["decline_reason"] = ""
-                    item["report_no"] = report_no
-                    item["pdf_path"] = pdf_rel_path  # đã có PDF
-                    item["docx_path"] = None         # PDF có sẵn nên ẩn DOCX nếu bạn muốn
-
-                # (4) (Tuỳ code) Ghi Excel TRF nếu bạn có hàm write_tfr_to_excel
-                try:
-                    write_tfr_to_excel(local_main, report_no, item)
-                    from excel_utils import append_row_to_trf
-                    append_row_to_trf(report_no, local_main, "TRF.xlsx", trq_id=trq_id)
-                except Exception as e:
-                    print("Ghi TRF/main lỗi:", e) # không chặn luồng approve
-
-                # (5) Archive bản rút gọn
-                try:
-                    short_data = {
-                        "trq_id": trq_id,
-                        "report_no": report_no,
-                        "requestor": item.get("requestor",""),
-                        "department": item.get("department",""),
-                        "request_date": item.get("request_date",""),
-                        "status": item.get("status",""),
-                        "pdf_path": item.get("pdf_path"),
-                        "docx_path": item.get("docx_path"),
-                        "approved_date": datetime.now(pytz.timezone("Asia/Ho_Chi_Minh")).strftime("%Y-%m-%d"),
-                    }
-                    archive_request(short_data)
-                except Exception:
-                    pass
-
-                # (6) Xoá request đã duyệt khỏi pending và lưu file
-                pending = [r for r in pending if r.get("trq_id") != trq_id]
-                safe_write_json(TFR_LOG_FILE, pending)
-
-                # (7) Báo tiến độ 1/n → n/n
-                done += 1
-                yield json.dumps({
-                    "type": "progress",
-                    "done": done,
-                    "total": total,
-                    "trq_id": trq_id,
-                    "report_no": report_no
-                }) + "\n"
-
-            except Exception as e:
-                yield json.dumps({"type": "error", "message": str(e), "trq_id": trq_id}) + "\n"
-
-        # (8) Kết thúc
-        yield json.dumps({"type": "done", "done": done, "total": total}) + "\n"
-
-    headers = {
-        "Content-Type": "application/x-ndjson; charset=utf-8",
-        "Cache-Control": "no-cache",
-        "X-Accel-Buffering": "no",
-    }
-    return Response(stream_with_context(gen()), headers=headers)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8246,debug=True)
