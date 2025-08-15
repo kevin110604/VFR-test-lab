@@ -2832,9 +2832,11 @@ def approve_all_stream():
 
                 # (4) (Tuỳ code) Ghi Excel TRF nếu bạn có hàm write_tfr_to_excel
                 try:
-                    write_tfr_to_excel(local_main, report_no, item)  # nếu không có, bỏ qua
-                except Exception:
-                    pass  # không chặn luồng approve
+                    write_tfr_to_excel(local_main, report_no, item)
+                    from excel_utils import append_row_to_trf
+                    append_row_to_trf(report_no, local_main, "TRF.xlsx", trq_id=trq_id)
+                except Exception as e:
+                    print("Ghi TRF/main lỗi:", e) # không chặn luồng approve
 
                 # (5) Archive bản rút gọn
                 try:
