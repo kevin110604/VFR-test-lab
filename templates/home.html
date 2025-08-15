@@ -503,36 +503,130 @@
     }
     .vfr3-btn:hover { background: var(--main-btn-hover); color: var(--main-btn-hover-text); transform: translateY(-2px) scale(1.03); box-shadow: 0 6px 18px #c49c4840; }
 
-    /* Chip đổi chế độ — bám góc trái của .center-form */
-    #mode-chip {
-        position: absolute; top: 20px; left: 24px; z-index: 2002; padding: 6px 12px; border-radius: 999px; background: #fffbe8; color: #775d17;
-        font-weight: 700; border: 1.3px solid #ffe082; box-shadow: 0 2px 10px #f7cf3a25; display: none; cursor: pointer;
+    /* ===== MODE DROPDOWN (thay cho chip cũ) ===== */
+    .mode-dropdown {
+        position: absolute;
+        top: 20px;
+        left: 24px;
+        z-index: 2005;
+        display: none; /* chỉ hiện khi đã đăng nhập (STAFF_OK) */
     }
-    body.vfr3-mode #mode-chip { display: inline-flex; }
-    body.darkmode #mode-chip { background:#ffe082; color:#232; }
+    body.has-staff .mode-dropdown { display: block; }
 
-    /* Overlay chọn chế độ */
+    #mode-btn {
+        background: #fffbe8;
+        color: #775d17;
+        border: 1.3px solid #ffe082;
+        padding: 6px 12px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 14.5px;
+        cursor: pointer;
+        box-shadow: 0 2px 10px #f7cf3a25;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    #mode-btn i.fa-caret-down { opacity: 0.9; }
+
+    .mode-menu {
+        display: none;
+        position: absolute;
+        top: 110%;
+        left: 0;
+        min-width: 170px;
+        background: #fffbe8;
+        border: 1.3px solid #ffe082;
+        border-radius: 12px;
+        box-shadow: 0 6px 22px #c49c4840;
+        overflow: hidden;
+    }
+    .mode-dropdown.open .mode-menu { display: block; }
+
+    .mode-menu a {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        text-decoration: none;
+        color: #333;
+        font-weight: 600;
+        white-space: nowrap;
+        transition: background 0.16s, color 0.13s;
+        border-bottom: 1px solid #eee2b8;
+    }
+    .mode-menu a:last-child { border-bottom: none; }
+    .mode-menu a:hover {
+        background: #ffe082;
+        color: #35523A;
+    }
+    .mode-menu a.active {
+        background: #fff1b8;
+        color: #6b4e07;
+    }
+
+    /* Darkmode cho dropdown */
+    body.darkmode #mode-btn { background: #ffe082; color: #232; border-color: #ffe082; }
+    body.darkmode .mode-menu { background: #ffe082; border-color: #ffe082; }
+    body.darkmode .mode-menu a { color: #232; border-bottom-color: #f2d97a; }
+    body.darkmode .mode-menu a:hover { background: #ffec9a; color: #1a2d27; }
+    body.darkmode .mode-menu a.active { background: #ffe795; color: #1a2d27; }
+
+    /* ===== MODE OVERLAY (popup chọn department sau khi nhập Staff ID) ===== */
     #mode-overlay {
-        position: fixed; inset: 0; z-index: 30000; display: none; align-items: center; justify-content: center; background: rgba(35,42,55,0.22); backdrop-filter: blur(2px);
+        position: fixed;
+        inset: 0;
+        z-index: 30000;
+        display: none;                 /* JS sẽ bật = 'flex' khi cần */
+        align-items: center;
+        justify-content: center;
+        background: rgba(35,42,55,0.22);
+        backdrop-filter: blur(2px);
     }
-    #mode-card { background: #fffbe8; border-radius: 20px; padding: 24px; box-shadow: 0 8px 40px #c49c4844; width: min(560px, 92vw); text-align: center; }
-    #mode-card h3 { margin: 0 0 14px; color: #c49c48; }
-    .mode-actions { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+    #mode-card {
+        background: #fffbe8;
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 8px 40px #c49c4844;
+        width: min(560px, 92vw);
+        text-align: center;
+        border: 1.5px solid #ffe082;
+    }
+    #mode-card h3 {
+        margin: 0 0 14px;
+        color: #c49c48;
+    }
+    .mode-actions {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-top: 6px;
+    }
     .mode-btn {
-        min-width: 160px; padding: 12px 18px; border-radius: 12px; border: none; background: var(--main-btn); color: var(--main-btn-text); font-weight: 800;
-        cursor: pointer; box-shadow: 0 4px 12px #c49c4830; transition: background .16s, transform .12s;
+        min-width: 160px;
+        padding: 12px 18px;
+        border-radius: 12px;
+        border: none;
+        background: var(--main-btn);
+        color: var(--main-btn-text);
+        font-weight: 800;
+        cursor: pointer;
+        box-shadow: 0 4px 12px #c49c4830;
+        transition: background .16s, transform .12s, color .16s, box-shadow .16s;
     }
-    .mode-btn:hover { background: var(--main-btn-hover); color: var(--main-btn-hover-text); transform: translateY(-2px); }
-    /* Trên điện thoại nhỏ, rút gọn chữ */
-    @media (max-width: 480px) {
-        #mode-chip {
-            font-size: 13px;
-            padding: 4px 8px;
-        }
-        #mode-chip i {
-            margin-right: 0 !important;
-        }
+    .mode-btn:hover {
+        background: var(--main-btn-hover);
+        color: var(--main-btn-hover-text);
+        transform: translateY(-2px);
     }
+
+    /* Khi overlay mở, khóa cuộn body cho đỡ giật */
+    body.modal-open { overflow: hidden; }
+
+    /* Darkmode cho card */
+    body.darkmode #mode-card { background: #ffe082; border-color: #ffe082; }
+    body.darkmode #mode-card h3 { color: #232; }
     </style>
 </head>
 <body>
@@ -562,17 +656,34 @@
     <!-- Chọn chế độ -->
     <div id="mode-overlay">
       <div id="mode-card">
-        <h3>Chọn chế độ</h3>
+        <h3>Choose Department</h3>
         <div class="mode-actions">
             <button class="mode-btn" id="btn-mode-testlab"><i class="fa fa-flask"></i> TEST LAB</button>
             <button class="mode-btn" id="btn-mode-vfr3"><i class="fa fa-industry"></i> VFR3</button>
         </div>
-        <div style="margin-top:10px; font-size:13px; color:#8b6b1e;">(Có thể đổi lại ở góc trên trái)</div>
+        <div style="margin-top:10px; font-size:13px; color:#8b6b1e;">Can change later</div>
       </div>
     </div>
     {% endif %}
 
     <div style="opacity:{% if not session.get('staff_id') %}0.22{% else %}1{% endif %}; pointer-events:{% if not session.get('staff_id') %}none{% else %}auto{% endif %}; transition:opacity 0.22s;">
+        {% if session.get('staff_id') %}
+        <!-- Nút chọn MODE (dropdown trái) -->
+        <div class="mode-dropdown" aria-label="Chọn chế độ" title="Chọn chế độ">
+            <button id="mode-btn">
+                <i class="fa fa-layer-group"></i>
+                <span id="mode-current">TEST LAB</span>
+                <i class="fa fa-caret-down"></i>
+            </button>
+            <div class="mode-menu" id="mode-menu">
+                <a href="#" data-mode="TEST_LAB" id="mode-item-testlab"><i class="fa fa-flask"></i> TEST LAB</a>
+                <a href="#" data-mode="VFR3" id="mode-item-vfr3"><i class="fa fa-industry"></i> VFR3</a>
+                <!-- Sau này thêm bộ phận khác chỉ cần add thêm:
+                <a href="#" data-mode="ABC"><i class="fa fa-..."></i> ABC</a>
+                -->
+            </div>
+        </div>
+        {% endif %}
         <div class="center-form">
             <!-- Nút chuyển ngôn ngữ -->
             <div style="position:absolute; top:20px; right:32px; z-index:22;">
@@ -580,14 +691,6 @@
                     <i class="fa fa-language"></i> <span>EN</span>
                 </button>
             </div>
-
-            <!-- Mode chip: đặt bên trong .center-form để bám góc trái khung -->
-            {% if session.get('staff_id') %}
-            <div id="mode-chip" title="Đổi chế độ">
-                <i class="fa fa-layer-group" style="margin-right:6px;"></i>
-                <span id="mode-chip-text">Mode: TEST LAB</span>
-            </div>
-            {% endif %}
 
             <img src="/static/logo_vfr.jpg" alt="VFR Logo" style="display:block; margin: 30px auto 18px auto; max-width:190px;"/>
             <h2 class="text-title">Product Search</h2>
@@ -1078,20 +1181,29 @@
         // === MODE (TEST LAB / VFR3) ===
         const STAFF_OK = {{ 'true' if session.get('staff_id') else 'false' }};
 
+        // Cập nhật class body để hiển thị dropdown khi đã có staff_id (để CSS show/hide)
+        document.addEventListener('DOMContentLoaded', function () {
+            if (STAFF_OK) document.body.classList.add('has-staff');
+        });
+
         function applyMode(mode) {
             const body = document.body;
-            const chip = document.getElementById('mode-chip');
-            const chipText = document.getElementById('mode-chip-text');
+            const current = document.getElementById('mode-current');
+            const itemTL  = document.getElementById('mode-item-testlab');
+            const itemV3  = document.getElementById('mode-item-vfr3');
+
             if (mode === 'VFR3') {
                 body.classList.add('vfr3-mode');
-                if (chip) chip.style.display = 'inline-flex';
-                if (chipText) chipText.textContent = 'Mode: VFR3';
+                if (current) current.textContent = 'VFR3';
             } else {
                 body.classList.remove('vfr3-mode');
-                if (chip) chip.style.display = 'inline-flex';
-                if (chipText) chipText.textContent = 'Mode: TEST LAB';
+                if (current) current.textContent = 'TEST LAB';
             }
+
+            if (itemTL) itemTL.classList.toggle('active', mode === 'TEST_LAB');
+            if (itemV3) itemV3.classList.toggle('active', mode === 'VFR3');
         }
+
         function setMode(mode) {
             localStorage.setItem('vfr-mode', mode);
             applyMode(mode);
@@ -1101,23 +1213,69 @@
             const overlay = document.getElementById('mode-overlay');
             const btnTL   = document.getElementById('btn-mode-testlab');
             const btnV3   = document.getElementById('btn-mode-vfr3');
-            const chip    = document.getElementById('mode-chip');
 
-            // Luôn áp dụng mode lưu trước
-            const saved = localStorage.getItem('vfr-mode');
-            if (saved) { applyMode(saved); } else { applyMode('TEST_LAB'); }
+            // Dropdown elements
+            const ddWrap  = document.querySelector('.mode-dropdown');
+            const btnOpen = document.getElementById('mode-btn');
+            const menu    = document.getElementById('mode-menu');
 
-            // Chỉ bật overlay chọn mode nếu đã có staff_id và chưa từng chọn
-            if (STAFF_OK && overlay && !saved) { overlay.style.display = 'flex'; }
+            // Áp dụng mode đã lưu
+            const saved = localStorage.getItem('vfr-mode') || 'TEST_LAB';
+            applyMode(saved);
 
-            if (btnTL) btnTL.onclick = () => { setMode('TEST_LAB'); if (overlay) overlay.style.display='none'; };
-            if (btnV3) btnV3.onclick = () => { setMode('VFR3');     if (overlay) overlay.style.display='none'; };
+            // == HIỆN OVERLAY nếu có Staff ID và CHƯA chọn mode lần nào ==
+            if (STAFF_OK && overlay && !localStorage.getItem('vfr-mode')) {
+                // đảm bảo dropdown không mở đè
+                if (ddWrap) ddWrap.classList.remove('open');
+                overlay.style.display = 'flex';
+                document.body.classList.add('modal-open'); // khóa cuộn
+            }
 
-            if (chip) chip.onclick = function () {
-                const current = localStorage.getItem('vfr-mode') || 'TEST_LAB';
-                const next = (current === 'VFR3') ? 'TEST_LAB' : 'VFR3';
-                setMode(next);
-            };
+            // Nút chọn trên overlay
+            function chooseAndClose(mode) {
+                setMode(mode);
+                if (overlay) overlay.style.display = 'none';
+                document.body.classList.remove('modal-open'); // mở lại cuộn
+            }
+            if (btnTL) btnTL.onclick = () => chooseAndClose('TEST_LAB');
+            if (btnV3) btnV3.onclick = () => chooseAndClose('VFR3');
+
+            // Toggle dropdown (góc trái)
+            if (btnOpen && ddWrap) {
+                btnOpen.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    ddWrap.classList.toggle('open');
+                });
+            }
+
+            // Chọn item trong menu
+            if (menu) {
+                menu.addEventListener('click', function (e) {
+                    const a = e.target.closest('a[data-mode]');
+                    if (!a) return;
+                    e.preventDefault();
+                    const mode = a.getAttribute('data-mode');
+                    setMode(mode);
+                    ddWrap && ddWrap.classList.remove('open');
+                });
+            }
+
+            // Đóng dropdown khi click ra ngoài
+            document.addEventListener('click', function (e) {
+                if (!ddWrap) return;
+                if (!ddWrap.contains(e.target)) ddWrap.classList.remove('open');
+            });
+
+            // Đóng overlay khi click ra ngoài (tùy chọn)
+            if (overlay) {
+                overlay.addEventListener('click', function (e) {
+                    if (e.target === overlay) {
+                        // Nếu muốn bắt buộc chọn, có thể bỏ đoạn này đi
+                        overlay.style.display = 'none';
+                        document.body.classList.remove('modal-open');
+                    }
+                });
+            }
         });
     </script>
 
