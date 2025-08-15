@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Danh sách sản phẩm trong kho - {{ area_name }}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <style>
+    /* ===== THEME giống Home/Borrow/Return ===== */
+    :root{
+      --main-bg:#fffdfc; --main-card:#fffdfccf; --main-text:#333;
+      --main-th:#4d665c; --main-border:#4d665c55;
+      --main-btn:#c49c48; --main-btn-hover:#35523A;
+      --main-btn-text:#fff; --main-btn-hover-text:#ffe082;
+      --c-bg:#374947; --c-olive:#a19a74;
+    }
+    body.darkmode{
+      --main-bg:#2b3938; --main-card:#374B4A; --main-text:#f6f6ef;
+      --main-th:#ffe082; --main-border:#263d3a;
+      --main-btn:#97722a; --main-btn-hover:#35523A;
+      --main-btn-text:#fff; --main-btn-hover-text:#ffe082;
+    }
+
+    html,body{height:100%}
+    body{
+      font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+      margin:0; background:var(--main-bg); color:var(--main-text);
+      transition:background .3s,color .3s;
+    }
+    .center-wrap{
+      max-width:1100px; margin:60px auto; background:var(--main-card);
+      border-radius:22px; box-shadow:0 4px 28px var(--main-border);
+      padding:28px 18px; position:relative;
+    }
+    h1{ text-align:center; color:var(--main-th); margin:0 0 14px; font-size:26px }
+
+    /* Back */
+    .back-btn{
+      position:absolute; top:18px; left:18px; z-index:1000;
+      background:#faf7ec; color:#73592c !important; border:1px solid #d5c69d; border-radius:11px;
+      font-size:13.3px; font-weight:600; letter-spacing:.03em; padding:5px 12px;
+      display:inline-flex; align-items:center; gap:7px; text-decoration:none;
+      box-shadow:0 1px 6px #d4c8942a; transition:.13s;
+    }
+    .back-btn:hover{ background:#ffe082; color:#25312b !important; border-color:#ffe082 }
+
+    /* Theme button */
+    #theme-btn{
+      position:fixed; right:24px; bottom:26px; z-index:11001;
+      background:#8B6B1E; color:#fff; border-radius:100px; font-size:17px;
+      padding:6px 11px; border:none; height:38px; width:38px; min-width:36px;
+      display:flex; align-items:center; justify-content:center; opacity:.96;
+      box-shadow:0 2px 10px rgba(0,0,0,.10); cursor:pointer; transition:.16s;
+    }
+    #theme-btn:hover{ background:#C49C48; color:#fff }
+    body.darkmode #theme-btn{ background:#6c837f !important; color:#fefefe !important }
+
+    /* Toolbar */
+    .toolbar{
+      display:flex; gap:12px; justify-content:center; align-items:center; flex-wrap:wrap;
+      margin:8px 0 16px;
+    }
+    .btn-olive{
+      background: linear-gradient(180deg, #4c7d4b, #3d6a3d);
+      color:#fff; border:2px solid #3d6a3d; padding:10px 16px; border-radius:10px;
+      cursor:pointer; font-weight:700;
+    }
+    .btn-olive:hover{ filter:brightness(1.05) }
+    .inv-input{
+      padding:10px 36px 10px 12px; border:2px solid var(--c-olive);
+      border-radius:10px; min-width:260px; outline:none; font-size:14px;
+    }
+    .search-icon-btn{
+      position:absolute; right:6px; top:50%; transform:translateY(-50%);
+      border:none; background:transparent; cursor:pointer; font-size:16px;
+    }
+
+    /* Bảng */
+    .table-wrap{
+      background:#fff; border:1.5px solid var(--c-olive);
+      border-radius:16px; overflow:auto; box-shadow:0 6px 24px rgba(0,0,0,.06);
+    }
+    table{ width:100%; border-collapse:separate; border-spacing:0; font-size:14px; background:#fff; }
+    thead th{
+      position:sticky; top:0; z-index:1; background:var(--c-bg); color:#fff; font-weight:700;
+      border-bottom:2px solid var(--c-olive); padding:10px 12px; text-align:left;
+    }
+    thead th.sticky:first-child{ border-top-left-radius:16px }
+    thead th.sticky:last-child{ border-top-right-radius:16px }
+    tbody tr:nth-child(even){ background: rgba(161,154,116,.10) }
+    tbody tr.hl{ background:#fff6cc !important }
+    td.cell{ padding:10px 12px; border-bottom:1px solid #eaeaea; vertical-align:middle }
+    td.center{ text-align:center }
+    .view-btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      width:38px; height:34px; border-radius:10px; cursor:pointer;
+      border:2px solid var(--c-olive); background:#fff;
+      transition:transform .08s ease, background .12s ease, opacity .12s ease;
+    }
+    .view-btn:active{ transform: scale(.97) }
+    .view-btn:hover{ background:#f8f9fa }
+    .view-btn.disabled{ opacity:.45; cursor:not-allowed }
+
+    /* Phân trang */
+    .pagination-wrap{ text-align:center; margin:16px 0 }
+    .pagination a, .pagination span{
+      display:inline-block; min-width:34px; padding:6px 8px; margin:0 3px; text-align:center;
+      border:1.5px solid var(--c-olive); border-radius:8px; text-decoration:none; color:#374947; background:#fff;
+    }
+    .pagination span.active{ background:var(--c-bg); color:#fff; border-color:var(--c-bg) }
+    .pagination span.disabled{ opacity:.4 }
+
+    /* Lightbox */
+    .lb[hidden]{ display:none }
+    .lb{ position:fixed; inset:0; z-index:1200; display:flex; align-items:center; justify-content:center; padding:16px }
+    .lb-backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.45); backdrop-filter:blur(2px) }
+    .lb-panel{
+      position:relative; background:#fff; border:1.5px solid var(--c-olive);
+      border-radius:16px; width:min(1000px, 96vw); max-height:90vh; display:flex; flex-direction:column;
+      box-shadow:0 12px 40px rgba(0,0,0,.20);
+    }
+    .lb-head{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding:12px 14px; border-bottom:1px dashed var(--c-olive); background:rgba(161,154,116,.10);
+      border-radius:16px 16px 0 0;
+    }
+    .lb-title{ font-weight:700; color:#374947 }
+    .lb-close{ border:1.5px solid var(--c-olive); background:#fff; border-radius:10px; width:36px; height:34px; cursor:pointer }
+    .lb-body{
+      padding:14px; overflow:auto; display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:12px;
+    }
+    .lb-item{ border:1px solid #e7e1c9; border-radius:12px; padding:8px; display:flex; flex-direction:column; gap:8px; background:#fff; }
+    .lb-item img{ width:100%; height:160px; object-fit:cover; border-radius:10px }
+    .lb-cap{ font-size:12px; color:#333 }
+
+    /* Popup form chung (Thêm/Sửa/Lọc) */
+    .popup-overlay{
+      display:none; position:fixed; inset:0; z-index:1200; background:rgba(0,0,0,.55); backdrop-filter:blur(2px);
+    }
+    .popup-form{
+      display:none; position:fixed; z-index:1201; left:50%; top:50%; transform:translate(-50%,-50%) scale(.98);
+      width:min(560px, 94vw); max-height:85vh; background:#fff; border:1.5px solid var(--c-olive);
+      border-radius:20px; box-shadow:0 22px 60px rgba(0,0,0,.30); overflow:hidden;
+    }
+    .popup-head{ padding:12px 16px; background:rgba(161,154,116,.12); border-bottom:1px dashed var(--c-olive); border-radius:20px 20px 0 0 }
+    .popup-title{ font-weight:800; color:#374947 }
+    .popup-body{ padding:14px; max-height:calc(85vh - 56px); overflow:auto; -webkit-overflow-scrolling:touch }
+    .form-grid{ display:grid; grid-template-columns:1fr; gap:10px 0; max-width:520px; margin:0 auto }
+    .form-row{ display:block }
+    .form-row > label{ display:block; font-weight:600; color:#2e2e2e; margin-bottom:6px }
+    input[type="text"], input[type="number"], select, input[type="file"]{
+      width:100%; padding:10px 12px; border:2px solid var(--c-olive); border-radius:10px; background:#fff; font-size:14px; outline:none; box-sizing:border-box;
+    }
+    .vi-tri-group{ display:grid; grid-template-columns:1fr; gap:8px }
+    .vi-tri-group input{ text-align:center }
+    .form-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:14px; border-top:1px dashed var(--c-olive); padding-top:14px }
+    .btn-primary{ background: var(--c-bg); color:#fff; border:2px solid var(--c-bg); padding:10px 16px; border-radius:10px; cursor:pointer; font-weight:700 }
+    .btn-secondary{ background:#fff; color:var(--c-bg); border:2px solid var(--c-olive); padding:10px 16px; border-radius:10px; cursor:pointer; font-weight:700 }
+    .btn-primary:hover{ filter:brightness(1.05) }
+    .btn-secondary:hover{ background:#faf9f6 }
+    .hint{ color:#666; font-size:12px; display:block; margin-top:6px }
+
+    body.darkmode .center-wrap{ background:#fffbe8 }
+    body.darkmode .lb-panel, body.darkmode .popup-form{ background:#fff }
+  </style>
+</head>
+<body>
+  <div class="center-wrap">
+    <!-- Back -->
+    <a class="back-btn" href="/{{ area }}"><i class="fa fa-arrow-left"></i> Menu khu vực</a>
+
+    <!-- Logo + tiêu đề -->
+    <img src="/static/logo_vfr.jpg" alt="VFR Logo" style="display:block; margin:10px auto 8px; max-width:160px;"/>
+    {% set area_map = {
+      "Mau_duc_cat": "Mẫu đúc cát",
+      "Mau_duc_ceramic_thach_cao": "Mẫu đúc ceramic - thạch cao",
+      "Mau_sap": "Mẫu sáp"
+    } %}
+    <h1>📦 Danh sách sản phẩm trong kho - {{ area_map.get(area, area_name or area) }}</h1>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <button type="button" class="btn-olive" onclick="openFilter()">🧭 Lọc</button>
+      <button type="button" class="btn-olive" onclick="openForm()">➕ Thêm sản phẩm</button>
+
+      <form method="GET" action="/{{ area }}/inventory" style="display:flex; align-items:center; gap:8px;">
+        <div style="position:relative;">
+          <input type="text" name="q" value="{{ q|default('') }}" placeholder="🔎 Tìm theo Code hoặc Part code" class="inv-input"/>
+          <button type="submit" title="Tìm" class="search-icon-btn">🔍</button>
+        </div>
+      </form>
+    </div>
+
+    {# RÚT GỌN TÊN CỘT #}
+    {% set short_map = {
+      "STT":"STT","Hình mẫu":"Hình mẫu","Miêu tả":"Mô tả","Vị trí":"Vị trí","Code":"Code",
+      "Số lượng Parts":"Số lượng Parts","Part code":"Part code","Ngày tạo khuôn":"Ngày tạo",
+      "Ngày mượn mẫu":"Ngày mượn","Người mượn":"Người mượn","Ngày trả":"Ngày trả hàng",
+      "Người trả":"Người trả hàng","Số ngày trong kho":"Ngày tồn","Tuổi thọ (tháng)":"Tuổi thọ",
+      "Số lần đã sử dụng":"Sử dụng","Số lần sử dụng tối đa":"Sử dụng tối đa","Tình trạng":"Trạng thái"
+    } %}
+    {% set hidden_img_cols = ["Hình dạng", "Ảnh mượn", "Ảnh trả"] %}
+
+    <div class="table-wrap">
+      <table id="inventoryTable" class="inv-table">
+        <thead>
+          <tr>
+            {% for col in columns if col not in hidden_img_cols %}
+              <th class="sticky">{{ short_map.get(col, col) }}</th>
+            {% endfor %}
+            <th class="sticky" style="text-align:center; width:70px;">Xem</th>
+            <th class="sticky" style="text-align:center; width:120px;">Chỉnh sửa</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in data %}
+          {% set img_product = row.get('Hình dạng') %}
+          {% set img_borrow  = row.get('Ảnh mượn') %}
+          {% set img_return  = row.get('Ảnh trả') %}
+          {% set so_parts    = row.get('Số lượng Parts') %}
+          {% set is_main     = (not row.get('Part code')) or (row.get('Part code')|string == '') or ((row.get('Part code')|string).lower() == 'nan') %}
+          {% set has_parts   = so_parts and (so_parts|string)|int > 0 %}
+
+          <tr class="inv-row"
+              data-status="{{ row.get('Tình trạng','')|e }}"
+              data-code="{{ row.get('Code','')|e }}"
+              data-part="{{ row.get('Part code','')|e }}"
+              data-img-product="{{ img_product|default('', true) }}"
+              data-img-borrow="{{ img_borrow|default('', true) }}"
+              data-img-return="{{ img_return|default('', true) }}">
+            {% for col in columns if col not in hidden_img_cols %}
+              <td class="cell {% if col=='Tình trạng' and row[col]=='Không tồn tại' %}state-khongtontai{% endif %}">
+                {% if is_main and has_parts and col in ['Tình trạng','Số lần sử dụng tối đa','Tuổi thọ (tháng)'] %}
+                  {# Ẩn ở SP cha khi có part #}
+                {% else %}
+                  {{ row[col] if row[col] and row[col]|string != "nan" else "" }}
+                {% endif %}
+              </td>
+            {% endfor %}
+            <td class="cell center">
+              <button class="view-btn disabled" title="Xem ảnh" aria-label="Xem ảnh" disabled>👁️</button>
+            </td>
+            <td class="cell center">
+              <div style="display:flex;gap:8px;justify-content:center;">
+                <button class="edit-btn" title="Sửa thông tin" data-action="edit" aria-label="Sửa">✏️</button>
+                <button class="delete-btn {% if is_main and has_parts %}disabled{% endif %}"
+                        title="Xoá" data-action="delete" {% if is_main and has_parts %}disabled{% endif %}>🗑️</button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% set has_query = q is defined and q %}
+    {% if not has_query %}
+      <div class="pagination-wrap">
+        <div class="pagination">
+          {% if current_page > 1 %}
+            <a href="/{{ area }}/inventory?page=1">&laquo;</a>
+            <a href="/{{ area }}/inventory?page={{ current_page - 1 }}">&lsaquo;</a>
+          {% else %}
+            <span class="disabled">&laquo;</span>
+            <span class="disabled">&lsaquo;</span>
+          {% endif %}
+          {% for p in range(1, total_pages + 1) %}
+            {% if p >= current_page - 1 and p <= current_page + 1 %}
+              {% if p == current_page %}
+                <span class="active">{{ p }}</span>
+              {% else %}
+                <a href="/{{ area }}/inventory?page={{ p }}">{{ p }}</a>
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+          {% if current_page < total_pages %}
+            <a href="/{{ area }}/inventory?page={{ current_page + 1 }}">&rsaquo;</a>
+            <a href="/{{ area }}/inventory?page={{ total_pages }}">&raquo;</a>
+          {% else %}
+            <span class="disabled">&rsaquo;</span>
+            <span class="disabled">&raquo;</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Lightbox -->
+    <div id="imgLightbox" class="lb" hidden>
+      <div class="lb-backdrop" data-close="1"></div>
+      <div class="lb-panel">
+        <div class="lb-head">
+          <div class="lb-title">Ảnh sản phẩm</div>
+          <button class="lb-close" title="Đóng" data-close="1">✕</button>
+        </div>
+        <div class="lb-body" id="lbBody"></div>
+      </div>
+    </div>
+
+    <!-- Popup Lọc -->
+    <div class="popup-overlay" id="filterOverlay" onclick="closeFilter()"></div>
+    <div class="popup-form" id="filterPopup" role="dialog" aria-modal="true" style="max-width:720px;">
+      <div class="popup-head"><div class="popup-title">🧭 Lọc sản phẩm</div></div>
+      <form method="GET" action="/{{ area }}/inventory" class="popup-body" onsubmit="return beforeSubmitFilter();">
+        <input type="hidden" name="f_active" value="1">
+        <input type="hidden" id="n_rules" name="n_rules" value="1">
+
+        <div id="rulesWrap" class="form-grid">
+          <div class="filter-rule-card" data-index="0" style="border:1px dashed var(--c-olive);border-radius:10px;padding:12px;margin-bottom:12px;">
+            <div class="form-row">
+              <label><b>Thông tin cần lọc</b></label>
+              <div>
+                <select name="r0_field" class="filter-field" onchange="onFieldChange(0)">
+                  <option value="desc">Mô tả</option>
+                  <option value="created">Ngày tạo</option>
+                  <option value="borrow">Ngày mượn</option>
+                  <option value="return">Ngày trả</option>
+                  <option value="borrower_code">Người mượn (Mã)</option>
+                  <option value="returner_code">Người trả (Mã)</option>
+                  <option value="days">Ngày tồn</option>
+                  <option value="used">Sử dụng</option>
+                  <option value="umax">Sử dụng tối đa</option>
+                  <option value="status">Trạng thái</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- nhóm điều kiện -->
+            <div class="form-row cond cond-desc">
+              <label>Giá trị (chứa chuỗi):</label>
+              <div><input type="text" name="r0_v1" placeholder="Nhập chữ/số" value=""></div>
+              <input type="hidden" name="r0_op" value="contains">
+            </div>
+
+            <div class="form-row cond cond-date" style="display:none;">
+              <label>Điều kiện (ngày):</label>
+              <div>
+                <select name="r0_op_date" class="date-op" onchange="syncOp(0)">
+                  <option value="before">Trước</option>
+                  <option value="on">Ngày</option>
+                  <option value="after">Sau</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row cond cond-date" style="display:none;">
+              <label>Ngày (dd/mm/yyyy):</label>
+              <div><input type="text" name="r0_v1_date" placeholder="vd: 17/05/2024"></div>
+              <input type="hidden" name="r0_op" value="">
+            </div>
+
+            <div class="form-row cond cond-emp" style="display:none;">
+              <label>Mã nhân viên:</label>
+              <div><input type="text" name="r0_v1" placeholder="Nhập mã NV (vd: NV001)"></div>
+              <input type="hidden" name="r0_op" value="emp_code">
+            </div>
+
+            <div class="form-row cond cond-number" style="display:none;">
+              <label>Điều kiện số:</label>
+              <div>
+                <select name="r0_op_num" class="num-op" onchange="syncOp(0)">
+                  <option value="under">Dưới (≤)</option>
+                  <option value="over">Trên (≥)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row cond cond-number" style="display:none;">
+              <label>Giá trị:</label>
+              <div><input type="number" name="r0_v1_num" placeholder="Nhập số"></div>
+              <input type="hidden" name="r0_v1" value="">
+              <input type="hidden" name="r0_op" value="">
+            </div>
+
+            <div class="form-row cond cond-status" style="display:none;">
+              <label>Trạng thái:</label>
+              <div>
+                <select name="r0_v1">
+                  <option value="available">Available</option>
+                  <option value="unavailable">Unavailable</option>
+                  <option value="none">Không tồn tại</option>
+                </select>
+              </div>
+              <input type="hidden" name="r0_op" value="status_is">
+            </div>
+
+            <div class="form-row" style="justify-content:flex-end;">
+              <button type="button" class="btn-secondary" onclick="removeRule(0)">Xoá điều kiện</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button type="button" class="btn-secondary" onclick="addRule()">+ Thêm điều kiện</button>
+          <button type="submit" class="btn-primary" style="background:#a19a74;border-color:#a19a74;">Xác nhận</button>
+          <a class="btn-secondary" href="/{{ area }}/inventory" style="text-decoration:none;">Xoá lọc</a>
+          <button type="button" class="btn-secondary" onclick="closeFilter()">Đóng</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Popup Thêm -->
+    <div class="popup-overlay" id="overlay" onclick="closeForm()"></div>
+    <div class="popup-form" id="popupForm" role="dialog" aria-modal="true">
+      <div class="popup-head"><div class="popup-title">📦 Thêm sản phẩm mới</div></div>
+      <form method="POST" action="/{{ area }}/them-san-pham" enctype="multipart/form-data" id="addProductForm" autocomplete="off" class="popup-body">
+        <div class="form-grid">
+          <div class="form-row">
+            <label>Hình dạng (ảnh):</label>
+            <div>
+              <input type="file" name="hinh_dang" id="hinh_dang" accept="image/*" required>
+              <div id="main-img-preview" class="img-preview" aria-live="polite"></div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label>Code:</label>
+            <div><input type="text" name="code" id="code" required></div>
+          </div>
+
+          <div class="form-row">
+            <label>Tuổi thọ (tháng):</label>
+            <div><input type="number" name="tuoi_tho" min="1" required><small class="hint">vd: 12 = 1 năm</small></div>
+          </div>
+
+          <div class="form-row">
+            <label>Số lần sử dụng tối đa:</label>
+            <div><input type="number" name="so_lan_su_dung_toi_da" min="1" required></div>
+          </div>
+
+          <div class="form-row">
+            <label>Số lượng Parts:</label>
+            <div><input type="number" name="so_luong_parts" id="so_luong_parts" min="0" value="0" required></div>
+          </div>
+
+          <div class="form-row" id="product-shape-row">
+            <label>Hình mẫu:</label>
+            <div>
+              <select name="hinh_mau_main" required>
+                <option value="" disabled selected>-- Chọn hình mẫu --</option>
+                <option value="Khuôn dài">Khuôn dài</option>
+                <option value="Khuôn trụ">Khuôn trụ</option>
+                <option value="Khuôn dẹt">Khuôn dẹt</option>
+                <option value="Khuôn khổ bự">Khuôn khổ bự</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row" id="product-location-row">
+            <label>Vị trí:</label>
+            <div class="vi-tri-group">
+              <input type="text" name="ke" placeholder="Kệ" maxlength="1" required>
+              <input type="text" name="hang" placeholder="Hàng" maxlength="1" required>
+              <input type="text" name="o" placeholder="Hộc" maxlength="1" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label>Miêu tả:</label>
+            <div><input type="text" name="mieu_ta" required></div>
+          </div>
+        </div>
+
+        <div id="parts-section" class="parts-section"></div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" id="submitBtn">Lưu</button>
+          <button type="button" class="btn-secondary" onclick="closeForm()">Đóng</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Popup Sửa -->
+    <div class="popup-overlay" id="editOverlay"></div>
+    <div class="popup-form" id="editPopup" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+      <div class="popup-head"><div class="popup-title" id="editTitle">✏️ Sửa thông tin</div></div>
+      <form id="editForm" class="popup-body">
+        <input type="hidden" name="code"><input type="hidden" name="part_code">
+        <div class="form-grid">
+          <div class="form-row">
+            <label>Hình mẫu:</label>
+            <div>
+              <select name="Hình mẫu" required>
+                <option value="" disabled>-- Chọn hình mẫu --</option>
+                <option value="Khuôn dài">Khuôn dài</option>
+                <option value="Khuôn trụ">Khuôn trụ</option>
+                <option value="Khuôn dẹt">Khuôn dẹt</option>
+                <option value="Khuôn khổ bự">Khuôn khổ bự</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row"><label>Miêu tả:</label><div><input type="text" name="Miêu tả" required></div></div>
+          <div class="form-row">
+            <label>Vị trí (Kệ/Hàng/Hộc):</label>
+            <div class="vi-tri-group">
+              <input type="text" name="ke" placeholder="Kệ" maxlength="1">
+              <input type="text" name="hang" placeholder="Hàng" maxlength="1">
+              <input type="text" name="o" placeholder="Hộc" maxlength="1">
+            </div>
+            <small class="hint">Để trống nếu không muốn thay đổi.</small>
+          </div>
+          <div class="form-row"><label>Ngày tạo khuôn:</label><div><input type="text" name="Ngày tạo khuôn" placeholder="YYYY-MM-DD HH:MM:SS"></div></div>
+          <div class="form-row"><label>Tuổi thọ (tháng):</label><div><input type="number" name="Tuổi thọ (tháng)" min="0"></div></div>
+          <div class="form-row"><label>Số lần sử dụng tối đa:</label><div><input type="number" name="Số lần sử dụng tối đa" min="0"></div></div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">Lưu</button>
+          <button type="button" class="btn-secondary" id="btnCancelEdit">Đóng</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Popup Xác nhận xoá -->
+    <div class="popup-overlay" id="confirmOverlay"></div>
+    <div class="popup-form" id="confirmPopup" style="min-width:300px;">
+      <div class="popup-head"><div class="popup-title">⚠️ Xác nhận xoá</div></div>
+      <div class="popup-body">
+        <div id="confirmText" style="margin-bottom:12px;color:#333"></div>
+        <div class="form-actions">
+          <button type="button" class="btn-primary" id="btnConfirmYes">Xoá</button>
+          <button type="button" class="btn-secondary" id="btnConfirmNo">Huỷ</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /center-wrap -->
+
+  <!-- Theme toggle -->
+  <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
+
+  <script>
+    // Darkmode đồng bộ với Home/Borrow/Return
+    function applyDarkMode(dark){
+      document.body.classList.toggle('darkmode', dark);
+      const btn = document.getElementById('theme-btn');
+      if(btn) btn.innerHTML = dark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
+      try{ localStorage.setItem('vfr-darkmode', dark?'1':'0'); }catch(e){}
+    }
+    (function initDark(){
+      let dark=false;
+      try{ const saved=localStorage.getItem('vfr-darkmode'); if(saved!==null) dark=(saved==='1'); }catch(e){}
+      applyDarkMode(dark);
+      const btn=document.getElementById('theme-btn');
+      if(btn) btn.onclick=function(){ dark=!dark; applyDarkMode(dark); };
+    })();
+
+    // Popup Thêm
+    function openForm(){ overlay.style.display='block'; popupForm.style.display='block'; document.body.style.overflow='hidden'; }
+    function closeForm(){ overlay.style.display='none'; popupForm.style.display='none'; document.body.style.overflow=''; }
+  </script>
+
+  <script>
+  /* ====== Gom ảnh theo Code & build URL theo chuẩn /static/VFR3/... ====== */
+  (function(){
+    const area = "{{ area }}";
+    const $lb = document.getElementById('imgLightbox');
+    const $lbBody = document.getElementById('lbBody');
+
+    function buildStatic(url){
+      return "{{ url_for('static', filename='') }}".replace(/\/$/, '') + "/" + url.replace(/^\/+/, '');
+    }
+    function cleanVal(v){
+      if(v==null) return '';
+      const s=String(v).trim();
+      return (s==='' || s.toLowerCase()==='nan' || s.toLowerCase()==='none') ? '' : s;
+    }
+
+    // Hình sản phẩm (nằm trong product/<area>/<Code>/<file> nếu chỉ là tên file)
+    function pickProductURLs(code, fileName){
+      const f = cleanVal(fileName);
+      if(!f) return [];
+      if(f.includes('/')) return [ buildStatic(f) ];
+      return [ buildStatic(`product/${area}/${code}/${f}`) ];
+    }
+    // Ảnh mượn → /static/VFR3/borrow/<file> nếu chỉ là tên
+    function pickBorrowURL(val){
+      const v = cleanVal(val);
+      if(!v) return null;
+      return buildStatic(v.includes('/') ? v : `VFR3/borrow/${v}`);
+    }
+    // Ảnh trả → /static/VFR3/return/<file> nếu chỉ là tên
+    function pickReturnURL(val){
+      const v = cleanVal(val);
+      if(!v) return null;
+      return buildStatic(v.includes('/') ? v : `VFR3/return/${v}`);
+    }
+
+    function collectImagesByCode(code){
+      const rows = Array.from(document.querySelectorAll(`tr.inv-row[data-code="${CSS.escape(code)}"]`));
+      const items = [], seen = new Set();
+      for(const tr of rows){
+        const part = tr.getAttribute('data-part') || '';
+        const imgProduct = tr.getAttribute('data-img-product') || '';
+        const imgBorrow  = tr.getAttribute('data-img-borrow') || '';
+        const imgReturn  = tr.getAttribute('data-img-return') || '';
+
+        for(const u of pickProductURLs(code, imgProduct)){
+          if(!seen.has(u)){ seen.add(u); items.push({url:u, cap: part?`Ảnh sản phẩm (Part ${part})`:`Ảnh sản phẩm`}); }
+        }
+        const b=pickBorrowURL(imgBorrow);
+        if(b && !seen.has(b)){ seen.add(b); items.push({url:b, cap: part?`Ảnh mượn (part ${part})`:`Ảnh mượn`}); }
+
+        const r=pickReturnURL(imgReturn);
+        if(r && !seen.has(r)){ seen.add(r); items.push({url:r, cap: part?`Ảnh trả (part ${part})`:`Ảnh trả`}); }
+      }
+      return items;
+    }
+
+    function openLB(title, items){
+      $lb.querySelector('.lb-title').textContent = title || 'Ảnh sản phẩm';
+      $lbBody.innerHTML = items.length ? items.map(it => `
+        <div class="lb-item">
+          <img src="${it.url}" alt="">
+          <div class="lb-cap">${it.cap||''}</div>
+        </div>
+      `).join('') : `<div style="padding:10px;color:#555;">Không có ảnh để hiển thị</div>`;
+      $lb.removeAttribute('hidden');
+    }
+    function closeLB(){ $lb.setAttribute('hidden',''); }
+    $lb.addEventListener('click', (e)=>{ if(e.target.dataset.close==='1') closeLB(); });
+
+    // Ủy quyền click nút 👁️
+    document.addEventListener('click', (e)=>{
+      const btn = e.target.closest('button.view-btn');
+      if(!btn || btn.classList.contains('disabled') || btn.disabled) return;
+      const tr = btn.closest('tr.inv-row');
+      const code = tr ? tr.getAttribute('data-code') : '';
+      if(!code) return;
+      const items = collectImagesByCode(code);
+      openLB(`Ảnh của Code: ${code}`, items);
+    });
+
+    // Bật nút 👁️ nếu có ảnh
+    window.addEventListener('DOMContentLoaded', ()=>{
+      const group = {};
+      document.querySelectorAll('tr.inv-row').forEach(tr=>{
+        const code = tr.getAttribute('data-code') || '';
+        (group[code] = group[code] || []).push(tr);
+      });
+      for(const code in group){
+        const has = collectImagesByCode(code).length > 0;
+        if(has) group[code].forEach(tr=>{
+          const btn = tr.querySelector('.view-btn');
+          if(btn){ btn.classList.remove('disabled'); btn.disabled = false; }
+        });
+      }
+    });
+  })();
+  </script>
+
+  <script>
+    // Popup Lọc
+    function openFilter(){ filterOverlay.style.display='block'; filterPopup.style.display='block'; document.body.style.overflow='hidden'; }
+    function closeFilter(){ filterOverlay.style.display='none'; filterPopup.style.display='none'; document.body.style.overflow=''; }
+
+    function onFieldChange(idx){
+      const card = document.querySelector(`.filter-rule-card[data-index="${idx}"]`);
+      const field = card.querySelector('[name="r'+idx+'_field"]').value;
+      card.querySelectorAll('.cond').forEach(el=>{ el.style.display='none'; el.querySelectorAll('input,select').forEach(i=>i.disabled=true); });
+      card.querySelectorAll('input[name="r'+idx+'_op"]').forEach(el=>el.value='');
+
+      if(field==='desc'){ showGroup(card,'cond-desc'); setOp(card, idx, 'contains'); }
+      else if(field==='borrower_code'||field==='returner_code'){ showGroup(card,'cond-emp'); setOp(card, idx, 'emp_code'); }
+      else if(field==='days'||field==='used'||field==='umax'){ showGroup(card,'cond-number'); syncOp(idx); }
+      else if(field==='created'||field==='borrow'||field==='return'){ showGroup(card,'cond-date'); syncOp(idx); }
+      else if(field==='status'){ showGroup(card,'cond-status'); setOp(card, idx, 'status_is'); }
+    }
+    function showGroup(card, cls){
+      card.querySelectorAll('.'+cls).forEach(el=>{ el.style.display = (cls==='cond-desc'?'block':'flex'); el.querySelectorAll('input,select').forEach(i=>i.disabled=false); });
+    }
+    function setOp(card, idx, v){ card.querySelectorAll('input[name="r'+idx+'_op"]').forEach(i=>i.value=v); }
+    function syncOp(idx){
+      const card = document.querySelector(`.filter-rule-card[data-index="${idx}"]`);
+      const f = card.querySelector('[name="r'+idx+'_field"]').value;
+      if(f==='created'||f==='borrow'||f==='return'){
+        const op = card.querySelector('[name="r'+idx+'_op_date"]').value;
+        card.querySelectorAll('.cond-date input[name="r'+idx+'_op"]').forEach(el=> el.value = op);
+      }
+      if(f==='days'||f==='used'||f==='umax'){
+        const op = card.querySelector('[name="r'+idx+'_op_num"]').value;
+        card.querySelectorAll('.cond-number input[name="r'+idx+'_op"]').forEach(el=> el.value = op);
+        const v = card.querySelector('[name="r'+idx+'_v1_num"]').value;
+        const hiddenV1 = card.querySelector('.cond-number input[name="r'+idx+'_v1"]');
+        if (hiddenV1) hiddenV1.value = v;
+      }
+    }
+    function addRule(){
+      const wrap = document.getElementById('rulesWrap');
+      const cur = wrap.querySelectorAll('.filter-rule-card').length;
+      const idx = cur;
+      document.getElementById('n_rules').value = cur + 1;
+
+      const base = wrap.querySelector('.filter-rule-card[data-index="0"]');
+      const node = base.cloneNode(true);
+      node.setAttribute('data-index', idx);
+      node.querySelectorAll('[name]').forEach(el=>{
+        el.name = el.name.replace(/^r0_/, 'r'+idx+'_');
+        if(el.type==='text' || el.type==='number') el.value='';
+        if(el.classList.contains('date-op') || el.classList.contains('num-op')) el.selectedIndex=0;
+      });
+      node.querySelectorAll('.cond').forEach(el=>{ el.style.display='none'; el.querySelectorAll('input,select').forEach(i=>i.disabled=true); });
+      showGroup(node,'cond-desc'); node.querySelectorAll('.cond-desc input[name="r'+idx+'_op"]').forEach(i=> i.value='contains');
+      node.querySelector('button[onclick^="removeRule"]').setAttribute('onclick','removeRule('+idx+')');
+      wrap.appendChild(node);
+    }
+    function removeRule(idx){
+      const wrap = document.getElementById('rulesWrap');
+      const cards = wrap.querySelectorAll('.filter-rule-card');
+      if(cards.length<=1) return;
+      const card = wrap.querySelector(`.filter-rule-card[data-index="${idx}"]`);
+      if(card) wrap.removeChild(card);
+      document.getElementById('n_rules').value = wrap.querySelectorAll('.filter-rule-card').length;
+    }
+    function beforeSubmitFilter(){
+      document.querySelectorAll('.filter-rule-card').forEach(card=>{
+        const idx = card.getAttribute('data-index'); syncOp(idx);
+      });
+      closeFilter(); return true;
+    }
+    document.addEventListener('DOMContentLoaded', ()=>{ onFieldChange(0); });
+  </script>
+
+  <script>
+    // Ẩn xoá khi "Không tồn tại"
+    window.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('tr.inv-row').forEach(tr => {
+        const status = (tr.getAttribute('data-status')||'').trim();
+        if (status === 'Không tồn tại') {
+          const delBtn = tr.querySelector('.delete-btn');
+          if (delBtn) { delBtn.disabled = true; delBtn.classList.add('disabled'); }
+        }
+      });
+    });
+
+    // Thêm – preview ảnh
+    document.getElementById('hinh_dang')?.addEventListener('change', function(){
+      const preview = document.getElementById('main-img-preview'); if(!preview) return;
+      preview.innerHTML = "";
+      if(this.files && this.files[0]){
+        const reader = new FileReader();
+        reader.onload = e => preview.innerHTML = `<img src="${e.target.result}" style="max-width:120px;max-height:120px;border-radius:8px;margin-top:6px;border:1px solid #e7e1c9;">`;
+        reader.readAsDataURL(this.files[0]);
+      }
+    });
+
+    // Popup Sửa
+    const editOverlay = document.getElementById('editOverlay');
+    const editPopup   = document.getElementById('editPopup');
+    document.getElementById('btnCancelEdit').onclick = ()=>{ editOverlay.style.display='none'; editPopup.style.display='none'; document.body.style.overflow=''; };
+    editOverlay.onclick = ()=>{ editOverlay.style.display='none'; editPopup.style.display='none'; document.body.style.overflow=''; };
+
+    // Mở Sửa/Xoá theo dòng
+    (function(){
+      const area = "{{ area }}";
+
+      function openEdit(rowEl){
+        const code = rowEl.getAttribute('data-code') || '';
+        const part = rowEl.getAttribute('data-part') || '';
+
+        const cells = [...rowEl.querySelectorAll('td.cell')];
+        const headers = [...document.querySelectorAll('#inventoryTable thead th')].map(th=>th.textContent.trim());
+        const getVal = (label) => {
+          const map = {{ short_map|tojson }};
+          const alias = map[label] || label;
+          const idx = headers.findIndex(h => h === label || h === alias);
+          if(idx < 0) return '';
+          return (cells[idx]?.textContent || '').trim();
+        };
+
+        const vt = getVal('Vị trí');
+        const ke  = vt?.slice(0,1) || '';
+        const hang= vt?.slice(1,2) || '';
+        const o   = vt?.slice(2,3) || '';
+
+        document.querySelector('#editForm [name=code]').value = code;
+        document.querySelector('#editForm [name=part_code]').value = part;
+        document.querySelector('#editForm [name="Hình mẫu"]').value = getVal('Hình mẫu') || '';
+        document.querySelector('#editForm [name="Miêu tả"]').value = getVal('Mô tả') || '';
+        document.querySelector('#editForm [name=ke]').value = ke;
+        document.querySelector('#editForm [name=hang]').value = hang;
+        document.querySelector('#editForm [name=o]').value = o;
+        document.querySelector('#editForm [name="Ngày tạo khuôn"]').value = getVal('Ngày tạo') || '';
+        document.querySelector('#editForm [name="Tuổi thọ (tháng)"]').value = getVal('Tuổi thọ') || '';
+        document.querySelector('#editForm [name="Số lần sử dụng tối đa"]').value = getVal('Sử dụng tối đa') || '';
+
+        editOverlay.style.display='block'; editPopup.style.display='block'; document.body.style.overflow='hidden';
+      }
+
+      function openConfirm(text, ctx){
+        _delCtx = ctx;
+        confirmText.textContent = text;
+        confirmOverlay.style.display='block'; confirmPopup.style.display='block'; document.body.style.overflow='hidden';
+      }
+      function closeConfirm(){ confirmOverlay.style.display='none'; confirmPopup.style.display='none'; document.body.style.overflow=''; _delCtx=null; }
+      btnConfirmNo.onclick = closeConfirm; confirmOverlay.onclick = closeConfirm;
+
+      document.addEventListener('click', (e)=>{
+        const row = e.target.closest('tr.inv-row'); if(!row) return;
+        if(e.target.closest('button.edit-btn')){ openEdit(row); return; }
+        if(e.target.closest('button.delete-btn')){
+          const code = row.getAttribute('data-code') || '';
+          const part = row.getAttribute('data-part') || '';
+          if(row.querySelector('.delete-btn')?.disabled) return;
+          openConfirm(part?`Xoá PART ${part} (thuộc Code ${code})?`:`Xoá sản phẩm Code: ${code}?`, { code, part });
+        }
+      });
+
+      // Submit sửa
+      document.getElementById('editForm').addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const res = await fetch(`/${area}/inventory/edit`, { method:'POST', body: fd });
+        const js = await res.json();
+        if(js.success){ alert('✅ Cập nhật thành công!'); location.reload(); }
+        else{ alert(js.msg || '❌ Lỗi cập nhật'); }
+      });
+
+      // Xác nhận xoá
+      let _delCtx = null;
+      btnConfirmYes.onclick = async ()=>{
+        if(!_delCtx) return;
+        const fd = new FormData();
+        fd.append('code', _delCtx.code);
+        if(_delCtx.part) fd.append('part_code', _delCtx.part);
+        const res = await fetch(`/${area}/inventory/delete-row`, { method:'POST', body: fd });
+        const js = await res.json();
+        if(js.success){ alert('✅ Đã xoá'); location.reload(); }
+        else{ alert(js.msg || '❌ Không xoá được'); }
+      };
+    })();
+
+    // Thêm: toggle vị trí/hình mẫu khi có parts
+    (function(){
+      const soLuongPartsInput = document.getElementById("so_luong_parts");
+      const partsSection      = document.getElementById("parts-section");
+      const productLocRow     = document.getElementById("product-location-row");
+      const productShapeRow   = document.getElementById("product-shape-row");
+
+      function toggleProductFields(){
+        const val = parseInt(soLuongPartsInput.value)||0;
+        if(productLocRow){
+          productLocRow.style.display = (val>0)?'none':'block';
+          productLocRow.querySelectorAll("input").forEach(i=>{ if(val>0) i.removeAttribute("required"); else i.setAttribute("required","required"); });
+        }
+        if(productShapeRow){
+          productShapeRow.style.display = (val>0)?'none':'block';
+          const sel = productShapeRow.querySelector("select[name='hinh_mau_main']");
+          if(sel){ if(val>0) sel.removeAttribute("required"); else sel.setAttribute("required","required"); }
+        }
+      }
+      soLuongPartsInput.addEventListener("input", function(){
+        let val=parseInt(this.value)||0;
+        partsSection.innerHTML="";
+        if(val<=0){ toggleProductFields(); return; }
+        for(let i=1;i<=val;i++){
+          partsSection.insertAdjacentHTML("beforeend", `
+            <div class="part-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;">
+              <div><label>Code Part #${i}:</label><input type="text" name="part_code_${i}" required></div>
+              <div>
+                <label>Ảnh Part #${i}:</label>
+                <input type="file" name="part_img_${i}" accept="image/*" required onchange="(function(input){const p=input.nextElementSibling; if(!p) return; p.innerHTML=''; if(input.files&&input.files[0]){const r=new FileReader(); r.onload=e=>p.innerHTML='<img src=\"'+e.target.result+'\" style=\"max-width:80px;max-height:80px;border-radius:6px;margin-top:5px;border:1px solid #e7e1c9;\">'; r.readAsDataURL(input.files[0]);}})(this)">
+                <div style="margin-top:4px;"></div>
+              </div>
+              <div><label>Miêu tả Part #${i}:</label><input type="text" name="mieu_ta_part_${i}" required></div>
+              <div>
+                <label>Hình mẫu Part #${i}:</label>
+                <select name="hinh_mau_part_${i}" required>
+                  <option value="" disabled selected>-- Chọn hình mẫu --</option>
+                  <option value="Khuôn dài">Khuôn dài</option>
+                  <option value="Khuôn trụ">Khuôn trụ</option>
+                  <option value="Khuôn dẹt">Khuôn dẹt</option>
+                  <option value="Khuôn khổ bự">Khuôn khổ bự</option>
+                </select>
+              </div>
+              <div style="grid-column:1 / -1">
+                <label>Vị trí Part #${i}:</label>
+                <div class="vi-tri-group" style="grid-template-columns: repeat(3, 1fr);">
+                  <input type="text" name="ke_part_${i}" placeholder="Kệ" maxlength="1" required>
+                  <input type="text" name="hang_part_${i}" placeholder="Hàng" maxlength="1" required>
+                  <input type="text" name="o_part_${i}" placeholder="Hộc" maxlength="1" required>
+                </div>
+              </div>
+            </div>
+          `);
+        }
+        toggleProductFields();
+      });
+      document.addEventListener('DOMContentLoaded', toggleProductFields);
+    })();
+  </script>
+
+  <!-- Mở popup Thêm ngay nếu có flag -->
+  {% if open_add_popup %}
+  <script>document.addEventListener("DOMContentLoaded", ()=>{ openForm(); });</script>
+  {% endif %}
+
+</body>
+</html>

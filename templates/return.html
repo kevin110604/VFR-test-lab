@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Trả hàng - {{ area_name }}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <style>
+    /* ======= Biến màu & tone giống Home/Borrow ======= */
+    :root {
+      --main-bg: #fffdfc;
+      --main-card: #fffdfccf;
+      --main-text: #333;
+      --main-th: #4d665c;
+      --main-border: #4d665c55;
+      --main-btn: #c49c48;
+      --main-btn-hover: #35523A;
+      --main-btn-text: #fff;
+      --main-btn-hover-text: #ffe082;
+    }
+    body.darkmode {
+      --main-bg: #2b3938;
+      --main-card: #374B4A;
+      --main-text: #f6f6ef;
+      --main-th: #ffe082;
+      --main-border: #263d3a;
+      --main-btn: #97722a;
+      --main-btn-hover: #35523A;
+      --main-btn-text: #fff;
+      --main-btn-hover-text: #ffe082;
+    }
+
+    /* ======= Layout giống Borrow ======= */
+    html, body { height: 100%; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+      margin: 0;
+      background: var(--main-bg);
+      color: var(--main-text);
+      transition: background .3s, color .3s;
+    }
+    .center-form {
+      max-width: 820px;
+      margin: 60px auto;
+      background: var(--main-card);
+      border-radius: 22px;
+      box-shadow: 0 4px 28px var(--main-border);
+      padding: 40px 24px;
+      position: relative;
+    }
+    h2 {
+      text-align: center;
+      font-size: 28px;
+      color: var(--main-th);
+      margin: 10px 0 18px 0;
+    }
+
+    /* ======= Nút quay lại ======= */
+    .back-btn {
+      position: absolute; top: 18px; left: 18px; z-index: 1000;
+      background: #faf7ec; color: #73592c !important; border: 1px solid #d5c69d; border-radius: 11px;
+      font-size: 13.3px; font-weight: 600; letter-spacing: 0.03em; padding: 5px 12px;
+      display: inline-flex; align-items: center; gap: 7px; text-decoration: none;
+      box-shadow: 0 1px 6px #d4c8942a; transition: background .13s, color .13s, border-color .13s;
+    }
+    .back-btn:hover { background: #ffe082; color: #25312b !important; border-color: #ffe082; }
+
+    /* ======= Dark/Light button ======= */
+    #theme-btn {
+      position: fixed; right: 24px; bottom: 26px; z-index: 11001;
+      background: #8B6B1E; color: #fff; border-radius: 100px; font-size: 17px;
+      padding: 6px 11px; border: none; height: 38px; width: 38px; min-width: 36px;
+      display: flex; align-items: center; justify-content: center; opacity: .96;
+      box-shadow: 0 2px 10px rgba(0,0,0,.10); cursor: pointer; transition: background .16s, color .16s;
+    }
+    #theme-btn:hover { background: #C49C48; color: #fff; }
+    body.darkmode #theme-btn { background: #6c837f !important; color: #fefefe !important; }
+
+    /* ======= Ô tìm Code ======= */
+    .panel {
+      background: #fffbe8; border-radius: 12px; border: 1.5px solid #ffe082;
+      box-shadow: 0 1px 6px #f7cf3a18; padding: 14px; margin: 6px auto 18px; max-width: 640px;
+    }
+    .search-row { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
+    .search-row label {
+      display: flex; align-items: center; gap: 6px; font-size: 14.7px; font-weight: 700; color: #b78e24; white-space: nowrap;
+    }
+    .search-row input[type="text"] {
+      flex: 1; min-width: 0; height: 34px; font-size: 15px; font-weight: 600;
+      border-radius: 7px; border: 1.3px solid #d9bc6d; background: #fff; color: #444; padding: 5px 11px;
+      transition: border .13s;
+    }
+    .search-row input[type="text"]:focus { border-color: #c49c48; outline: none; }
+    .btn-primary {
+      background: var(--main-btn); color: var(--main-btn-text);
+      border: none; border-radius: 7px; font-weight: 800; letter-spacing: .01em;
+      height: 34px; padding: 0 14px; box-shadow: 0 1px 7px #c49c4830; cursor: pointer;
+      transition: background .16s, color .16s, transform .12s, box-shadow .15s;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-primary:hover { background: var(--main-btn-hover); color: var(--main-btn-hover-text); transform: translateY(-1px); }
+
+    /* ======= Cards ======= */
+    .cards { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
+    .card-item {
+      width: 320px; max-width: 100%;
+      border: 2px solid var(--main-btn); border-radius: 14px; background: #fff;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06); padding: 14px;
+    }
+    .item-head { display: flex; align-items: center; justify-content: space-between; font-weight: 800; color: #c0392b; }
+    .item-meta { color: #444; font-size: 14px; line-height: 1.5; margin-top: 6px; }
+    .warn { border-color: #fbc02d; background: rgba(251,192,45,.07); }
+    .fail { border-color: #e74c3c; background: rgba(231,76,60,.07); }
+    .kv { display: flex; gap: 6px; margin-top: 6px; }
+    .kv input[type="text"] { text-align: center; max-width: 60px; }
+
+    .hint { font-size: 13px; color: #666; }
+    .card-item input[type="file"] {
+      width: 100%; max-width: 100%; box-sizing: border-box; display: block; margin: 0 auto 10px;
+    }
+
+    /* ======= Popup ======= */
+    .popup-mask{
+      position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+      background: rgba(0,0,0,.35); backdrop-filter: blur(1px); z-index: 1250;
+    }
+    .popup-card{
+      background: #fffbe8; border: 1.5px solid #ffe082; border-radius: 16px; padding: 22px;
+      width: min(92vw, 520px); box-shadow: 0 8px 28px rgba(0,0,0,.18); text-align: center;
+    }
+    .popup-card .btn-primary { width: 100%; height: 38px; }
+
+    /* ======= Responsive ======= */
+    @media (max-width: 768px) {
+      .center-form { padding: 24px 14px; }
+      h2 { font-size: 22px; }
+      .card-item { width: 92%; max-width: 420px; margin-left: auto; margin-right: auto; }
+      .search-row { gap: 6px; }
+    }
+    @media (max-width: 520px) {
+      .center-form { padding: 18px 10px; margin: 40px 8px; }
+      h2 { font-size: 18px; }
+      .search-row { flex-wrap: wrap; }
+      .search-row label { width: 100%; }
+      .search-row input[type="text"] { width: 100%; }
+      .btn-primary { width: 100%; }
+    }
+
+    /* ======= Darkmode tweaks ======= */
+    body.darkmode .card-item { background: #fffbe8; border-color: #ffe082; }
+    body.darkmode .item-meta { color: #232; }
+    body.darkmode .hint { color: #333; }
+  </style>
+</head>
+<body>
+  <div class="center-form">
+    <!-- Back -->
+    <a class="back-btn" href="/{{ area }}" title="Quay lại menu khu vực">
+      <i class="fa fa-arrow-left"></i> Menu khu vực
+    </a>
+
+    <!-- Logo + tiêu đề -->
+    <img src="/static/logo_vfr.jpg" alt="VFR Logo" style="display:block; margin:30px auto 18px; max-width:190px;"/>
+    <h2>Trả hàng – {{ area_name }}</h2>
+
+    <!-- Tìm mã cần trả -->
+    <div class="panel">
+      <form method="POST" action="/{{ area }}/return" class="search-row">
+        <label for="code">🔎 Mã cần trả</label>
+        <input type="text" id="code" name="code" placeholder="Nhập mã sản phẩm..." required>
+        <button type="submit" class="btn-primary">Tìm</button>
+      </form>
+      {% if thong_bao %}<div class="hint" style="color:#c0392b; margin-top:8px;"><b>❌</b> {{ thong_bao }}</div>{% endif %}
+    </div>
+
+    {# ===== Macro: thẻ trả part đang mượn ===== #}
+    {% macro return_card(row) %}
+      <div class="card-item fail">
+        <div class="item-head">
+          <div>🔄 Part code: {{ row['Part code'] }}</div>
+          <div>⏳ Đang mượn</div>
+        </div>
+
+        <div class="item-meta">
+          <b>Miêu tả:</b> {{ row['Miêu tả'] }}<br>
+          <b>Vị trí cũ:</b> {{ row['Vị trí'] or 'N/A' }}<br>
+          <b>Người mượn:</b> {{ row['Người mượn'] }}<br>
+          <b>Ngày mượn:</b> {{ row['Ngày mượn mẫu'] or 'N/A' }}<br>
+          <b>Sử dụng:</b> {{ row['Số lần đã sử dụng'] }} / {{ row['Số lần sử dụng tối đa'] }}
+        </div>
+
+        {% if row['Ảnh mượn'] and row['Ảnh mượn'] is string and row['Ảnh mượn']|length>2 %}
+          {% set _img = row['Ảnh mượn'] %}
+          {% if 'VFR3/' not in _img and 'static/' not in _img %}
+            {% set _img = 'VFR3/borrow/' ~ _img %}
+          {% endif %}
+          <div class="hint" style="margin-top:8px">
+            Ảnh khi mượn:<br>
+            <img src="{{ url_for('static', filename=_img) }}"
+                 style="max-width:120px;max-height:92px;border:1px solid var(--main-btn);border-radius:8px;cursor:pointer"
+                 onclick="showImagePopup(this.src)">
+          </div>
+        {% endif %}
+
+        <form method="POST" action="/{{ area }}/return/confirm" enctype="multipart/form-data"
+              onsubmit="handleReturnSubmit(event)" style="margin-top:12px; border-top:1px dashed var(--main-btn); padding-top:12px">
+          <input type="hidden" name="code" value="{{ row['Code'] }}">
+          <input type="hidden" name="part_code" value="{{ row['Part code'] }}">
+
+          <label><b>Vị trí mới:</b></label>
+          <div class="kv">
+            <input type="text" name="ke"   placeholder="Kệ"   maxlength="2" required>
+            <input type="text" name="hang" placeholder="Hàng" maxlength="2" style="text-transform:uppercase" required>
+            <input type="text" name="o"    placeholder="Ô"    maxlength="2" required>
+          </div>
+          <small class="hint">Ví dụ: 3-A-1</small>
+
+          <div style="margin-top:10px">
+            <label><b>Ảnh xác thực trả hàng:</b></label>
+            <input type="file" name="anh_tra" accept="image/*" required>
+          </div>
+
+          <button type="submit" class="btn-primary" style="width:100%; margin-top:8px">✅ Xác nhận trả part</button>
+        </form>
+      </div>
+    {% endmacro %}
+
+    {% if list_parts_unavailable %}
+      <div class="section" style="margin-top:8px">
+        <h3 style="text-align:center; color: var(--main-th); margin: 0 0 10px;">📋 Danh sách parts đang được mượn</h3>
+        <div class="cards">
+          {% for row in list_parts_unavailable %}
+            {{ return_card(row) }}
+          {% endfor %}
+        </div>
+      </div>
+
+    {% elif thong_tin %}
+      {% if thong_tin['Part code'] and thong_tin['Part code'] is string and thong_tin['Part code']|length>0 %}
+        <div class="cards">{{ return_card(thong_tin) }}</div>
+      {% else %}
+        <div class="cards">
+          <div class="card-item fail" style="max-width:350px;">
+            <div class="item-head">
+              <div>🔄 Code: {{ thong_tin['Code'] }}</div><div>⏳</div>
+            </div>
+            <div class="item-meta">
+              <b>Miêu tả:</b> {{ thong_tin['Miêu tả'] }}<br>
+              <b>Vị trí cũ:</b> {{ thong_tin['Vị trí'] or 'N/A' }}<br>
+              <b>Người mượn:</b> {{ thong_tin['Người mượn'] }}<br>
+              <b>Ngày mượn:</b> {{ thong_tin['Ngày mượn mẫu'] or 'N/A' }}<br>
+              <b>Sử dụng:</b> {{ thong_tin['Số lần đã sử dụng'] }} / {{ thong_tin['Số lần sử dụng tối đa'] }}
+            </div>
+
+            {% if thong_tin['Ảnh mượn'] is string and thong_tin['Ảnh mượn']|length>2 %}
+              {% set _img2 = thong_tin['Ảnh mượn'] %}
+              {% if 'VFR3/' not in _img2 and 'static/' not in _img2 %}
+                {% set _img2 = 'VFR3/borrow/' ~ _img2 %}
+              {% endif %}
+              <div class="hint" style="margin-top:8px">
+                Ảnh khi mượn:<br>
+                <img src="{{ url_for('static', filename=_img2) }}"
+                     style="max-width:120px;max-height:92px;border:1px solid var(--main-btn);border-radius:8px;cursor:pointer"
+                     onclick="showImagePopup(this.src)">
+              </div>
+            {% endif %}
+
+            <form method="POST" action="/{{ area }}/return/confirm" enctype="multipart/form-data"
+                  onsubmit="handleReturnSubmit(event)" style="margin-top:12px; border-top:1px dashed var(--main-btn); padding-top:12px">
+              <input type="hidden" name="code" value="{{ thong_tin['Code'] }}">
+
+              <label><b>Vị trí mới:</b></label>
+              <div class="kv">
+                <input type="text" name="ke"   placeholder="Kệ"   maxlength="2" required>
+                <input type="text" name="hang" placeholder="Hàng" maxlength="2" style="text-transform:uppercase" required>
+                <input type="text" name="o"    placeholder="Ô"    maxlength="2" required>
+              </div>
+              <small class="hint">Ví dụ: 3-A-1</small>
+
+              <div style="margin-top:10px">
+                <label><b>Ảnh xác thực trả hàng:</b></label>
+                <input type="file" name="anh_tra" accept="image/*" required>
+              </div>
+
+              <button type="submit" class="btn-primary" style="width:100%; margin-top:8px">✅ Xác nhận trả hàng</button>
+            </form>
+          </div>
+        </div>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <!-- Popup ảnh -->
+  <div id="imgPopup" class="popup-mask" onclick="this.style.display='none'">
+    <img id="imgPopupImg" style="max-width:92vw;max-height:92vh;border-radius:12px;border:1px solid #ffe082;background:#fff">
+  </div>
+
+  <!-- Popup thành công -->
+  <div id="popup-success" class="popup-mask" role="dialog" aria-modal="true">
+    <div class="popup-card">
+      <div style="font-size:20px; color:#2e7d32; font-weight:800; margin-bottom:10px">✅ Trả hàng thành công!</div>
+      <div id="popup-content" class="section" style="display:grid; gap:8px;"></div>
+      <div style="margin-top:12px">
+        <button class="btn-primary" onclick="location.href='/{{ area }}'"><i class="fa fa-check"></i> Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nút dark/light -->
+  <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
+
+  <script>
+    // Autofocus
+    document.addEventListener('DOMContentLoaded', () => {
+      const ip = document.getElementById('code');
+      if (ip && !ip.value) ip.focus();
+    });
+
+    // Ảnh popup
+    function showImagePopup(src){
+      document.getElementById('imgPopupImg').src = src;
+      document.getElementById('imgPopup').style.display = 'flex';
+    }
+
+    // Darkmode (key chung với Home/Borrow)
+    function applyDarkMode(dark) {
+      document.body.classList.toggle('darkmode', dark);
+      const themeBtn = document.getElementById('theme-btn');
+      if (themeBtn) themeBtn.innerHTML = dark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
+      try { localStorage.setItem('vfr-darkmode', dark ? '1' : '0'); } catch(e) {}
+    }
+    (function initDark() {
+      let dark = false;
+      try {
+        const saved = localStorage.getItem('vfr-darkmode');
+        if (saved !== null) dark = saved === '1';
+      } catch(e) {}
+      applyDarkMode(dark);
+      const btn = document.getElementById('theme-btn');
+      if (btn) btn.onclick = function(){ dark = !dark; applyDarkMode(dark); };
+    })();
+
+    // Submit trả
+    function handleReturnSubmit(e){
+      e.preventDefault();
+      const form = e.target;
+      const btn  = form.querySelector('button[type="submit"]');
+      const txt  = btn.innerHTML;
+      btn.innerHTML = '⏳ Đang xử lý...'; btn.disabled = true;
+
+      fetch(form.action,{ method:'POST', body:new FormData(form) })
+        .then(r=>r.json())
+        .then(data=>{
+          btn.innerHTML = txt; btn.disabled = false;
+          if(!data?.success){ alert(data?.msg || 'Có lỗi xảy ra!'); return; }
+
+          const content=document.getElementById('popup-content');
+          content.innerHTML = `
+            <div style="text-align:left">
+              <b>Code:</b> ${data.code||''}<br>
+              ${data.part_code?`<b>Part code:</b> ${data.part_code}<br>`:''}
+              ${data.mieu_ta?`<b>Miêu tả:</b> ${data.mieu_ta}<br>`:''}
+              <b>Vị trí mới:</b> ${data.vi_tri||''}
+            </div>
+            <div class="hint" style="margin-top:8px">
+              Ảnh xác thực:<br>
+              <img src="/static/VFR3/return/${data.img}"
+                   style="max-width:200px;max-height:150px;border:1px solid #ffe082;border-radius:8px">
+            </div>`;
+          const pop=document.getElementById('popup-success');
+          pop.style.display='flex';
+          setTimeout(()=>location.href='/{{ area }}', 1800);
+        })
+        .catch(err=>{
+          btn.innerHTML = txt; btn.disabled = false;
+          console.error(err); alert('Có lỗi khi trả hàng. Vui lòng thử lại!');
+        });
+    }
+  </script>
+</body>
+</html>

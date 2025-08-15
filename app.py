@@ -18,9 +18,12 @@ from openpyxl.styles import PatternFill
 from collections import defaultdict, OrderedDict
 from apscheduler.schedulers.background import BackgroundScheduler
 from threading import Lock
+from werkzeug.utils import secure_filename
+from vfr3 import vfr3_bp
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
+app.register_blueprint(vfr3_bp)
 
 # Những test dùng giao diện Hot & Cold
 HOTCOLD_LIKE = {"hot_cold", "standing_water", "stain","corrosion"}
@@ -1220,33 +1223,6 @@ def logout():
     session.pop("auth_ok", None)
     session.pop("staff_id", None)  # Đăng xuất thì xóa luôn staff_id
     return "<h3 style='text-align:center;margin-top:80px;'>Đã đăng xuất!<br><a href='/' style='color:#4d665c;'>Về trang chọn sản phẩm</a></h3>"
-
-@app.get("/vfr3/wax")
-def vfr3_wax_menu():
-    return render_template(
-        "vfr3_area.html",
-        area="vfr3/wax",
-        area_name="Mẫu sáp",
-        logout_url=url_for("logout")
-    )
-
-@app.get("/vfr3/sand-casting")
-def vfr3_sand_menu():
-    return render_template(
-        "vfr3_area.html",
-        area="vfr3/sand-casting",
-        area_name="Mẫu đúc cát",
-        logout_url=url_for("logout")
-    )
-
-@app.get("/vfr3/ceramic-plaster")
-def vfr3_ceramic_menu():
-    return render_template(
-        "vfr3_area.html",
-        area="vfr3/ceramic-plaster",
-        area_name="Mẫu ceramic thạch cao",
-        logout_url=url_for("logout")
-    )
 
 @app.route("/update", methods=["GET", "POST"])
 def update():
