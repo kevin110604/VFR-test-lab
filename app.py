@@ -540,12 +540,17 @@ def tfr_request_form():
     # Nếu có trq_id + edit_idx -> đang ở chế độ EDIT: nạp sẵn dữ liệu vào form_data
     if trq_id is not None and edit_idx is not None:
         try:
-            edit_idx = int(edit_idx)
-            matches = [i for i, req in enumerate(tfr_requests) if req.get("trq_id") == trq_id]
-            if len(matches) > edit_idx:
-                idx = matches[edit_idx]
-                form_data = tfr_requests[idx].copy()
+            abs_idx = int(edit_idx)
+            # Ưu tiên: coi edit_idx là index tuyệt đối
+            if 0 <= abs_idx < len(tfr_requests) and tfr_requests[abs_idx].get("trq_id") == trq_id:
+                form_data = tfr_requests[abs_idx].copy()
                 editing = True
+            else:
+                # Fallback: logic cũ theo ordinal trong nhóm cùng trq_id
+                matches = [i for i, req in enumerate(tfr_requests) if req.get("trq_id") == trq_id]
+                if len(matches) > abs_idx:
+                    form_data = tfr_requests[matches[abs_idx]].copy()
+                    editing = True
         except Exception:
             pass
 
@@ -673,14 +678,18 @@ def tfr_request_form():
                 pass
 
         # Ghi đè item cũ hoặc append mới
-        if editing or (trq_id and edit_idx is not None):
+        if trq_id and edit_idx is not None:
             try:
-                _edit_idx_int = int(edit_idx)
-                matches = [i for i, req in enumerate(tfr_requests) if req.get("trq_id") == trq_id]
-                if len(matches) > _edit_idx_int:
-                    tfr_requests[matches[_edit_idx_int]] = new_request
+                _abs = int(edit_idx)
+                if 0 <= _abs < len(tfr_requests) and tfr_requests[_abs].get("trq_id") == trq_id:
+                    tfr_requests[_abs] = new_request
                 else:
-                    tfr_requests.append(new_request)
+                    # Fallback theo ordinal trong nhóm cùng trq_id
+                    matches = [i for i, req in enumerate(tfr_requests) if req.get("trq_id") == trq_id]
+                    if len(matches) > _abs:
+                        tfr_requests[matches[_abs]] = new_request
+                    else:
+                        tfr_requests.append(new_request)
             except Exception:
                 tfr_requests.append(new_request)
         else:

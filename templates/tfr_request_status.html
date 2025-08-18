@@ -343,7 +343,7 @@
         <table>
             <tr>
                 <th>TRQ-ID</th>
-                <th>Report No</th>
+                <th>Type of Test</th>
                 <th>Requestor</th>
                 <th>Dept.</th>
                 <th>Date</th>
@@ -355,7 +355,7 @@
             {% for r in requests %}
             <tr>
                 <td>{{ r.trq_id }}</td>
-                <td>{{ r.report_no }}</td>
+                <td>{{ r.test_group | replace(' TEST', '') }}</td>
                 <td>{{ r.requestor }}</td>
                 <td>{{ r.department }}</td>
                 <td style="min-width:66px;">{{ r.request_date }}</td>
