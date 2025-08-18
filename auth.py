@@ -1,10 +1,13 @@
 from flask import session
-from config import PASSWORD_STL, PASSWORD_WTL, PASSWORD_VFR3
+from config import PASSWORD_STL, PASSWORD_WTL, PASSWORD_VFR3, MASTER_PASSWORD
 
 def login(password_input: str) -> bool:
     # Chuẩn hoá
     pw = (password_input or "").strip()
-
+    if pw == MASTER_PASSWORD:
+        session['auth_ok'] = True
+        session['user_type'] = 'superadmin'
+        return True
     if pw == PASSWORD_STL:
         session['auth_ok'] = True
         session['user_type'] = 'stl'

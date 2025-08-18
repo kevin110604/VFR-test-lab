@@ -12,6 +12,7 @@ TEAMS_WEBHOOK_URL_COUNT = "https://jonathancharles.webhook.office.com/webhookb2/
 PASSWORD_STL = "stl"
 PASSWORD_WTL = "wtl"
 PASSWORD_VFR3 = "vfr3"
+MASTER_PASSWORD = os.getenv("MASTER_PASSWORD", "admin")
 SECRET_KEY = "vfr_secret_key_123"
 SO_GIO_TEST = 50
 ALL_SLOTS = (

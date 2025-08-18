@@ -959,7 +959,7 @@ def approve_all_stream():
 @app.route("/tfr_request_status", methods=["GET", "POST"])
 def tfr_request_status():
     tfr_requests = safe_read_json(TFR_LOG_FILE)
-    is_admin = session.get("user_type") == "stl"
+    is_admin = session.get("user_type") in ("stl", "superadmin")
 
     if request.method == "POST":
         action = request.form.get("action")
@@ -1167,7 +1167,7 @@ def save_etd():
 
 @app.route('/run_export_excel', methods=['POST'])
 def run_export_excel():
-    if session.get('role') != 'stl':
+    if session.get('role') not in ['stl', 'superadmin']:
         return jsonify({'success': False, 'message': 'Bạn không có quyền sử dụng chức năng này!'}), 403
     try:
         # === GỌI TRỰC TIẾP PYTHON CHẠY SCRIPT ===

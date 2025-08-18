@@ -797,7 +797,7 @@
                         <a href="/tfr_request_form"><i class="fa fa-file-circle-plus"></i> <span class="text-create-rq">Create Request</span></a>
                         <a href="/tfr_request_status"><i class="fa fa-search"></i> <span class="text-rq-status">RQ Submitted</span></a>
                         <a href="/tfr_request_archive"><i class="fa fa-archive"></i> <span class="text-trf">TRF</span></a>
-                        {% if session.get('role') == 'stl' %}
+                        {% if session.get('role') in ['stl', 'superadmin'] %}
                             <a href="javascript:void(0)" onclick="confirmExportExcel()"><i class="fa fa-file-export"></i> <span class="text-update-inf">Update INF</span></a>
                         {% endif %}
                     </div>
