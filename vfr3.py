@@ -12,7 +12,7 @@ vfr3_bp = Blueprint("vfr3", __name__)
 
 # ===== Cấu hình / hằng số =====
 STATIC_ROOT = "static"
-DATA_ROOT   = os.path.join("data", "VFR3")      # CSV mỗi khu vực
+DATA_ROOT   = os.path.join(STATIC_ROOT, "VFR3", "data")      # CSV mỗi khu vực
 ALLOWED_IMG = {".jpg", ".jpeg", ".png", ".webp"}
 
 # Map tên hiển thị
@@ -36,7 +36,7 @@ def ensure_dirs():
     os.makedirs(DATA_ROOT, exist_ok=True)
     os.makedirs(os.path.join(STATIC_ROOT, "VFR3", "borrow"), exist_ok=True)
     os.makedirs(os.path.join(STATIC_ROOT, "VFR3", "return"), exist_ok=True)
-    os.makedirs(os.path.join(STATIC_ROOT, "product"), exist_ok=True)
+    os.makedirs(os.path.join(STATIC_ROOT, "VFR3", "product"), exist_ok=True)
 
 def csv_path(area_path: str) -> str:
     """Mỗi area_path 1 file, ví dụ data/VFR3/vfr3_wax.csv"""
@@ -162,52 +162,58 @@ def vfr3_borrow(area_path):
 
 @vfr3_bp.post("/<path:area_path>/muon-xac-nhan")
 def vfr3_borrow_confirm(area_path):
-    code      = (request.form.get("code") or "").strip()
-    part_code = (request.form.get("part_code") or "").strip()
-    file_img  = request.files.get("anh_muon")
+    try:
+        code      = (request.form.get("code") or "").strip()
+        part_code = (request.form.get("part_code") or "").strip()
+        file_img  = request.files.get("anh_muon")
 
-    if not code or not file_img or not file_img.filename:
-        return jsonify({"success": False, "msg": "Thiếu dữ liệu cần thiết."})
+        if not code or not file_img or not file_img.filename:
+            return jsonify({"success": False, "msg": "Thiếu dữ liệu cần thiết."}), 400
 
-    if not allowed_image(file_img.filename):
-        return jsonify({"success": False, "msg": "Định dạng ảnh không hợp lệ."})
+        if not allowed_image(file_img.filename):
+            return jsonify({"success": False, "msg": "Định dạng ảnh không hợp lệ."}), 400
 
-    # Lưu ảnh vào static/VFR3/borrow
-    ensure_dirs()
-    img_name = secure_filename(f"{(part_code or code)}_{int(time.time())}{os.path.splitext(file_img.filename)[1].lower()}")
-    save_dir = os.path.join(STATIC_ROOT, "VFR3", "borrow")
-    os.makedirs(save_dir, exist_ok=True)
-    file_img.save(os.path.join(save_dir, img_name))
+        # Lưu ảnh vào static/VFR3/borrow
+        ensure_dirs()
+        img_name = secure_filename(f"{(part_code or code)}_{int(time.time())}{os.path.splitext(file_img.filename)[1].lower()}")
+        save_dir = os.path.join(STATIC_ROOT, "VFR3", "borrow")
+        os.makedirs(save_dir, exist_ok=True)
+        file_img.save(os.path.join(save_dir, img_name))
 
-    # Cập nhật CSV: đánh dấu "Unavailable", set người mượn + ngày mượn + Ảnh mượn
-    df = load_df(area_path)
-    if part_code:
-        mask = (df["Code"].astype(str) == code) & (df["Part code"].astype(str) == part_code)
-    else:
-        mask = (df["Code"].astype(str) == code) & (df["Part code"].astype(str) == "")
+        # Cập nhật CSV
+        df = load_df(area_path)
+        if part_code:
+            mask = (df["Code"].astype(str) == code) & (df["Part code"].astype(str) == part_code)
+        else:
+            mask = (df["Code"].astype(str) == code) & (df["Part code"].astype(str) == "")
 
-    if not mask.any():
-        return jsonify({"success": False, "msg": "Không tìm thấy sản phẩm để cập nhật."})
+        if not mask.any():
+            return jsonify({"success": False, "msg": "Không tìm thấy sản phẩm để cập nhật."}), 404
 
-    idx = df.index[mask][0]
-    df.at[idx, "Tình trạng"]    = "Unavailable"
-    df.at[idx, "Ngày mượn mẫu"] = now_str()
-    df.at[idx, "Người mượn"]    = session.get("staff_id", "")
-    df.at[idx, "Ảnh mượn"]      = img_name
+        idx = df.index[mask][0]
+        df.at[idx, "Tình trạng"]    = "Unavailable"
+        df.at[idx, "Ngày mượn mẫu"] = now_str()
+        df.at[idx, "Người mượn"]    = session.get("staff_id", "")
+        df.at[idx, "Ảnh mượn"]      = img_name
 
-    # Trả về ít thông tin cho popup
-    mieu_ta = df.at[idx, "Miêu tả"]
-    vi_tri  = df.at[idx, "Vị trí"]
+        mieu_ta = df.at[idx, "Miêu tả"]
+        vi_tri  = df.at[idx, "Vị trí"]
 
-    save_df(area_path, df)
-    return jsonify({
-        "success": True,
-        "code": code,
-        "part_code": part_code,
-        "mieu_ta": mieu_ta,
-        "vi_tri": vi_tri,
-        "img": img_name
-    })
+        save_df(area_path, df)
+
+        # Luôn trả JSON (borrow.html sẽ popup rồi tự về /<area>)
+        return jsonify({
+            "success": True,
+            "code": code,
+            "part_code": part_code,
+            "mieu_ta": mieu_ta,
+            "vi_tri": vi_tri,
+            "img": img_name
+        }), 200
+
+    except Exception as e:
+        # Không để crash ra HTML debugger nữa
+        return jsonify({"success": False, "msg": f"Lỗi xử lý: {e}"}), 500
 
 # ===== RETURN =====
 @vfr3_bp.route("/<path:area_path>/return", methods=["GET","POST"])
@@ -438,7 +444,7 @@ def inv_add(area_path):
         return redirect(url_for("vfr3.inv_page", area_path=area_path, open_add="1"))
 
     # Lưu ảnh sản phẩm vào static/product/<area>/<code>/<file>
-    rel_main = os.path.join("product", area_path, code, secure_filename(file_main.filename))
+    rel_main = os.path.join("VFR3", "product", area_path, code, secure_filename(file_main.filename))
     abs_main = os.path.join(STATIC_ROOT, rel_main)
     os.makedirs(os.path.dirname(abs_main), exist_ok=True)
     file_main.save(abs_main)
@@ -478,7 +484,7 @@ def inv_add(area_path):
             if not part_code or not part_img or not part_img.filename or not allowed_image(part_img.filename):
                 continue
 
-            rel_part = os.path.join("product", area_path, code, part_code, secure_filename(part_img.filename))
+            rel_part = os.path.join("VFR3", "product", area_path, code, part_code, secure_filename(part_img.filename))
             abs_part = os.path.join(STATIC_ROOT, rel_part)
             os.makedirs(os.path.dirname(abs_part), exist_ok=True)
             part_img.save(abs_part)

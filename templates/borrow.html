@@ -328,7 +328,8 @@
       <div style="font-size:20px; color:#2e7d32; font-weight:800; margin-bottom:10px">✅ Mượn hàng thành công!</div>
       <div id="popup-content" class="section" style="display:grid; gap:8px;"></div>
       <div style="margin-top:12px">
-        <button class="btn-primary" onclick="location.href='/{{ area }}/menu'"><i class="fa fa-check"></i> Đóng</button>
+        <!-- Nút Đóng quay về đúng /<area> -->
+        <button class="btn-primary" onclick="goBackToMenu()"><i class="fa fa-check"></i> Đóng</button>
       </div>
     </div>
   </div>
@@ -337,6 +338,11 @@
   <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
 
   <script>
+    // ===== Quay về menu: dùng thẳng {{ area }} =====
+    function goBackToMenu() {
+      location.href = "/{{ area }}";
+    }
+
     // ===== Autofocus =====
     document.addEventListener('DOMContentLoaded', () => {
       const ip = document.getElementById('code');
@@ -346,7 +352,7 @@
     // ===== Ảnh popup =====
     function showImagePopup(src){
       document.getElementById('imgPopupImg').src = src;
-      document.getElementById('imgPopup').style.display = 'flex';
+      document.getElementById('imgPopup').style.display='flex';
     }
 
     // ===== Darkmode: đồng bộ như Home (localStorage key: vfr-darkmode) =====
@@ -375,33 +381,55 @@
       const txt  = btn.innerHTML;
       btn.innerHTML = '⏳ Đang xử lý...'; btn.disabled = true;
 
-      fetch(form.action,{ method:'POST', body:new FormData(form) })
-        .then(r=>r.json())
-        .then(data=>{
-          btn.innerHTML = txt; btn.disabled = false;
-          if(!data?.success){ alert(data?.msg || 'Có lỗi xảy ra!'); return; }
+      fetch(form.action, { method:'POST', body:new FormData(form), redirect:'follow' })
+        .then(async (r) => {
+            btn.innerHTML = txt; btn.disabled = false;
 
-          const content=document.getElementById('popup-content');
-          content.innerHTML = `
-            <div style="text-align:left">
-              <b>Code:</b> ${data.code||''}<br>
-              ${data.part_code?`<b>Part code:</b> ${data.part_code}<br>`:''}
-              ${data.mieu_ta?`<b>Miêu tả:</b> ${data.mieu_ta}<br>`:''}
-              <b>Vị trí:</b> ${data.vi_tri||''}
-            </div>
-            <div class="hint" style="margin-top:8px">
-              Ảnh mượn:<br>
-              <img src="/static/VFR3/borrow/${data.img}"
-                   style="max-width:200px;max-height:150px;border:1px solid #ffe082;border-radius:8px">
-            </div>`;
-          const pop=document.getElementById('popup-success');
-          pop.style.display='flex';
-          setTimeout(()=>location.href='/{{ area }}/menu', 1800);
+            if (!r.ok) {
+            // Trả lỗi HTTP thực sự
+            const msg = await r.text().catch(()=> '');
+            alert(msg || 'Có lỗi xảy ra!'); 
+            return;
+            }
+
+            // Thử phát hiện JSON
+            const ct = (r.headers.get('content-type') || '').toLowerCase();
+
+            if (ct.includes('application/json')) {
+            const data = await r.json().catch(() => null);
+            if (!data || !data.success) {
+                alert((data && data.msg) || 'Có lỗi xảy ra!'); 
+                return;
+            }
+
+            // === Nhảy như cũ: hiện popup thành công ===
+            const content = document.getElementById('popup-content');
+            content.innerHTML = `
+                <div style="text-align:left">
+                <b>Code:</b> ${data.code||''}<br>
+                ${data.part_code?`<b>Part code:</b> ${data.part_code}<br>`:''}
+                ${data.mieu_ta?`<b>Miêu tả:</b> ${data.mieu_ta}<br>`:''}
+                <b>Vị trí:</b> ${data.vi_tri||''}
+                </div>
+                <div class="hint" style="margin-top:8px">
+                Ảnh mượn:<br>
+                <img src="/static/VFR3/borrow/${data.img}"
+                    style="max-width:200px;max-height:150px;border:1px solid #ffe082;border-radius:8px">
+                </div>`;
+            document.getElementById('popup-success').style.display='flex';
+
+            // Quay về trang vfr3_area
+            setTimeout(goBackToMenu, 1800);
+            } else {
+            // Server trả HTML/redirect: coi như thành công và quay về menu
+            goBackToMenu();
+            }
         })
-        .catch(err=>{
-          btn.innerHTML = txt; btn.disabled = false;
-          console.error(err); alert('Có lỗi khi mượn hàng. Vui lòng thử lại!');
-        });
+        .catch(err => {
+            btn.innerHTML = txt; btn.disabled = false;
+            console.error(err);
+            alert('Có lỗi khi mượn hàng. Vui lòng thử lại!');
+      });
     }
   </script>
 </body>
