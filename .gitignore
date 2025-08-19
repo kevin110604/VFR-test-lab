@@ -33,3 +33,4 @@ Thumbs.db
 
 # ---- THÊM DÒNG NÀY để KHÔNG ignore static/images ----
 !static/images/
+token_cache.bin

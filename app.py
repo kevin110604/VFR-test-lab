@@ -875,57 +875,100 @@ def approve_all_one(req):
 @app.post("/approve_all_stream")
 def approve_all_stream():
     def gen():
-        # (0) Nhận các ETD cập nhật hàng loạt (từ FE) và lưu vào pending
+        # (0) Nhận payload
         try:
             data = request.get_json(silent=True) or {}
-            updates = data.get("updates", [])
-            if updates:
-                pending0 = safe_read_json(TFR_LOG_FILE)
-                for u in updates:
-                    try:
-                        i = int(u.get("idx"))
-                        if 0 <= i < len(pending0) and pending0[i].get("trq_id") == u.get("trq_id"):
-                            pending0[i]["etd"] = (u.get("etd") or "").strip()
-                    except Exception:
-                        pass
-                safe_write_json(TFR_LOG_FILE, pending0)
+            updates = data.get("updates", []) or []
+            run_id  = (data.get("run_id") or "").strip()
         except Exception as e:
-            yield json.dumps({"type": "error", "message": f"Bulk ETD update: {e}"}) + "\n"
+            yield json.dumps({"type": "error", "message": f"Parse JSON: {e}"}) + "\n"
+            return
 
-        # (1) Dọn archive cũ (không chặn tiến trình)
+        # Không có gì để duyệt → kết thúc sớm
+        if not updates:
+            yield json.dumps({"type": "start", "total": 0}) + "\n"
+            yield json.dumps({"type": "done", "done": 0, "total": 0}) + "\n"
+            return
+
+        # (1) Cleanup archive (không chặn tiến trình)
         try:
             cleanup_archive_json(days=14)
         except Exception as e:
             yield json.dumps({"type": "error", "message": f"Cleanup: {e}"}) + "\n"
 
-        # (2) Lấy danh sách cần duyệt = Submitted + có ETD
-        pending = safe_read_json(TFR_LOG_FILE)
-        todo = [r for r in pending if r.get("status") == "Submitted" and r.get("etd")]
+        # (2) Đọc pending snapshot (LIST thuần) + map id->index
+        with PENDING_LOCK:
+            pending_snapshot = safe_read_json(TFR_LOG_FILE)
+
+        def make_id_index_map(lst):
+            mp = {}
+            for i, r in enumerate(lst):
+                tid = (r.get("trq_id") or "").strip()
+                if tid:  # chỉ map những dòng có trq_id hợp lệ
+                    mp[tid] = i
+            return mp
+
+        id_to_idx = make_id_index_map(pending_snapshot)
+
+        # (3) Cập nhật ETD CHỈ cho các item nằm trong 'updates' (theo trq_id) TRÊN LIST
+        try:
+            changed = False
+            for u in updates:
+                tid = (u.get("trq_id") or "").strip()
+                etd = (u.get("etd") or "").strip()
+                if tid and tid in id_to_idx:
+                    pending_snapshot[id_to_idx[tid]]["etd"] = etd
+                    changed = True
+            if changed:
+                with PENDING_LOCK:
+                    safe_write_json(TFR_LOG_FILE, pending_snapshot)
+                # đồng bộ lại
+                with PENDING_LOCK:
+                    pending_snapshot = safe_read_json(TFR_LOG_FILE)
+                id_to_idx = make_id_index_map(pending_snapshot)
+        except Exception as e:
+            yield json.dumps({"type": "error", "message": f"Bulk ETD update: {e}"}) + "\n"
+
+        # (4) Lập TODO theo đúng THỨ TỰ 'updates' (chỉ Submitted + có ETD)
+        todo = []
+        seen = set()
+        for u in updates:
+            tid = (u.get("trq_id") or "").strip()
+            if not tid or tid in seen:
+                continue
+            seen.add(tid)
+            idx = id_to_idx.get(tid)
+            if idx is None:
+                continue
+            item = pending_snapshot[idx]
+            if item and item.get("status") == "Submitted" and (item.get("etd") or "").strip():
+                # chụp bản sao nhỏ để approve nhưng vẫn giữ pending_snapshot là nguồn sự thật
+                todo.append((tid, item))
+
         total = len(todo)
         yield json.dumps({"type": "start", "total": total}) + "\n"
-
         if total == 0:
             yield json.dumps({"type": "done", "done": 0, "total": 0}) + "\n"
             return
 
-        # (2.1) Map nhanh trq_id -> request để xóa chính xác sau khi duyệt
-        pending_by_id = {r.get("trq_id"): r for r in pending}
-
+        # (5) Vòng duyệt CHỈ trên 'todo', có kiểm tra hủy trước MỖI ITEM
         done = 0
-        for item in list(todo):
-            trq_id = item.get("trq_id")
+        # Làm việc trên LIST hiện tại; chỉ loại bỏ CHÍNH XÁC item đã approve
+        current_list = list(pending_snapshot)
+
+        for tid, item in todo:
+            # Bị hủy?
+            if run_id and run_id in APPROVE_CANCEL:
+                # bỏ cờ và kết thúc ngay, KHÔNG ghi thêm thay đổi nào
+                APPROVE_CANCEL.discard(run_id)
+                yield json.dumps({"type": "done", "done": done, "total": total}) + "\n"
+                return
+
             try:
-                # (3) Duyệt theo cùng một luồng với Approve single
-                #     approve_all_one PHẢI thực hiện đầy đủ:
-                #     - cấp report_no
-                #     - fill DOCX/PDF
-                #     - ghi local_main: ETD + LOG IN DATE (định dạng ngày)
-                #     - append sang TRF.xlsx
-                #     - archive request
-                #     và trả về dict có ít nhất: report_no, pdf_path/docx_path
+                # Pipeline chuẩn 1 item
                 approved = approve_all_one(item)
 
-                # (4) Đồng bộ lại field hiển thị cho FE
+                # Đồng bộ trường hiển thị (không bắt buộc ghi vào file pending vì sắp loại bỏ)
                 report_no = (approved or {}).get("report_no") or item.get("report_no")
                 item.update({
                     "status": "Approved",
@@ -935,27 +978,32 @@ def approve_all_stream():
                     "docx_path": (approved or {}).get("docx_path"),
                 })
 
-                # (5) Xoá request đã duyệt khỏi pending và lưu file
-                if trq_id in pending_by_id:
-                    pending_by_id.pop(trq_id, None)
-                pending = list(pending_by_id.values())
-                safe_write_json(TFR_LOG_FILE, pending)
+                # Chỉ xóa đúng item đã approve khỏi pending và lưu file
+                # (lọc theo trq_id; KHÔNG động vào dòng khác)
+                new_list = []
+                for r in current_list:
+                    rid = (r.get("trq_id") or "").strip()
+                    if rid != tid:
+                        new_list.append(r)
+                current_list = new_list
 
-                # (6) Báo tiến độ
+                with PENDING_LOCK:
+                    safe_write_json(TFR_LOG_FILE, current_list)
+
                 done += 1
                 yield json.dumps({
                     "type": "progress",
                     "done": done,
                     "total": total,
-                    "trq_id": trq_id,
+                    "trq_id": tid,
                     "report_no": report_no
                 }) + "\n"
 
             except Exception as e:
-                # Không dừng toàn bộ, chỉ báo lỗi mục này
-                yield json.dumps({"type": "error", "message": str(e), "trq_id": trq_id}) + "\n"
+                # không dừng toàn bộ – báo lỗi item này thôi (KHÔNG xóa gì)
+                yield json.dumps({"type": "error", "message": str(e), "trq_id": tid}) + "\n"
 
-        # (7) Kết thúc
+        # (6) Kết thúc vòng duyệt
         yield json.dumps({"type": "done", "done": done, "total": total}) + "\n"
 
     headers = {
@@ -964,6 +1012,18 @@ def approve_all_stream():
         "X-Accel-Buffering": "no",
     }
     return Response(stream_with_context(gen()), headers=headers)
+
+APPROVE_CANCEL = set()
+PENDING_LOCK = Lock()
+
+# ==== [Endpoint hủy từ FE] ====
+@app.post("/approve_all_cancel")
+def approve_all_cancel():
+    data = request.get_json(silent=True) or {}
+    rid = (data.get("run_id") or "").strip()
+    if rid:
+        APPROVE_CANCEL.add(rid)
+    return {"ok": True}
 
 @app.route("/tfr_request_status", methods=["GET", "POST"])
 def tfr_request_status():
