@@ -1,6 +1,6 @@
 git add .
 git commit -m "update all code"
-git push --force
+git push --force-with-lease
 
 git fetch
 git checkout origin/main -- "*.py" "*.html"

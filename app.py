@@ -9,7 +9,7 @@ from notify_utils import send_teams_message, notify_when_enough_time
 from counter_utils import update_counter, check_and_reset_counter, log_report_complete
 from docx_utils import approve_request_fill_docx_pdf
 from file_utils import safe_write_json, safe_read_json, safe_save_excel, safe_load_excel, safe_write_text, safe_read_text
-import re, os, pytz, json, openpyxl, random, subprocess, traceback, regex, calendar, time
+import re, os, pytz, json, openpyxl, random, subprocess, traceback, regex, calendar, time, tempfile, uuid
 from contextlib import contextmanager
 from datetime import datetime
 from waitress import serve
@@ -18,7 +18,7 @@ from openpyxl.styles import PatternFill
 from collections import defaultdict, OrderedDict
 from apscheduler.schedulers.background import BackgroundScheduler
 from threading import Lock
-from werkzeug.utils import secure_filename
+from contextlib import contextmanager
 from vfr3 import vfr3_bp
 
 app = Flask(__name__)
@@ -140,21 +140,53 @@ TFR_LOG_FILE = "tfr_requests.json"
 
 @contextmanager
 def report_lock():
-    lock_path = "tfr_report.lock"
+    lock_dir = tempfile.gettempdir()              # Windows: C:\Users\<user>\AppData\Local\Temp
+    lock_path = os.path.join(lock_dir, "tfr_report.lock")
+    # Optional: timeout để không chờ vô hạn
+    timeout_s = 60
+    t0 = time.time()
+    fd = None
     while True:
         try:
+            # tạo mới, nếu đã có -> FileExistsError
             fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_RDWR)
+            # ghi chút info để debug stale lock
+            os.write(fd, f"pid={os.getpid()} run={uuid.uuid4()}".encode("utf-8"))
             break
         except FileExistsError:
-            time.sleep(0.05 + random.random() * 0.15)
+            # lock lâu quá coi như stale => cố gắng xoá
+            if time.time() - t0 > timeout_s:
+                _try_unlink_with_retry(lock_path)
+            else:
+                time.sleep(0.05 + random.random() * 0.15)
     try:
         yield
     finally:
-        os.close(fd)
         try:
-            os.remove(lock_path)
-        except:
+            if fd is not None:
+                os.close(fd)
+        except Exception:
             pass
+        _try_unlink_with_retry(lock_path)
+
+def _try_unlink_with_retry(path, retries=8, delay=0.08):
+    # Windows có thể vướng PermissionError do AV; retry ngắn sẽ qua được
+    for i in range(retries):
+        try:
+            os.unlink(path)
+            return True
+        except FileNotFoundError:
+            return True
+        except PermissionError:
+            time.sleep(delay * (1.5 ** i))  # backoff
+        except Exception:
+            time.sleep(delay)
+    # fallback: đổi tên để không cản trở lần sau
+    try:
+        os.rename(path, path + ".stale")
+    except Exception:
+        pass
+    return False
 
 def bump_report_no(s):
     m = re.search(r'(\d+)$', str(s))
