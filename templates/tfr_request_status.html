@@ -515,7 +515,6 @@
       <div id="progress-percent" class="progress-percent">0%</div>
     </div>
     <div id="progress-footer" style="margin-top:12px; display:flex; justify-content:flex-end; gap:8px; position:relative;">
-      <button id="btn-cancel-progress" onclick="cancelApproveAll()" style="display:none; position:absolute; right:0; bottom:-44px; border:none; border-radius:10px; padding:7px 12px; background:#be1919; color:#fff; font-weight:700;">Cancel</button>
       <button id="btn-close-progress" onclick="hideProgress()" style="display:none; border:none; border-radius:10px; padding:7px 12px; background:#2e7d32; color:#fff; font-weight:700;">
         <i class="fa fa-check-circle"></i> Xong
       </button>
@@ -531,10 +530,6 @@ const typeSelectAll = document.getElementById("type-select-all");
 
 // MẢNG LƯU THỨ TỰ TICK
 let selectedTypeOrder = [];
-
-// Controller + run_id để hủy server-side
-let approveAbortController = null;
-let currentRunId = null;
 
 function openTypeConfirmModal(){
   const types = new Set();
@@ -588,11 +583,9 @@ const percentEl = document.getElementById("progress-percent");
 const headEl = document.getElementById("progress-head");
 const btnClose = document.getElementById("btn-close-progress");
 
-function cancelApproveAll(){
-  if (approveAbortController){ approveAbortController.abort(); }
   // Báo server dừng theo run_id
   if (currentRunId){
-    fetch("/approve_all_cancel", {
+    fetch("#removed_approve_all_cancel", {
       method: "POST",
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify({ run_id: currentRunId })
@@ -617,9 +610,7 @@ async function startApproveAll(selectedTypes){
   title.textContent = "Đang duyệt yêu cầu…";
   spin.style.display = "inline-block";
   const btnCancel = document.getElementById("btn-cancel-progress");
-  btnCancel.style.display = "inline-flex";
-  approveAbortController = new AbortController();
-  btnClose.style.display = "none";
+  btnCancel.style.display = "inline-flex";  btnClose.style.display = "none";
   headEl.classList.remove("badge-done","fade-in");
 
   // Tạo run_id duy nhất cho lần chạy này
@@ -647,7 +638,6 @@ async function startApproveAll(selectedTypes){
     spin.style.display = "none";
     title.textContent = "Không có dòng hợp lệ";
     txt.textContent = "Không tìm thấy ETD hợp lệ cho các Type đã chọn.";
-    document.getElementById("btn-cancel-progress").style.display = "none";
     btnClose.style.display = "inline-flex";
     return;
   }
@@ -656,8 +646,7 @@ async function startApproveAll(selectedTypes){
   const resp = await fetch("/approve_all_stream", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ updates, run_id: currentRunId }),
-    signal: approveAbortController.signal
+    body: JSON.stringify({ updates, run_id: currentRunId })
   });
 
   if(!resp.body){ txt.textContent = "Không nhận được dữ liệu tiến trình."; return; }
@@ -709,7 +698,6 @@ async function startApproveAll(selectedTypes){
             spin.style.display = "none";
             headEl.classList.add("badge-done","fade-in");
             headEl.innerHTML = `<i class="fa fa-circle-check"></i> <span>Hoàn tất duyệt</span>`;
-            document.getElementById("btn-cancel-progress").style.display = "none";
             btnClose.style.display = "inline-flex";
             setTimeout(()=>location.reload(), 1200);
           }else if(msg.type === "error"){
@@ -717,24 +705,12 @@ async function startApproveAll(selectedTypes){
             title.textContent = "Có lỗi xảy ra";
             txt.textContent = msg.message || "Vui lòng thử lại.";
             headEl.classList.remove("badge-done");
-            document.getElementById("btn-cancel-progress").style.display = "none";
             btnClose.style.display = "inline-flex";
           }
         }catch(e){ /* bỏ qua dòng không phải JSON */ }
       }
     }
-  } catch(e){
-    if (e.name === "AbortError"){
-      setPercent(0);
-      title.textContent = "Đã hủy duyệt";
-      txt.textContent = "Bạn đã hủy tiến trình duyệt.";
-      spin.style.display = "none";
-      document.getElementById("btn-cancel-progress").style.display = "none";
-      btnClose.style.display = "inline-flex";
-    } else {
-      console.error(e);
-    }
-  }
+  } catch(e){ console.error(e); }
 }
 </script>
 </body>
