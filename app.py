@@ -20,6 +20,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from threading import Lock
 from contextlib import contextmanager
 from vfr3 import vfr3_bp
+from uuid import uuid4
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
@@ -557,9 +558,37 @@ def get_category_component_position(finishing_type, material_type):
             return "LINE TEST_METAL"
     return ""
 
+def _load_pending_locked():
+    with PENDING_LOCK:
+        return safe_read_json(TFR_LOG_FILE)
+
+def _write_pending_locked(data):
+    with PENDING_LOCK:
+        safe_write_json(TFR_LOG_FILE, data)
+
+def _upsert_by_trq(items, updates_dict):
+    """
+    updates_dict: {trq_id: dict_fields_to_update}
+    Trả về list mới, giữ nguyên những phần tử không có trong updates_dict.
+    """
+    out = []
+    for row in items:
+        tid = (row.get("trq_id") or "").strip()
+        if tid and tid in updates_dict:
+            new_row = dict(row)
+            new_row.update(updates_dict[tid])
+            out.append(new_row)
+        else:
+            out.append(row)
+    return out
+
+def _remove_by_trq(items, trq_ids_to_remove):
+    remove_set = {t.strip() for t in trq_ids_to_remove if t}
+    return [r for r in items if (r.get("trq_id") or "").strip() not in remove_set]
+
 @app.route("/tfr_request_form", methods=["GET", "POST"])
 def tfr_request_form():
-    tfr_requests = safe_read_json(TFR_LOG_FILE)
+    tfr_requests = _load_pending_locked()
     error = ""
     form_data = {}
     missing_fields = []
@@ -922,21 +951,27 @@ def make_id_index_map(pending_list):
     return mapping
 
 PENDING_LOCK = Lock()
+CANCEL_FLAGS = {} 
 @app.post("/approve_all_stream")
 def approve_all_stream():
     def gen():
+        # tạo run_id cho lần chạy này
+        run_id = str(uuid4())
+        CANCEL_FLAGS[run_id] = False
+
         try:
             data = request.get_json(silent=True) or {}
             updates = data.get("updates", []) or []
         except Exception as e:
             yield json.dumps({"type": "error", "message": f"Parse JSON: {e}"}) + "\n"
+            CANCEL_FLAGS.pop(run_id, None)
             return
 
         with PENDING_LOCK:
             pending_snapshot = safe_read_json(TFR_LOG_FILE)
         id_to_idx = make_id_index_map(pending_snapshot)
 
-        # (1) cập nhật ETD theo idx (nếu có) hoặc trq_id (fallback)
+        # (1) cập nhật ETD (nếu có)
         try:
             changed = False
             for u in updates:
@@ -958,7 +993,7 @@ def approve_all_stream():
         except Exception as e:
             yield json.dumps({"type": "error", "message": f"Bulk ETD update: {e}"}) + "\n"
 
-        # (2) lập danh sách duyệt từng dòng (không loại trùng TRQ-ID)
+        # (2) lập danh sách cần duyệt
         todo = []
         for u in updates:
             idx = u.get("idx")
@@ -974,19 +1009,19 @@ def approve_all_stream():
                     if item and item.get("status") == "Submitted" and (item.get("etd") or "").strip():
                         todo.append((j, tid, item))
 
-        yield json.dumps({"type": "start", "total": len(todo)}) + "\n"
+        yield json.dumps({"type": "start", "total": len(todo), "run_id": run_id}) + "\n"
 
-        # (3) vòng duyệt
+        # (3) vòng duyệt + check cancel
         done = 0
         current_list = list(pending_snapshot)
-        approved_indices = set()
 
         for idx, tid, item in todo:
             try:
+                # thực thi duyệt 1 dòng — nếu user nhấn Cancel trong lúc này, sẽ được phát hiện sau khi xong dòng này
                 approved = approve_all_one(item)
                 report_no = (approved or {}).get("report_no") or item.get("report_no")
 
-                # đánh dấu Approved ngay tại idx
+                # cập nhật JSON tạm thời
                 item.update({
                     "status": "Approved",
                     "decline_reason": "",
@@ -995,8 +1030,6 @@ def approve_all_stream():
                     "docx_path": (approved or {}).get("docx_path"),
                 })
                 current_list[idx] = item
-                approved_indices.add(idx)
-
                 with PENDING_LOCK:
                     safe_write_json(TFR_LOG_FILE, current_list)
 
@@ -1004,17 +1037,39 @@ def approve_all_stream():
                 yield json.dumps({"type": "progress", "done": done, "total": len(todo),
                                   "trq_id": tid, "report_no": report_no}) + "\n"
 
+                # nếu người dùng yêu cầu cancel → dừng tại đây (đã hoàn tất request hiện tại)
+                if CANCEL_FLAGS.get(run_id):
+                    # xóa phần tử đã Approved khỏi pending
+                    final_list = [r for r in current_list if (r.get("status") or "") != "Approved"]
+                    with PENDING_LOCK:
+                        safe_write_json(TFR_LOG_FILE, final_list)
+                    yield json.dumps({"type": "cancelled", "done": done, "total": len(todo)}) + "\n"
+                    CANCEL_FLAGS.pop(run_id, None)
+                    return
+
             except Exception as e:
                 yield json.dumps({"type": "error", "message": str(e), "trq_id": tid}) + "\n"
 
-        # (4) xóa khỏi pending những dòng đã Approved
+        # (4) dọn pending khi hoàn tất bình thường
         final_list = [r for r in current_list if (r.get("status") or "") != "Approved"]
         with PENDING_LOCK:
             safe_write_json(TFR_LOG_FILE, final_list)
 
         yield json.dumps({"type": "done", "done": done, "total": len(todo)}) + "\n"
+        CANCEL_FLAGS.pop(run_id, None)
 
     return Response(stream_with_context(gen()), mimetype="application/json")
+
+@app.post("/approve_all_cancel")
+def approve_all_cancel():
+    data = request.get_json(silent=True) or {}
+    run_id = data.get("run_id")
+    if not run_id:
+        return jsonify(success=False, message="Thiếu run_id"), 400
+    if run_id not in CANCEL_FLAGS:
+        return jsonify(success=False, message="Run ID không tồn tại hoặc đã kết thúc"), 404
+    CANCEL_FLAGS[run_id] = True
+    return jsonify(success=True)
 
 @app.route("/tfr_request_status", methods=["GET", "POST"])
 def tfr_request_status():
@@ -1224,25 +1279,26 @@ def tfr_request_archive():
 
     return render_template("tfr_request_archive.html", requests=archive)
 
-@app.route('/save_etd', methods=['POST'])
 def save_etd():
     if not request.is_json:
         return jsonify(success=False, message="Invalid request"), 400
     data = request.get_json()
-    trq_id = data.get("trq_id")
-    etd = data.get("etd")
-    idx = data.get("idx")
-    if trq_id is None or etd is None or idx is None:
-        return jsonify(success=False, message="Thiếu thông tin"), 400
+    trq_id = (data.get("trq_id") or "").strip()
+    etd = (data.get("etd") or "").strip()
+    if not trq_id or not etd:
+        return jsonify(success=False, message="Thiếu trq_id hoặc etd"), 400
 
-    tfr_requests = safe_read_json(TFR_LOG_FILE)
     try:
-        idx = int(idx)
-        if idx < 0 or idx >= len(tfr_requests):
-            return jsonify(success=False, message="Sai index!"), 404
-        # Cập nhật trực tiếp vào dòng idx, KHÔNG CẦN DÒ THEO trq_id NỮA!
-        tfr_requests[idx]["etd"] = etd
-        safe_write_json(TFR_LOG_FILE, tfr_requests)
+        current = _load_pending_locked()
+        found = False
+        for row in current:
+            if (row.get("trq_id") or "").strip() == trq_id:
+                row["etd"] = etd
+                found = True
+                break
+        if not found:
+            return jsonify(success=False, message="Không tìm thấy TRQ-ID trong pending!"), 404
+        _write_pending_locked(current)
         return jsonify(success=True)
     except Exception as e:
         return jsonify(success=False, message="Lỗi: " + str(e)), 500

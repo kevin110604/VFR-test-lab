@@ -434,6 +434,7 @@
     </div>
 
     <script>
+        let cancelRequested = false;
         function confirmDelete(requestor, trq_id) {
             return confirm("Bạn có chắc muốn xóa request của requestor: " + requestor + " (TRQ-ID: " + trq_id + ") không?");
         }
@@ -604,17 +605,19 @@
               <span id="progress-title">Đang duyệt yêu cầu…</span>
             </div>
             <div id="progress-text" style="font-size:14px; margin:6px 0 10px 0;">Bắt đầu…</div>
-            <div class="progress-outer" aria-label="Tiến độ duyệt" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="progress-outer">
               <div id="progress-bar" class="progress-inner"></div>
               <div id="progress-percent" class="progress-percent">0%</div>
             </div>
             <div id="progress-footer" style="margin-top:12px; display:flex; justify-content:flex-end; gap:8px;">
+              <button id="btn-cancel-progress" style="border:none; border-radius:10px; padding:7px 12px; background:#b71c1c; color:#fff; font-weight:700;">
+                <i class="fa fa-ban"></i> Cancel
+              </button>
               <button id="btn-close-progress" style="display:none; border:none; border-radius:10px; padding:7px 12px; background:#2e7d32; color:#fff; font-weight:700;">
                 <i class="fa fa-check-circle"></i> Xong
               </button>
             </div>
-          </div>
-        `;
+          </div>`;
         document.body.appendChild(modalProgress);
 
         const bar    = modalProgress.querySelector("#progress-bar");
@@ -623,123 +626,83 @@
         const spin   = modalProgress.querySelector("#progress-spin");
         const pctEl  = modalProgress.querySelector("#progress-percent");
         const btnOk  = modalProgress.querySelector("#btn-close-progress");
-        const outer  = modalProgress.querySelector(".progress-outer");
+        const btnCancel = modalProgress.querySelector("#btn-cancel-progress");
 
-        function showProgress(){ modalProgress.style.display = "flex"; }
-        function hideProgress(){ modalProgress.style.display = "none"; }
-        btnOk.addEventListener("click", hideProgress);
+        btnOk.addEventListener("click", ()=> modalProgress.style.display="none");
+        btnCancel.addEventListener("click", ()=>{
+            cancelRequested = true;
+            title.textContent = "Sẽ dừng sau request hiện tại…";
+            btnCancel.disabled = true;
+        });
 
         function setPercent(p){
             const pct = Math.max(0, Math.min(100, Math.round(p)));
             bar.style.width = pct + "%";
             pctEl.textContent = pct + "%";
-            outer.setAttribute("aria-valuenow", pct);
         }
 
         async function startApproveAll(items){
-            showProgress();
+            modalProgress.style.display="flex";
             setPercent(0);
-            txt.textContent = "Bắt đầu…";
-            title.textContent = "Đang duyệt yêu cầu…";
-            spin.style.display = "inline-block";
-            btnOk.style.display = "none";
-
-            // gửi cả idx để không rơi dòng
-            const updates = items.map(it => ({ idx: it.idx, trq_id: it.trq_id, etd: it.etd }));
+            txt.textContent="Bắt đầu…";
+            cancelRequested = false;
+            btnCancel.disabled = false;
+            btnOk.style.display="none";
+            spin.style.display="inline-block";
 
             const resp = await fetch("/approve_all_stream", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ updates })
+                method:"POST", headers:{"Content-Type":"application/json"},
+                body: JSON.stringify({updates: items})
             });
+            if(!resp.body){ txt.textContent="Không nhận được dữ liệu."; return; }
 
-            if(!resp.body){
-                txt.textContent = "Không nhận được dữ liệu tiến trình.";
-                spin.style.display = "none";
-                btnOk.style.display = "inline-flex";
-                return;
-            }
+            const reader = resp.body.getReader(), decoder=new TextDecoder();
+            let buffer=""; let total=0, done=0;
 
-            const reader = resp.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = "";
-            let total = 0, done = 0, currentPct = 0, animTimer = null;
-
-            function tweenTo(targetPct){
-                const start = currentPct, delta = targetPct - start, dur = 350;
-                const t0 = performance.now();
-                if(animTimer) cancelAnimationFrame(animTimer);
-                const step = (t)=>{
-                    const x = Math.min(1, (t - t0)/dur);
-                    const ease = x<.5 ? 2*x*x : 1 - Math.pow(-2*x+2,2)/2;
-                    currentPct = start + delta*ease;
-                    setPercent(currentPct);
-                    if(x<1) animTimer = requestAnimationFrame(step);
-                };
-                animTimer = requestAnimationFrame(step);
-            }
-
-            try {
-                while(true){
-                    const {value, done: streamDone} = await reader.read();
-                    if(streamDone) break;
-                    buffer += decoder.decode(value, {stream:true});
-                    let idx;
-                    while((idx = buffer.indexOf("\n")) >= 0){
-                        const line = buffer.slice(0, idx).trim();
-                        buffer = buffer.slice(idx+1);
-                        if(!line) continue;
-                        try{
-                            const msg = JSON.parse(line);
-                            if(msg.type === "start"){
-                                total = msg.total || 0;
-                                txt.textContent = `Bắt đầu… 0/${total}`;
-                                tweenTo(total ? 3 : 100);
-                            }else if(msg.type === "progress"){
-                                done = msg.done || 0;
-                                const pct = total ? Math.max(1, Math.floor(done*100/total)) : 100;
-                                tweenTo(pct);
-                                txt.textContent = `Đã duyệt ${done}/${total}`;
-                            }else if(msg.type === "done"){
-                                tweenTo(100);
-                                txt.textContent = `Hoàn tất: ${msg.done}/${msg.total}`;
-                                title.textContent = "Hoàn tất duyệt";
-                                spin.style.display = "none";
-                                btnOk.style.display = "inline-flex";
-                                setTimeout(()=>location.reload(), 1200);
-                            }else if(msg.type === "error"){
-                                spin.style.display = "none";
-                                title.textContent = "Có lỗi xảy ra";
-                                txt.textContent = msg.message || "Vui lòng thử lại.";
-                                btnOk.style.display = "inline-flex";
+            while(true){
+                const {value,done:streamDone} = await reader.read();
+                if(streamDone) break;
+                buffer += decoder.decode(value,{stream:true});
+                let idx;
+                while((idx=buffer.indexOf("\n"))>=0){
+                    const line=buffer.slice(0,idx).trim(); buffer=buffer.slice(idx+1);
+                    if(!line) continue;
+                    try{
+                        const msg=JSON.parse(line);
+                        if(msg.type==="start"){ total=msg.total; txt.textContent=`0/${total}`; }
+                        else if(msg.type==="progress"){
+                            done=msg.done; setPercent(done*100/total);
+                            txt.textContent=`Đã duyệt ${done}/${total}`;
+                            if(cancelRequested){ // dừng sau cái hiện tại
+                                title.textContent="Đã dừng bởi người dùng";
+                                spin.style.display="none";
+                                btnOk.style.display="inline-flex";
+                                return;
                             }
-                        }catch(e){ /* ignore bad lines */ }
-                    }
+                        }else if(msg.type==="done"){
+                            setPercent(100);
+                            txt.textContent=`Hoàn tất ${msg.done}/${msg.total}`;
+                            spin.style.display="none"; btnOk.style.display="inline-flex";
+                            setTimeout(()=>location.reload(),1200);
+                        }
+                    }catch{}
                 }
-            } catch(e){
-                spin.style.display = "none";
-                title.textContent = "Có lỗi xảy ra";
-                txt.textContent = (e && e.message) ? e.message : "Vui lòng thử lại.";
-                btnOk.style.display = "inline-flex";
             }
         }
 
-        // ==== Giữ vị trí scroll khi reload sau thao tác ====
-        document.querySelectorAll('form.js-remember').forEach(f => {
-            f.addEventListener('submit', () => {
-                try { sessionStorage.setItem('tfr_scroll', String(window.scrollY || window.pageYOffset || 0)); } catch(e){}
+        // ===== Giữ scroll & sort =====
+        document.querySelectorAll('form.js-remember').forEach(f=>{
+            f.addEventListener('submit', ()=>{
+                sessionStorage.setItem('tfr_scroll', window.scrollY);
+                sessionStorage.setItem('tfr_sort', new URL(location.href).searchParams.get("sort")||"date");
             });
         });
-        (function restoreScroll(){
-            try {
-                const v = sessionStorage.getItem('tfr_scroll');
-                if (v !== null) {
-                    sessionStorage.removeItem('tfr_scroll');
-                    const y = parseInt(v, 10);
-                    if (!isNaN(y)) { window.scrollTo(0, y); }
-                }
-            } catch(e){}
-        })();
+        window.addEventListener("load", ()=>{
+            const y=sessionStorage.getItem('tfr_scroll');
+            if(y){ window.scrollTo(0, parseInt(y)); sessionStorage.removeItem('tfr_scroll'); }
+            const s=sessionStorage.getItem('tfr_sort');
+            if(s){ const url=new URL(location.href); url.searchParams.set("sort",s); history.replaceState(null,"",url); sessionStorage.removeItem('tfr_sort'); }
+        });
     </script>
 </body>
 </html>
