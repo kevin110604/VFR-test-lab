@@ -904,6 +904,23 @@ def approve_all_one(req):
 
     return req
 
+def make_id_index_map(pending_list):
+    """
+    Trả về map {trq_id: index} cho danh sách pending.
+    Nếu có TRQ-ID trùng, ưu tiên index xuất hiện *cuối cùng* (phù hợp khi bạn vừa ghi đè ETD).
+    """
+    mapping = {}
+    if not isinstance(pending_list, list):
+        return mapping
+    for i, row in enumerate(pending_list):
+        try:
+            tid = (row.get("trq_id") or "").strip()
+        except Exception:
+            tid = ""
+        if tid:
+            mapping[tid] = i
+    return mapping
+
 PENDING_LOCK = Lock()
 @app.post("/approve_all_stream")
 def approve_all_stream():
