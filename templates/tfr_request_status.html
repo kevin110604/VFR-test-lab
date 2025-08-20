@@ -330,7 +330,9 @@
                 <th></th>
             </tr>
             {% for r in requests %}
-            <tr data-type="{{ (r.type_of_test or r.test_group or '') | replace(' TEST', '') }}" data-date="{{ r.request_date or '' }}">
+            <tr data-type="{{ (r.type_of_test or r.test_group or '') | replace(' TEST', '') }}"
+                data-date="{{ r.request_date or '' }}"
+                data-idx="{{ real_indices[loop.index0] }}">
                 <td>{{ loop.index }}</td>
                 <td class="col-trq">{{ r.trq_id }}</td>
                 <td class="col-type">{{ r.test_group | replace(' TEST', '') }}</td>
@@ -505,7 +507,9 @@
                     const trq = tr.querySelector(".col-trq")?.textContent?.trim();
                     const type = (tr.getAttribute("data-type") || "").trim();
                     const date = (tr.getAttribute("data-date") || "").trim();
-                    if (trq) items.push({ trq_id: trq, etd: etdVal, type, date });
+                    const idxAttr = tr.getAttribute("data-idx");
+                    const idx = idxAttr ? parseInt(idxAttr, 10) : null;
+                    if (trq) items.push({ trq_id: trq, etd: etdVal, type, date, idx });
                 }
             }
 

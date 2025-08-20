@@ -908,7 +908,6 @@ PENDING_LOCK = Lock()
 @app.post("/approve_all_stream")
 def approve_all_stream():
     def gen():
-        # (0) Nhận payload
         try:
             data = request.get_json(silent=True) or {}
             updates = data.get("updates", []) or []
@@ -916,39 +915,21 @@ def approve_all_stream():
             yield json.dumps({"type": "error", "message": f"Parse JSON: {e}"}) + "\n"
             return
 
-        # Không có gì để duyệt → kết thúc sớm
-        if not updates:
-            yield json.dumps({"type": "start", "total": 0}) + "\n"
-            yield json.dumps({"type": "done", "done": 0, "total": 0}) + "\n"
-            return
-
-        # (1) Cleanup archive (không chặn tiến trình)
-        try:
-            cleanup_archive_json(days=14)
-        except Exception as e:
-            yield json.dumps({"type": "error", "message": f"Cleanup: {e}"}) + "\n"
-
-        # (2) Đọc pending snapshot (LIST thuần) + map id->index
         with PENDING_LOCK:
             pending_snapshot = safe_read_json(TFR_LOG_FILE)
-
-        def make_id_index_map(lst):
-            mp = {}
-            for i, r in enumerate(lst):
-                tid = (r.get("trq_id") or "").strip()
-                if tid:
-                    mp[tid] = i
-            return mp
-
         id_to_idx = make_id_index_map(pending_snapshot)
 
-        # (3) Cập nhật ETD CHỈ cho các item nằm trong 'updates' (theo trq_id) TRÊN LIST
+        # (1) cập nhật ETD theo idx (nếu có) hoặc trq_id (fallback)
         try:
             changed = False
             for u in updates:
                 tid = (u.get("trq_id") or "").strip()
                 etd = (u.get("etd") or "").strip()
-                if tid and tid in id_to_idx:
+                idx = u.get("idx")
+                if isinstance(idx, int) and 0 <= idx < len(pending_snapshot):
+                    pending_snapshot[idx]["etd"] = etd
+                    changed = True
+                elif tid and tid in id_to_idx:
                     pending_snapshot[id_to_idx[tid]]["etd"] = etd
                     changed = True
             if changed:
@@ -960,36 +941,35 @@ def approve_all_stream():
         except Exception as e:
             yield json.dumps({"type": "error", "message": f"Bulk ETD update: {e}"}) + "\n"
 
-        # (4) Lập TODO theo đúng THỨ TỰ 'updates'
+        # (2) lập danh sách duyệt từng dòng (không loại trùng TRQ-ID)
         todo = []
-        seen = set()
         for u in updates:
-            tid = (u.get("trq_id") or "").strip()
-            if not tid or tid in seen:
-                continue
-            seen.add(tid)
-            idx = id_to_idx.get(tid)
-            if idx is None:
-                continue
-            item = pending_snapshot[idx]
-            if item and item.get("status") == "Submitted" and (item.get("etd") or "").strip():
-                todo.append((tid, item))
+            idx = u.get("idx")
+            if isinstance(idx, int) and 0 <= idx < len(pending_snapshot):
+                item = pending_snapshot[idx]
+                if item and item.get("status") == "Submitted" and (item.get("etd") or "").strip():
+                    todo.append((idx, (item.get("trq_id") or "").strip(), item))
+            else:
+                tid = (u.get("trq_id") or "").strip()
+                j = id_to_idx.get(tid)
+                if j is not None:
+                    item = pending_snapshot[j]
+                    if item and item.get("status") == "Submitted" and (item.get("etd") or "").strip():
+                        todo.append((j, tid, item))
 
-        total = len(todo)
-        yield json.dumps({"type": "start", "total": total}) + "\n"
-        if total == 0:
-            yield json.dumps({"type": "done", "done": 0, "total": 0}) + "\n"
-            return
+        yield json.dumps({"type": "start", "total": len(todo)}) + "\n"
 
-        # (5) Vòng duyệt CHỈ trên 'todo'
+        # (3) vòng duyệt
         done = 0
         current_list = list(pending_snapshot)
+        approved_indices = set()
 
-        for tid, item in todo:
+        for idx, tid, item in todo:
             try:
                 approved = approve_all_one(item)
-
                 report_no = (approved or {}).get("report_no") or item.get("report_no")
+
+                # đánh dấu Approved ngay tại idx
                 item.update({
                     "status": "Approved",
                     "decline_reason": "",
@@ -997,35 +977,27 @@ def approve_all_stream():
                     "pdf_path": (approved or {}).get("pdf_path"),
                     "docx_path": (approved or {}).get("docx_path"),
                 })
-
-                # loại bỏ item đã approve khỏi pending
-                new_list = [r for r in current_list if (r.get("trq_id") or "").strip() != tid]
-                current_list = new_list
+                current_list[idx] = item
+                approved_indices.add(idx)
 
                 with PENDING_LOCK:
                     safe_write_json(TFR_LOG_FILE, current_list)
 
                 done += 1
-                yield json.dumps({
-                    "type": "progress",
-                    "done": done,
-                    "total": total,
-                    "trq_id": tid,
-                    "report_no": report_no
-                }) + "\n"
+                yield json.dumps({"type": "progress", "done": done, "total": len(todo),
+                                  "trq_id": tid, "report_no": report_no}) + "\n"
 
             except Exception as e:
                 yield json.dumps({"type": "error", "message": str(e), "trq_id": tid}) + "\n"
 
-        # (6) Kết thúc vòng duyệt
-        yield json.dumps({"type": "done", "done": done, "total": total}) + "\n"
+        # (4) xóa khỏi pending những dòng đã Approved
+        final_list = [r for r in current_list if (r.get("status") or "") != "Approved"]
+        with PENDING_LOCK:
+            safe_write_json(TFR_LOG_FILE, final_list)
 
-    headers = {
-        "Content-Type": "application/x-ndjson; charset=utf-8",
-        "Cache-Control": "no-cache",
-        "X-Accel-Buffering": "no",
-    }
-    return Response(stream_with_context(gen()), headers=headers)
+        yield json.dumps({"type": "done", "done": done, "total": len(todo)}) + "\n"
+
+    return Response(stream_with_context(gen()), mimetype="application/json")
 
 @app.route("/tfr_request_status", methods=["GET", "POST"])
 def tfr_request_status():
