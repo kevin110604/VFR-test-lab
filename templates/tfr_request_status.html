@@ -300,8 +300,9 @@
                         {% set can_approve_all = false %}
                     {% endif %}
                 {% endfor %}
-                <form method="post" action="/tfr_request_status" style="display:inline;" onsubmit="openConfirmApproveAll(); return false;">
+                <form method="post" action="/tfr_request_status" class="js-remember" style="display:inline;" onsubmit="openConfirmApproveAll(); return false;">
                     <input type="hidden" name="action" value="approve_all">
+                    <input type="hidden" name="return_url" value="{{ request.full_path }}">
                     {% for r in requests %}
                         <input type="hidden" name="etd-{{ real_indices[loop.index0] }}" value="{{ r.etd or '' }}">
                     {% endfor %}
@@ -342,9 +343,10 @@
                 <td class="status {{ r.status }}" style="min-width:78px;">{{ r.status }}</td>
                 <td>
                     {% if is_admin and r.status == "Submitted" %}
-                        <form method="post" action="/tfr_request_status" style="margin:0;display:inline-flex;align-items:center;gap:2px;">
+                        <form method="post" action="/tfr_request_status" class="js-remember" style="margin:0;display:inline-flex;align-items:center;gap:2px;">
                             <input type="hidden" name="trq_id" value="{{ r.trq_id }}">
                             <input type="hidden" name="edit_idx" value="{{ real_indices[loop.index0] }}">
+                            <input type="hidden" name="return_url" value="{{ request.full_path }}">
                             <input type="date" name="etd" value="{{ r.etd or '' }}" required style="padding:4px; font-size:13px; min-width:108px;"
                                 onchange="saveETD(this, '{{ r.trq_id }}', {{ real_indices[loop.index0] }})" />
                             <button type="submit" name="action" value="approve" class="btn-action btn-approve" style="margin-left:2px;">Approve</button>
@@ -359,9 +361,10 @@
                         {{ r.decline_reason }}
                     {% endif %}
                     {% if is_admin and r.status == "Submitted" %}
-                        <form method="post" action="/tfr_request_status" id="form-decline-{{ loop.index0 }}" style="display:none; margin-top:4px;">
+                        <form method="post" action="/tfr_request_status" class="js-remember" id="form-decline-{{ loop.index0 }}" style="display:none; margin-top:4px;">
                             <input type="hidden" name="trq_id" value="{{ r.trq_id }}">
                             <input type="hidden" name="edit_idx" value="{{ real_indices[loop.index0] }}">
+                            <input type="hidden" name="return_url" value="{{ request.full_path }}">
                             <input type="text" name="decline_reason" class="input-reason" placeholder="Lý do decline..." required>
                             <button type="submit" name="action" value="decline" class="btn-action btn-decline" style="padding:6px 12px;">Xác nhận</button>
                             <button type="button" class="btn-details" onclick="hideDecline({{ loop.index0 }})">Hủy</button>
@@ -381,9 +384,10 @@
                         <button class="btn-details" onclick="showDetail({{ loop.index0 }})"><i class="fa fa-eye"></i></button>
                     {% endif %}
                     {% if is_admin %}
-                    <form method="post" action="/tfr_request_status" style="display:inline;">
+                    <form method="post" action="/tfr_request_status" class="js-remember" style="display:inline;">
                         <input type="hidden" name="trq_id" value="{{ r.trq_id }}">
                         <input type="hidden" name="edit_idx" value="{{ real_indices[loop.index0] }}">
+                        <input type="hidden" name="return_url" value="{{ request.full_path }}">
                         <button type="submit" name="action" value="duplicate" class="btn-details" style="background:#e3f7fa; color:#289abf; border-color:#8be4fc; margin-left:3px;">
                             <i class="fa fa-copy"></i> Dup
                         </button>
@@ -396,9 +400,10 @@
                             <i class="fa fa-edit"></i> Edit
                         </button>
                     </form>
-                    <form method="post" action="/tfr_request_status" style="display:inline;" onsubmit="return confirmDelete('{{ r.requestor }}', '{{ r.trq_id }}');">
+                    <form method="post" action="/tfr_request_status" class="js-remember" style="display:inline;" onsubmit="return confirmDelete('{{ r.requestor }}', '{{ r.trq_id }}');">
                         <input type="hidden" name="trq_id" value="{{ r.trq_id }}">
                         <input type="hidden" name="edit_idx" value="{{ real_indices[loop.index0] }}">
+                        <input type="hidden" name="return_url" value="{{ request.full_path }}">
                         <button type="submit" name="action" value="delete" class="btn-details" style="background:#fff3e0; color:#df2323; border-color:#df2323; margin-left:3px;">
                             <i class="fa fa-trash"></i> Delete
                         </button>
@@ -491,11 +496,64 @@
             location.href = url.toString();
         });
 
-        // ====== Xác nhận lần 2 & APPROVE ALL ======
-        function openConfirmApproveAll(){
-            const ok = confirm("Bạn có chắc muốn Approve tất cả các dòng đang ở trạng thái Submitted (đã có ETD)?\nThứ tự duyệt: theo Type (A→Z) rồi theo ngày (cũ→mới).");
-            if (!ok) return;
+        // ====== Xác nhận & APPROVE ALL (có ước tính thời gian) ======
+        function formatRangeSecToText(minSec, maxSec) {
+            function fmt(s){
+                const m = Math.floor(s/60), r = s%60;
+                if (m >= 60) {
+                    const h = Math.floor(m/60), mm = m%60;
+                    return mm ? `${h}h ${mm}m` : `${h}h`;
+                }
+                return r ? `${m}m ${r}s` : `${m}m`;
+            }
+            return minSec===maxSec ? fmt(minSec) : `${fmt(minSec)} – ${fmt(maxSec)}`;
+        }
 
+        let confirmModal;
+        function showConfirmModal(count, onOK){
+            if (!confirmModal){
+                confirmModal = document.createElement('div');
+                confirmModal.id = 'modal-confirm';
+                confirmModal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:100001;';
+                confirmModal.innerHTML = `
+                  <div style="background:#fff;border-radius:16px;box-shadow:0 10px 35px rgba(0,0,0,.25);width:min(440px,92vw);padding:18px 16px 14px 16px;position:relative;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                      <i class="fa fa-check-double" style="color:#4e8573;"></i>
+                      <div style="font-weight:800;color:#35523A;">Xác nhận duyệt tất cả</div>
+                    </div>
+                    <div id="confirm-summary" style="font-size:14px;color:#25312b;margin:4px 0 10px 0;"></div>
+                    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px;">
+                      <button id="btn-cancel-confirm" class="btn-details" style="padding:6px 12px;border-radius:10px;">Hủy</button>
+                      <button id="btn-ok-confirm" class="btn-action btn-approve" style="padding:6px 14px;border-radius:10px;"><i class="fa fa-play"></i> Bắt đầu</button>
+                    </div>
+                  </div>`;
+                document.body.appendChild(confirmModal);
+                confirmModal.addEventListener('click', (e)=>{
+                    if (e.target === confirmModal) confirmModal.style.display = 'none';
+                });
+            }
+            const perMin = 15, perMax = 30; // giây / request
+            const minSec = count * perMin;
+            const maxSec = count * perMax;
+            const summary = `
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <div><b>Số lượng sẽ duyệt:</b> ${count}</div>
+                <div><b>Ước tính thời gian:</b> ${formatRangeSecToText(minSec, maxSec)}</div>
+                <div style="font-size:12px;color:#666;">(Ước tính dựa trên 15–30 giây / request)</div>
+              </div>`;
+            confirmModal.querySelector('#confirm-summary').innerHTML = summary;
+            confirmModal.style.display = 'flex';
+
+            confirmModal.querySelector('#btn-cancel-confirm').onclick = () => {
+                confirmModal.style.display = 'none';
+            };
+            confirmModal.querySelector('#btn-ok-confirm').onclick = () => {
+                confirmModal.style.display = 'none';
+                onOK && onOK();
+            };
+        }
+
+        function openConfirmApproveAll(){
             // Gom các dòng hợp lệ: Submitted + có ETD
             const rows = Array.from(document.querySelectorAll("#req-table tr[data-type]"));
             const items = [];
@@ -513,13 +571,10 @@
                 }
             }
 
-            // Sort: type asc, then date asc (yyyy-mm-dd, dd/mm/yyyy đều ổn nhẹ nhàng)
             function parseDate(s){
-                if(!s) return new Date(8640000000000000); // max
-                // try ISO
+                if(!s) return new Date(8640000000000000);
                 let d = new Date(s);
                 if (!isNaN(d)) return d;
-                // try dd/mm/yyyy
                 const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
                 if (m){
                     const dd = +m[1], mm = +m[2]-1, yy = +m[3];
@@ -531,12 +586,11 @@
             items.sort((a,b)=>{
                 const t = a.type.localeCompare(b.type);
                 if (t !== 0) return t;
-                const da = parseDate(a.date), db = parseDate(b.date);
-                return da - db;
+                return parseDate(a.date) - parseDate(b.date);
             });
 
-            // Gửi lên server theo đúng thứ tự đã sort
-            startApproveAll(items);
+            // show confirm nhỏ, gọn
+            showConfirmModal(items.length, ()=> startApproveAll(items));
         }
 
         // ====== Progress modal ======
@@ -590,8 +644,8 @@
             spin.style.display = "inline-block";
             btnOk.style.display = "none";
 
-            // Chuyển thành payload updates (trq_id + etd)
-            const updates = items.map(it => ({ trq_id: it.trq_id, etd: it.etd }));
+            // gửi cả idx để không rơi dòng
+            const updates = items.map(it => ({ idx: it.idx, trq_id: it.trq_id, etd: it.etd }));
 
             const resp = await fetch("/approve_all_stream", {
                 method: "POST",
@@ -669,6 +723,23 @@
                 btnOk.style.display = "inline-flex";
             }
         }
+
+        // ==== Giữ vị trí scroll khi reload sau thao tác ====
+        document.querySelectorAll('form.js-remember').forEach(f => {
+            f.addEventListener('submit', () => {
+                try { sessionStorage.setItem('tfr_scroll', String(window.scrollY || window.pageYOffset || 0)); } catch(e){}
+            });
+        });
+        (function restoreScroll(){
+            try {
+                const v = sessionStorage.getItem('tfr_scroll');
+                if (v !== null) {
+                    sessionStorage.removeItem('tfr_scroll');
+                    const y = parseInt(v, 10);
+                    if (!isNaN(y)) { window.scrollTo(0, y); }
+                }
+            } catch(e){}
+        })();
     </script>
 </body>
 </html>

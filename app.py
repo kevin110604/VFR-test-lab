@@ -1038,6 +1038,12 @@ def tfr_request_status():
         m = re.search(r"(\d+)$", tid)
         return int(m.group(1)) if m else tid
 
+    def _redirect_back():
+        back = request.form.get("return_url")
+        if back:
+            return redirect(back)
+        return redirect(url_for('tfr_request_status'))
+
     # ===== Load =====
     tfr_requests = safe_read_json(TFR_LOG_FILE)
     is_admin = session.get("user_type") in ("stl", "superadmin")
@@ -1047,30 +1053,25 @@ def tfr_request_status():
         action = request.form.get("action")
         tfr_requests = safe_read_json(TFR_LOG_FILE)  # reload để thao tác mới nhất
 
-        # === APPROVE ALL ===
+        # === APPROVE ALL (non-stream legacy button, vẫn để fallback nếu cần) ===
         if is_admin and action == "approve_all":
             approved_count = 0
             current = safe_read_json(TFR_LOG_FILE)  # snapshot mới nhất
 
             new_pending = []
             for req in current:
-                # Chỉ approve các dòng đang Submitted và đã có ETD trong JSON
                 if (req.get("status") == "Submitted") and (req.get("etd") or "").strip():
                     try:
-                        # Duyệt 1 dòng (gồm cấp số, ghi excel, tạo docx/pdf, archive)
                         approve_all_one(req)
                         approved_count += 1
-                        # KHÔNG append vào new_pending -> loại khỏi pending sau khi duyệt
                         continue
                     except Exception as e:
                         print("Approve one (approve_all) error:", e)
-
-                # Các dòng không đủ điều kiện hoặc lỗi thì giữ lại pending
                 new_pending.append(req)
 
             safe_write_json(TFR_LOG_FILE, new_pending)
             flash(f"Đã duyệt {approved_count} request!")
-            return redirect(url_for('tfr_request_status'))
+            return _redirect_back()
 
         # APPROVE SINGLE
         elif is_admin and action == "approve":
@@ -1083,7 +1084,7 @@ def tfr_request_status():
                 etd = (request.form.get("etd", "") or "").strip()
                 if not etd:
                     flash("Bạn cần điền Estimated Completion Date (ETD) trước khi approve!")
-                    return redirect(url_for('tfr_request_status'))
+                    return _redirect_back()
 
                 req["etd"] = etd
                 req["estimated_completion_date"] = etd
@@ -1095,7 +1096,7 @@ def tfr_request_status():
                 except Exception as e:
                     print("Approve one (single) error:", e)
                     flash("Có lỗi khi approve, vui lòng thử lại.")
-            return redirect(url_for('tfr_request_status'))
+            return _redirect_back()
 
         # DECLINE
         elif is_admin and action == "decline":
@@ -1108,7 +1109,7 @@ def tfr_request_status():
                 tfr_requests[idx]["status"] = "Declined"
                 tfr_requests[idx]["decline_reason"] = reason
             safe_write_json(TFR_LOG_FILE, tfr_requests)
-            return redirect(url_for('tfr_request_status'))
+            return _redirect_back()
 
         # DUPLICATE
         elif action == "duplicate":
@@ -1126,7 +1127,7 @@ def tfr_request_status():
                 new_req["etd"] = calculate_default_etd(new_req.get("request_date", ""), new_req.get("test_group", ""))
                 tfr_requests.insert(idx + 1, new_req)
             safe_write_json(TFR_LOG_FILE, tfr_requests)
-            return redirect(url_for('tfr_request_status'))
+            return _redirect_back()
 
         # DELETE
         elif action == "delete":
@@ -1154,27 +1155,23 @@ def tfr_request_status():
                         )
                         break
             safe_write_json(TFR_LOG_FILE, tfr_requests)
-            return redirect(url_for('tfr_request_status'))
+            return _redirect_back()
 
     # ===== GET view =====
-    # sort_mode:
-    #   - "date" (mặc định): GIỮ NGUYÊN THỨ TỰ JSON (không sort theo giá trị ngày)
-    #   - "type": SẮP THEO TYPE (asc) rồi theo ngày (asc) trong cùng type
     sort_mode = request.args.get("sort", "date")
 
     # Chia 2 nhóm nhưng GIỮ thứ tự xuất hiện trong JSON
+    tfr_requests = safe_read_json(TFR_LOG_FILE)
     pairs_declined = [(i, r) for i, r in enumerate(tfr_requests) if (r.get("status") or "").strip() == "Declined"]
     pairs_submitted = [(i, r) for i, r in enumerate(tfr_requests) if (r.get("status") or "").strip() == "Submitted"]
 
     if sort_mode == "type":
-        # Declined trước – nhưng trong mỗi nhóm sắp theo type rồi ngày
         key_fn = lambda it: (_norm_type(it[1]), _parse_date(it[1].get("request_date")), _tie_break(it[1]))
         pairs_declined.sort(key=key_fn)
         pairs_submitted.sort(key=key_fn)
         ordered_pairs = pairs_declined + pairs_submitted
     else:
-        # "date" = giữ nguyên thứ tự JSON (ai gửi trước ở trên)
-        ordered_pairs = pairs_declined + pairs_submitted  # giữ nguyên relative-order từng nhóm
+        ordered_pairs = pairs_declined + pairs_submitted
 
     real_indices = [i for i, _ in ordered_pairs]
     show_requests = [r for _, r in ordered_pairs]
