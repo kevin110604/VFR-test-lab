@@ -119,7 +119,7 @@
             vertical-align: middle;
             white-space: nowrap;
             word-break: break-word;
-            width: calc(100% / 8);
+            width: calc(100% / 9);
         }
         th {
             background: var(--main-th);
@@ -161,7 +161,6 @@
 
         .table-toolbar { width: 100%; background: transparent; position: sticky; top: 0; z-index: 3; padding-bottom: 8px; display: flex; justify-content: flex-end; padding-right: 14px; gap:8px; align-items:center; flex-wrap:wrap; }
         .table-toolbar input[type="text"] { padding: 7px 13px; font-size: 14px; border-radius: 8px; border:1.2px solid #ccc; width: 185px; background: #fff; }
-        .table-toolbar input[type="date"]{ padding:7px 9px; font-size:14px; border-radius:8px; border:1.2px solid #ccc; background:#fff; }
         .table-wrap { width: 100vw; max-width: 100vw; overflow-x: auto; background: transparent; }
         table { min-width: 880px; width: max-content; max-width: 100vw; border-collapse: collapse; background: #fffbe8e5; border-radius: 14px; font-size: 0.96rem; box-shadow: 0 2px 12px #bca96b18; table-layout: auto; }
         .approve-all-btn { background: var(--color-green); color: var(--main-th-bright); border-radius: 100px; font-size: 13px; font-weight: 600; padding: 5px 15px; box-shadow: 0 2px 8px #bca96b18; margin-top: 4px; min-width: 0; }
@@ -217,7 +216,7 @@
         body.dark .btn-details:hover, body.dark .btn-pdf:hover { background: var(--main-th) !important; color: #25312b !important; border-color: var(--main-th);}
         body.dark .input-reason {background:#3f5250 !important; color:#f6f6ef !important; border-color:#91b8a2;}
         body.dark ::selection {background: #c49c48; color: #25312b;}
-        body.dark .table-toolbar input, body.dark .table-toolbar input[type="date"] { background:#3f5250 !important; color:#f6f6ef !important; border-color:#91b8a2 !important; }
+        body.dark .table-toolbar input { background:#3f5250 !important; color:#f6f6ef !important; border-color:#91b8a2 !important; }
         body.dark input[type="date"]::placeholder { color: #ffe082 !important; opacity: 1; }
         body.dark td { color: #fffbe6 !important; }
 
@@ -290,7 +289,7 @@
 
         <div class="table-toolbar">
             <button id="sort-toggle" class="btn-details">
-                <i class="fa fa-sort"></i> Sắp xếp: {{ 'Type' if request.args.get('sort')=='type' else 'Ngày' }}
+                <i class="fa fa-sort"></i> Sort: {{ 'Type' if request.args.get('sort')=='type' else 'Date' }}
             </button>
             <input type="text" id="search-id" placeholder="Tìm theo TRQ-ID..." oninput="searchID()">
 
@@ -301,7 +300,7 @@
                         {% set can_approve_all = false %}
                     {% endif %}
                 {% endfor %}
-                <form method="post" action="/tfr_request_status" style="display:inline;" onsubmit="openTypeConfirmModal(); return false;">
+                <form method="post" action="/tfr_request_status" style="display:inline;" onsubmit="openConfirmApproveAll(); return false;">
                     <input type="hidden" name="action" value="approve_all">
                     {% for r in requests %}
                         <input type="hidden" name="etd-{{ real_indices[loop.index0] }}" value="{{ r.etd or '' }}">
@@ -317,7 +316,7 @@
         </div>
 
         <div class="table-wrap">
-        <table>
+        <table id="req-table">
             <tr>
                 <th>STT</th>
                 <th>TRQ-ID</th>
@@ -331,13 +330,13 @@
                 <th></th>
             </tr>
             {% for r in requests %}
-            <tr data-type="{{ (r.type_of_test or r.test_group or '') | replace(' TEST', '') }}">
+            <tr data-type="{{ (r.type_of_test or r.test_group or '') | replace(' TEST', '') }}" data-date="{{ r.request_date or '' }}">
                 <td>{{ loop.index }}</td>
-                <td>{{ r.trq_id }}</td>
-                <td>{{ r.test_group | replace(' TEST', '') }}</td>
+                <td class="col-trq">{{ r.trq_id }}</td>
+                <td class="col-type">{{ r.test_group | replace(' TEST', '') }}</td>
                 <td>{{ r.requestor }}</td>
                 <td>{{ r.department }}</td>
-                <td style="min-width:66px;">{{ r.request_date }}</td>
+                <td class="col-date" style="min-width:66px;">{{ r.request_date }}</td>
                 <td class="status {{ r.status }}" style="min-width:78px;">{{ r.status }}</td>
                 <td>
                     {% if is_admin and r.status == "Submitted" %}
@@ -473,339 +472,199 @@
 
         function searchID() {
             const val = document.getElementById("search-id").value.toUpperCase();
-            const rows = document.querySelectorAll("table tr");
+            const rows = document.querySelectorAll("#req-table tr");
             for (let i = 1; i < rows.length; i++) {
-                const td = rows[i].querySelector("td:first-child");
+                const td = rows[i].querySelector("td.col-trq");
                 const match = td && td.textContent.toUpperCase().includes(val);
                 rows[i].style.display = match ? "" : "none";
             }
         }
-    </script>
 
-<!-- ===== Modal chọn Type of Test + lọc theo ngày ETD ===== -->
-<div id="modal-type-confirm" style="display:none; position:fixed; inset:0; background:rgba(44,50,36,0.33); z-index:100000; align-items:center; justify-content:center;">
-  <div style="background:#fff; color:#25312b; border-radius:16px; box-shadow:0 6px 28px #4d665c88; width:min(560px,94vw); padding:18px; position:relative;">
-    <button type="button" onclick="hideTypeConfirm()" style="position:absolute;right:12px;top:8px; border:none; background:none; font-size:1.4em; color:#c49c48; cursor:pointer;"><i class="fa fa-times"></i></button>
-    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px; font-weight:700; color:#35523A;">
-      <i class="fa fa-layer-group"></i> Chọn Type of Test & khoảng ngày ETD để Approve
-    </div>
+        // ====== Sort toggle (Date giữ đúng thứ tự JSON; Type = sắp theo type rồi ngày) ======
+        const sortBtn = document.getElementById("sort-toggle");
+        sortBtn?.addEventListener("click", () => {
+            const url = new URL(location.href);
+            const cur = url.searchParams.get("sort") || "date";
+            url.searchParams.set("sort", (cur === "type") ? "date" : "type");
+            location.href = url.toString();
+        });
 
-    <!-- Bộ lọc theo ngày -->
-    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; background:#fffbe8; padding:10px; border-radius:12px; margin-bottom:10px;">
-      <div style="font-size:13px; font-weight:700; color:#35523A;"><i class="fa fa-calendar-day"></i> Lọc theo ETD:</div>
-      <label style="font-size:13px; display:inline-flex; align-items:center; gap:6px;">
-        Từ <input type="date" id="etd-from">
-      </label>
-      <label style="font-size:13px; display:inline-flex; align-items:center; gap:6px;">
-        Đến <input type="date" id="etd-to">
-      </label>
-      <button type="button" class="btn-details" onclick="clearEtdRange()" title="Xóa khoảng ngày">Xóa</button>
-    </div>
+        // ====== Xác nhận lần 2 & APPROVE ALL ======
+        function openConfirmApproveAll(){
+            const ok = confirm("Bạn có chắc muốn Approve tất cả các dòng đang ở trạng thái Submitted (đã có ETD)?\nThứ tự duyệt: theo Type (A→Z) rồi theo ngày (cũ→mới).");
+            if (!ok) return;
 
-    <div style="font-size:13px; margin:-4px 0 10px 0; color:#35523A;">Chọn 1 hoặc nhiều Type. Chỉ các dòng <b>Submitted</b> có ETD (và nằm trong khoảng nếu chọn) mới được approve.</div>
+            // Gom các dòng hợp lệ: Submitted + có ETD
+            const rows = Array.from(document.querySelectorAll("#req-table tr[data-type]"));
+            const items = [];
+            for (const tr of rows) {
+                const status = tr.querySelector(".status")?.textContent?.trim();
+                const etdInp = tr.querySelector('input[type="date"][name="etd"]');
+                const etdVal = etdInp ? etdInp.value : (tr.querySelector("td:nth-child(8)")?.textContent?.trim() || "");
+                if (status === "Submitted" && etdVal) {
+                    const trq = tr.querySelector(".col-trq")?.textContent?.trim();
+                    const type = (tr.getAttribute("data-type") || "").trim();
+                    const date = (tr.getAttribute("data-date") || "").trim();
+                    if (trq) items.push({ trq_id: trq, etd: etdVal, type, date });
+                }
+            }
 
-    <div id="type-list" style="max-height:40vh; overflow:auto; padding:8px; border-radius:12px; background:#fffbe8;">
-      <!-- checkboxes will be injected by JS -->
-    </div>
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
-      <div>
-        <label style="font-size:13px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
-          <input type="checkbox" id="type-select-all" /> Chọn tất cả
-        </label>
-      </div>
-      <div style="display:flex; gap:8px;">
-        <button type="button" onclick="hideTypeConfirm()" style="border:none; border-radius:10px; padding:7px 12px; background:#999; color:#fff; font-weight:700;">Hủy</button>
-        <button type="button" onclick="confirmTypesAndApprove()" style="border:none; border-radius:10px; padding:7px 12px; background:#2e7d32; color:#fff; font-weight:700;">
-          <i class="fa fa-check-double"></i> Approve
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
+            // Sort: type asc, then date asc (yyyy-mm-dd, dd/mm/yyyy đều ổn nhẹ nhàng)
+            function parseDate(s){
+                if(!s) return new Date(8640000000000000); // max
+                // try ISO
+                let d = new Date(s);
+                if (!isNaN(d)) return d;
+                // try dd/mm/yyyy
+                const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                if (m){
+                    const dd = +m[1], mm = +m[2]-1, yy = +m[3];
+                    d = new Date(yy, mm, dd);
+                    if (!isNaN(d)) return d;
+                }
+                return new Date(s);
+            }
+            items.sort((a,b)=>{
+                const t = a.type.localeCompare(b.type);
+                if (t !== 0) return t;
+                const da = parseDate(a.date), db = parseDate(b.date);
+                return da - db;
+            });
 
-<!-- ===== Modal progress approve all ===== -->
-<div id="modal-progress" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:100000; align-items:center; justify-content:center;">
-  <div style="background:#fff; color:#25312b; border-radius:16px; padding:18px; width:min(460px,92vw); box-shadow:0 8px 30px rgba(0,0,0,0.25);">
-    <div class="modal-head" id="progress-head">
-      <span class="spin" id="progress-spin" aria-hidden="true"></span>
-      <span id="progress-title">Đang duyệt yêu cầu…</span>
-    </div>
-    <div id="progress-text" style="font-size:14px; margin:6px 0 10px 0;">Bắt đầu…</div>
-    <div class="progress-outer" aria-label="Tiến độ duyệt" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-      <div id="progress-bar" class="progress-inner"></div>
-      <div id="progress-percent" class="progress-percent">0%</div>
-    </div>
-    <div id="progress-footer" style="margin-top:12px; display:flex; justify-content:space-between; gap:8px; position:relative;">
-      <button id="btn-cancel-progress" onclick="cancelApproveAll()" style="border:none; border-radius:10px; padding:7px 12px; background:#b71c1c; color:#fff; font-weight:700; display:none;">
-        <i class="fa fa-ban"></i> Cancel
-      </button>
-      <button id="btn-close-progress" onclick="hideProgress()" style="display:none; border:none; border-radius:10px; padding:7px 12px; background:#2e7d32; color:#fff; font-weight:700;">
-        <i class="fa fa-check-circle"></i> Xong
-      </button>
-    </div>
-  </div>
-</div>
-
-<script>
-// ===== Modal chọn Type (xác nhận lần 2) =====
-const modalTypeConfirm = document.getElementById("modal-type-confirm");
-const typeListEl = document.getElementById("type-list");
-const typeSelectAll = document.getElementById("type-select-all");
-const etdFromEl = document.getElementById("etd-from");
-const etdToEl   = document.getElementById("etd-to");
-
-let selectedTypeOrder = [];
-let currentRunId = null;
-let cancelFlag = false;
-
-function clearEtdRange(){
-  etdFromEl.value = "";
-  etdToEl.value = "";
-}
-
-function openTypeConfirmModal(){
-  const types = new Set();
-  document.querySelectorAll('table tr[data-type]').forEach(tr => {
-    const t = (tr.getAttribute('data-type') || '').trim();
-    if (t) types.add(t);
-  });
-  const arr = Array.from(types).sort();
-  typeListEl.innerHTML = arr.map(t => `
-    <label style="display:flex; align-items:center; gap:10px; margin:6px 0; cursor:pointer;">
-      <input type="checkbox" class="type-choice" value="${t}">
-      <span style="font-weight:600; color:#35523A;">${t}</span>
-    </label>
-  `).join('') || '<div style="color:#777;">Không có Type nào.</div>';
-
-  selectedTypeOrder = [];
-  typeSelectAll.checked = false;
-  modalTypeConfirm.style.display = 'flex';
-
-  document.querySelectorAll('#type-list .type-choice').forEach(cb => {
-    cb.addEventListener('change', () => {
-      const v = cb.value;
-      if (cb.checked) { if (!selectedTypeOrder.includes(v)) selectedTypeOrder.push(v); }
-      else { selectedTypeOrder = selectedTypeOrder.filter(x => x !== v); }
-    });
-  });
-}
-function hideTypeConfirm(){ modalTypeConfirm.style.display = 'none'; }
-
-typeSelectAll?.addEventListener('change', (e) => {
-  const checked = e.target.checked;
-  const boxes = document.querySelectorAll('#type-list .type-choice');
-  boxes.forEach(cb => cb.checked = checked);
-  selectedTypeOrder = checked ? Array.from(boxes).map(cb => cb.value) : [];
-});
-
-function confirmTypesAndApprove(){
-  let selected = selectedTypeOrder.slice();
-  if (selected.length === 0) {
-    selected = Array.from(document.querySelectorAll('#type-list .type-choice:checked')).map(cb => cb.value);
-  }
-  if (selected.length === 0){ alert('Hãy chọn ít nhất 1 Type để approve!'); return; }
-  hideTypeConfirm();
-  startApproveAll(selected);
-}
-
-// ===== Progress modal helpers =====
-const modalProgress = document.getElementById("modal-progress");
-const bar = document.getElementById("progress-bar");
-const txt = document.getElementById("progress-text");
-const title = document.getElementById("progress-title");
-const spin = document.getElementById("progress-spin");
-const percentEl = document.getElementById("progress-percent");
-const headEl = document.getElementById("progress-head");
-const btnClose = document.getElementById("btn-close-progress");
-const btnCancel = document.getElementById("btn-cancel-progress");
-
-function showProgress(){ modalProgress.style.display = "flex"; }
-function hideProgress(){ modalProgress.style.display = "none"; }
-function setPercent(p){
-  const pct = Math.max(0, Math.min(100, Math.round(p)));
-  bar.style.width = pct + "%";
-  percentEl.textContent = pct + "%";
-  document.querySelector(".progress-outer").setAttribute("aria-valuenow", pct);
-}
-async function cancelApproveAll(){
-  cancelFlag = true;
-  btnCancel.disabled = true;
-  btnCancel.innerHTML = '<i class="fa fa-ban"></i> Đang hủy…';
-  try{
-    if(currentRunId){
-      await fetch("/approve_all_cancel", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ run_id: currentRunId })
-      });
-    }
-  }catch(e){}
-}
-
-// ===== Core: approve theo Type + khoảng ngày ETD =====
-function dateInRange(yyyymmdd, fromStr, toStr){
-  if(!yyyymmdd) return false;
-  if(fromStr && yyyymmdd < fromStr) return false;
-  if(toStr && yyyymmdd > toStr) return false;
-  return true;
-}
-
-async function startApproveAll(selectedTypes){
-  showProgress();
-  setPercent(0);
-  txt.textContent = "Bắt đầu…";
-  title.textContent = "Đang duyệt yêu cầu…";
-  spin.style.display = "inline-block";
-  btnCancel.style.display = "inline-flex";
-  btnCancel.disabled = false;
-  btnCancel.innerHTML = '<i class="fa fa-ban"></i> Cancel';
-  btnClose.style.display = "none";
-  headEl.classList.remove("badge-done","fade-in");
-  cancelFlag = false;
-
-  // run id
-  currentRunId = (self.crypto && crypto.randomUUID) ? crypto.randomUUID()
-                : (Date.now()+"-"+Math.random().toString(16).slice(2));
-
-  const from = (etdFromEl.value || "").trim();
-  const to   = (etdToEl.value || "").trim();
-
-  // Gom updates theo thứ tự tick & lọc theo khoảng ngày ETD (nếu có)
-  const updates = [];
-  if (Array.isArray(selectedTypes) && selectedTypes.length){
-    selectedTypes.forEach(tp => {
-      document.querySelectorAll('tr[data-type]').forEach(tr => {
-        const rowType = (tr.getAttribute('data-type') || '').trim();
-        if (rowType !== tp) return;
-        const statusCell = tr.querySelector('.status');
-        if (!statusCell || statusCell.textContent.trim() !== "Submitted") return;
-
-        const dateInp = tr.querySelector('input[type="date"][name="etd"]');
-        const idxInp  = tr.querySelector('input[type="hidden"][name="edit_idx"]');
-        const idInp   = tr.querySelector('input[type="hidden"][name="trq_id"]');
-
-        const etdVal = dateInp ? dateInp.value : "";
-        if(dateInp && idxInp && idInp && etdVal){
-          if(!from && !to || dateInRange(etdVal, from, to)){
-            updates.push({ idx: Number(idxInp.value), trq_id: idInp.value, etd: etdVal });
-          }
+            // Gửi lên server theo đúng thứ tự đã sort
+            startApproveAll(items);
         }
-      });
-    });
-  }
 
-  if (updates.length === 0){
-    spin.style.display = "none";
-    title.textContent = "Không có dòng hợp lệ";
-    txt.textContent = "Không tìm thấy dòng phù hợp với Type/ETD đã chọn.";
-    btnCancel.style.display = "none";
-    btnClose.style.display = "inline-flex";
-    return;
-  }
+        // ====== Progress modal ======
+        const modalProgress = document.createElement("div");
+        modalProgress.id = "modal-progress";
+        modalProgress.style.cssText = "display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:100000; align-items:center; justify-content:center;";
+        modalProgress.innerHTML = `
+          <div style="background:#fff; color:#25312b; border-radius:16px; padding:18px; width:min(460px,92vw); box-shadow:0 8px 30px rgba(0,0,0,0.25);">
+            <div class="modal-head" id="progress-head">
+              <span class="spin" id="progress-spin" aria-hidden="true"></span>
+              <span id="progress-title">Đang duyệt yêu cầu…</span>
+            </div>
+            <div id="progress-text" style="font-size:14px; margin:6px 0 10px 0;">Bắt đầu…</div>
+            <div class="progress-outer" aria-label="Tiến độ duyệt" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <div id="progress-bar" class="progress-inner"></div>
+              <div id="progress-percent" class="progress-percent">0%</div>
+            </div>
+            <div id="progress-footer" style="margin-top:12px; display:flex; justify-content:flex-end; gap:8px;">
+              <button id="btn-close-progress" style="display:none; border:none; border-radius:10px; padding:7px 12px; background:#2e7d32; color:#fff; font-weight:700;">
+                <i class="fa fa-check-circle"></i> Xong
+              </button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modalProgress);
 
-  // Stream
-  const resp = await fetch("/approve_all_stream", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ updates, run_id: currentRunId })
-  });
+        const bar    = modalProgress.querySelector("#progress-bar");
+        const txt    = modalProgress.querySelector("#progress-text");
+        const title  = modalProgress.querySelector("#progress-title");
+        const spin   = modalProgress.querySelector("#progress-spin");
+        const pctEl  = modalProgress.querySelector("#progress-percent");
+        const btnOk  = modalProgress.querySelector("#btn-close-progress");
+        const outer  = modalProgress.querySelector(".progress-outer");
 
-  if(!resp.body){
-    txt.textContent = "Không nhận được dữ liệu tiến trình.";
-    btnCancel.style.display = "none";
-    btnClose.style.display = "inline-flex";
-    return;
-  }
+        function showProgress(){ modalProgress.style.display = "flex"; }
+        function hideProgress(){ modalProgress.style.display = "none"; }
+        btnOk.addEventListener("click", hideProgress);
 
-  const reader = resp.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let total = 0, done = 0, currentPct = 0, animTimer = null;
+        function setPercent(p){
+            const pct = Math.max(0, Math.min(100, Math.round(p)));
+            bar.style.width = pct + "%";
+            pctEl.textContent = pct + "%";
+            outer.setAttribute("aria-valuenow", pct);
+        }
 
-  function tweenTo(targetPct){
-    const start = currentPct, delta = targetPct - start, dur = 350;
-    const t0 = performance.now();
-    if(animTimer) cancelAnimationFrame(animTimer);
-    const step = (t)=>{
-      const x = Math.min(1, (t - t0)/dur);
-      const ease = x<.5 ? 2*x*x : 1 - Math.pow(-2*x+2,2)/2;
-      currentPct = start + delta*ease;
-      setPercent(currentPct);
-      if(x<1) animTimer = requestAnimationFrame(step);
-    };
-    animTimer = requestAnimationFrame(step);
-  }
+        async function startApproveAll(items){
+            showProgress();
+            setPercent(0);
+            txt.textContent = "Bắt đầu…";
+            title.textContent = "Đang duyệt yêu cầu…";
+            spin.style.display = "inline-block";
+            btnOk.style.display = "none";
 
-  try {
-    while(true){
-      if(cancelFlag){
-        spin.style.display = "none";
-        title.textContent = "Đã hủy";
-        txt.textContent = "Tác vụ được yêu cầu hủy.";
-        btnCancel.style.display = "none";
-        btnClose.style.display = "inline-flex";
-        break;
-      }
-      const {value, done: streamDone} = await reader.read();
-      if(streamDone) break;
-      buffer += decoder.decode(value, {stream:true});
-      let idx;
-      while((idx = buffer.indexOf("\n")) >= 0){
-        const line = buffer.slice(0, idx).trim();
-        buffer = buffer.slice(idx+1);
-        if(!line) continue;
-        try{
-          const msg = JSON.parse(line);
-          if(msg.type === "start"){
-            total = msg.total || 0;
-            txt.textContent = `Bắt đầu… 0/${total}`;
-            tweenTo(total ? 3 : 100);
-          }else if(msg.type === "progress"){
-            done = msg.done || 0;
-            const pct = total ? Math.max(1, Math.floor(done*100/total)) : 100;
-            tweenTo(pct);
-            txt.textContent = `Đã duyệt ${done}/${total}`;
-          }else if(msg.type === "done"){
-            tweenTo(100);
-            txt.textContent = `Hoàn tất: ${msg.done}/${msg.total}`;
-            title.textContent = "Hoàn tất duyệt";
-            spin.style.display = "none";
-            headEl.classList.add("badge-done","fade-in");
-            headEl.innerHTML = `<i class="fa fa-circle-check"></i> <span>Hoàn tất duyệt</span>`;
-            btnCancel.style.display = "none";
-            btnClose.style.display = "inline-flex";
-            setTimeout(()=>location.reload(), 1200);
-          }else if(msg.type === "error"){
-            spin.style.display = "none";
-            title.textContent = "Có lỗi xảy ra";
-            txt.textContent = msg.message || "Vui lòng thử lại.";
-            headEl.classList.remove("badge-done");
-            btnCancel.style.display = "none";
-            btnClose.style.display = "inline-flex";
-          }
-        }catch(e){ /* bỏ qua dòng không phải JSON */ }
-      }
-    }
-  } catch(e){
-    spin.style.display = "none";
-    title.textContent = "Có lỗi mạng";
-    txt.textContent = "Vui lòng thử lại.";
-    btnCancel.style.display = "none";
-    btnClose.style.display = "inline-flex";
-    console.error(e);
-  }
-}
+            // Chuyển thành payload updates (trq_id + etd)
+            const updates = items.map(it => ({ trq_id: it.trq_id, etd: it.etd }));
 
-// Toggle sort: ngày / type
-document.getElementById("sort-toggle").onclick = () => {
-  const url = new URL(window.location.href);
-  if (url.searchParams.get("sort") === "type") {
-      url.searchParams.delete("sort");
-  } else {
-      url.searchParams.set("sort", "type");
-  }
-  window.location.href = url.toString();
-};
-</script>
+            const resp = await fetch("/approve_all_stream", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ updates })
+            });
+
+            if(!resp.body){
+                txt.textContent = "Không nhận được dữ liệu tiến trình.";
+                spin.style.display = "none";
+                btnOk.style.display = "inline-flex";
+                return;
+            }
+
+            const reader = resp.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+            let total = 0, done = 0, currentPct = 0, animTimer = null;
+
+            function tweenTo(targetPct){
+                const start = currentPct, delta = targetPct - start, dur = 350;
+                const t0 = performance.now();
+                if(animTimer) cancelAnimationFrame(animTimer);
+                const step = (t)=>{
+                    const x = Math.min(1, (t - t0)/dur);
+                    const ease = x<.5 ? 2*x*x : 1 - Math.pow(-2*x+2,2)/2;
+                    currentPct = start + delta*ease;
+                    setPercent(currentPct);
+                    if(x<1) animTimer = requestAnimationFrame(step);
+                };
+                animTimer = requestAnimationFrame(step);
+            }
+
+            try {
+                while(true){
+                    const {value, done: streamDone} = await reader.read();
+                    if(streamDone) break;
+                    buffer += decoder.decode(value, {stream:true});
+                    let idx;
+                    while((idx = buffer.indexOf("\n")) >= 0){
+                        const line = buffer.slice(0, idx).trim();
+                        buffer = buffer.slice(idx+1);
+                        if(!line) continue;
+                        try{
+                            const msg = JSON.parse(line);
+                            if(msg.type === "start"){
+                                total = msg.total || 0;
+                                txt.textContent = `Bắt đầu… 0/${total}`;
+                                tweenTo(total ? 3 : 100);
+                            }else if(msg.type === "progress"){
+                                done = msg.done || 0;
+                                const pct = total ? Math.max(1, Math.floor(done*100/total)) : 100;
+                                tweenTo(pct);
+                                txt.textContent = `Đã duyệt ${done}/${total}`;
+                            }else if(msg.type === "done"){
+                                tweenTo(100);
+                                txt.textContent = `Hoàn tất: ${msg.done}/${msg.total}`;
+                                title.textContent = "Hoàn tất duyệt";
+                                spin.style.display = "none";
+                                btnOk.style.display = "inline-flex";
+                                setTimeout(()=>location.reload(), 1200);
+                            }else if(msg.type === "error"){
+                                spin.style.display = "none";
+                                title.textContent = "Có lỗi xảy ra";
+                                txt.textContent = msg.message || "Vui lòng thử lại.";
+                                btnOk.style.display = "inline-flex";
+                            }
+                        }catch(e){ /* ignore bad lines */ }
+                    }
+                }
+            } catch(e){
+                spin.style.display = "none";
+                title.textContent = "Có lỗi xảy ra";
+                txt.textContent = (e && e.message) ? e.message : "Vui lòng thử lại.";
+                btnOk.style.display = "inline-flex";
+            }
+        }
+    </script>
 </body>
 </html>
