@@ -813,12 +813,12 @@ INDOOR_METAL_TEST_TITLES = {
 }
 
 OUTDOOR_FINISHING_TEST_TITLES = {
-    "muc1": {
+    "corrosion": {
         "full": "1: Corrosion test 5% - Áp dụng kim loại",
         "short": "Corrosion test 5% (kim loại)",
         "img": ["/static/images/buoc 1 outdoor.jpg"]
     },
-    "muc2": {
+    "stain": {
         "full": "2: Stain resistance - Áp dụng đá",
         "short": "Stain resistance (đá)",
         "img": ["/static/images/buoc 2 outdoor.jpg"]
@@ -838,6 +838,13 @@ OUTDOOR_FINISHING_TEST_TITLES = {
         "short": "After adhesion",
         "img": ["/static/images/buoc 5 outdoor.jpg"]
     }
+}
+
+LINE_TEST_TITLES = {
+    "hot_cold": {
+        "full": "Hot & Cold Cycle Test (Line Test)",
+        "short": "Hot & Cold Cycle",
+        "img": ["/static/images/buoc 6 indoor.png"]}
 }
 
 TRANSIT_2C_NP_TEST_TITLES = {
@@ -1087,6 +1094,7 @@ TEST_GROUP_TITLES = {
     'indoor_thuong':INDOOR_THUONG_TEST_TITLES,
     'indoor_stone':INDOOR_STONE_TEST_TITLES,
     'indoor_metal':INDOOR_METAL_TEST_TITLES,
+    "line": LINE_TEST_TITLES,
     'transit_2c_np': TRANSIT_2C_NP_TEST_TITLES,
     'transit_2c_pallet': TRANSIT_2C_PALLET_TEST_TITLES,
     'transit_RH_np': TRANSIT_RH_NP_TEST_TITLES,

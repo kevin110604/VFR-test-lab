@@ -132,22 +132,30 @@
         margin-top: 0;
     }
     .back-btn {
-        background: var(--color-bronze);
-        color: #fff !important;
-        font-size: 15px;
-        font-weight: bold;
-        border: none;
-        border-radius: 8px;
-        padding: 7px 18px;
-        box-shadow: 0 2px 10px var(--shadow-light);
-        cursor: pointer;
-        display: inline-block;
-        transition: background 0.18s, color 0.15s;
-        text-decoration: none !important;
+        background: #faf7ec;
+        color: #73592c !important;
+        border: 1px solid #d5c69d;
+        border-radius: 11px;
+        font-family: 'Inter', 'Open Sans', Arial, sans-serif;
+        font-size: 13.3px;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        padding: 4px 12px 4px 11px;
+        min-width: 0;
+        box-shadow: 0 1px 6px #d4c8942a;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        transition: background 0.13s, color 0.13s, border-color 0.13s;
     }
     .back-btn:hover {
-        background: var(--color-green);
-        color: #fff !important;
+        background: #ffe082;
+        color: #25312b !important;
+        border-color: #ffe082;
+    }
+    .back-btn svg {
+        margin: 0 !important;
     }
     h2 {
         color: var(--color-green);
@@ -424,10 +432,10 @@
     </div>
     <div class="box" role="main">
         <div class="back-btn-container">
-            <a href="{{ url_for('test_group_page', report=report, group=group) }}" class="back-btn" tabindex="0" aria-label="Quay lại chọn mục kiểm tra">
-                <svg width="19" height="19" style="vertical-align:middle;margin-right:4px;" fill="#fff" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M12.293 16.293a1 1 0 010-1.414L8.414 11H17a1 1 0 100-2H8.414l3.879-3.879a1 1 0 00-1.414-1.414l-5 5a1 1 0 000 1.414l5 5a1 1 0 001.414-1.414z" clip-rule="evenodd"/>
-                </svg>
+            <a href="{{ url_for('test_group_page', report=report, group=group) }}" class="back-btn"
+                tabindex="0"
+                aria-label="Quay lại chọn mục kiểm tra">
+            <i class="fa fa-arrow-left"></i> 
                 Quay lại chọn mục kiểm tra
             </a>
         </div>
@@ -853,247 +861,315 @@
         <img id="img-popup-inner" src="" alt="Ảnh kiểm thử lớn"/>
     </div>
     <script>
-        // UPLOAD ẢNH AJAX
-        function uploadImgsAjax(input) {
-            var files = input.files;
-            var btn = document.getElementById('test-imgs-fake-btn');
-            var loading = document.getElementById('loading-indicator');
-            var spinner = document.getElementById('loading-spinner');
-            var loadingText = document.getElementById('loading-text');
-            // Luôn ẩn loading ban đầu
+
+    function getRespList(data, type, zone) {
+    var key1 = String(zone);
+    var key2 = (type === 'gt68_face') ? ('gt68_' + key1) : key1;
+    if (!data || !data.imgs) return [];
+    return data.imgs[key1] || data.imgs[key2] || [];
+    }
+
+    /* ===== Upload ảnh thường (không theo vùng) ===== */
+    function uploadImgsAjax(input) {
+    var files = input.files;
+    var btn = document.getElementById('test-imgs-fake-btn');
+    var loading = document.getElementById('loading-indicator');
+    var spinner = document.getElementById('loading-spinner');
+    var loadingText = document.getElementById('loading-text');
+
+    loading.style.display = 'none';
+    btn.innerText = files.length ? Array.from(files).map(f=>f.name).join(', ') : "Chưa chọn file";
+    if (!files.length) return;
+
+    loading.style.display = 'flex';
+    spinner.className = 'fa fa-spinner fa-spin';
+    loadingText.innerText = 'Đang tải ảnh...';
+    loading.classList.remove('success');
+
+    var formData = new FormData();
+    for (var i = 0; i < files.length; i++) formData.append("test_imgs", files[i]);
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", window.location.href, true);
+    xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+        spinner.className = 'fa fa-check';
+        loadingText.innerText = 'Đã upload ảnh xong!';
+        loading.classList.add('success');
+        try {
+            var data = JSON.parse(xhr.responseText);
+            updateNormalImgList(data.imgs || []);
+        } catch(e) {}
+        setTimeout(function() {
             loading.style.display = 'none';
-            btn.innerText = files.length ? Array.from(files).map(f=>f.name).join(', ') : "Chưa chọn file";
-            if (!files.length) return;
-            loading.style.display = 'flex';
+            loading.classList.remove('success');
             spinner.className = 'fa fa-spinner fa-spin';
             loadingText.innerText = 'Đang tải ảnh...';
-            loading.classList.remove('success');
-            var formData = new FormData();
-            for (var i = 0; i < files.length; i++) formData.append("test_imgs", files[i]);
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", window.location.href, true);
-            xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-            xhr.onload = function() {
-                spinner.className = 'fa fa-check';
-                loadingText.innerText = 'Đã upload ảnh xong!';
-                loading.classList.add('success');
-                setTimeout(function() {
-                    loading.style.display = 'none';
-                    loading.classList.remove('success');
-                    spinner.className = 'fa fa-spinner fa-spin';
-                    loadingText.innerText = 'Đang tải ảnh...';
-                }, 1800);
-                if (xhr.status == 200) {
-                    var data = JSON.parse(xhr.responseText);
-                    updateNormalImgList(data.imgs);
-                }
-                input.value = "";
-                btn.innerText = "Chưa chọn file";
-            };
-            xhr.send(formData);
+        }, 1500);
+        } else {
+        spinner.className = 'fa fa-times';
+        loadingText.innerText = `Lỗi upload (${xhr.status}).`;
+        setTimeout(function(){ loading.style.display = 'none'; }, 2500);
         }
-        function uploadSpecialImgsAjax(input, type, zone) {
-            var files = input.files;
-            var fakeBtn = document.getElementById(`${type}-upload-fake-btn-${zone}`);
-            var loading = document.getElementById(`loading-${type}-${zone}`);
-            var spinner = document.getElementById(`loading-spinner-${type}-${zone}`);
-            var loadingText = document.getElementById(`loading-text-${type}-${zone}`);
-            // Reset loading
-            if (loading) loading.style.display = 'none';
-            if (fakeBtn) fakeBtn.innerText = files.length ? Array.from(files).map(f=>f.name).join(', ') : "Chưa chọn file";
-            if (!files.length) return;
-            if (loading) loading.style.display = 'flex';
-            if (spinner) spinner.className = 'fa fa-spinner fa-spin';
-            if (loadingText) loadingText.innerText = 'Đang tải ảnh...';
-            if (loading) loading.classList.remove('success');
-            var formData = new FormData();
-            // Lấy đúng tên field file gửi lên backend
-            var field = `${type}_img_${zone}`;
-            for (var i = 0; i < files.length; i++) formData.append(field, files[i]);
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", window.location.href, true);
-            xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-            xhr.onload = function() {
-                if (spinner) spinner.className = 'fa fa-check';
-                if (loadingText) loadingText.innerText = 'Đã upload ảnh xong!';
-                if (loading) loading.classList.add('success');
-                setTimeout(function() {
-                    if (loading) loading.style.display = 'none';
-                    if (loading) loading.classList.remove('success');
-                    if (spinner) spinner.className = 'fa fa-spinner fa-spin';
-                    if (loadingText) loadingText.innerText = 'Đang tải ảnh...';
-                }, 1200);
-                if (xhr.status == 200) {
-                    var data = JSON.parse(xhr.responseText);
-                    // Update đúng vùng zone vừa upload
-                    var imgGrid = document.getElementById(`${type}-img-list-${zone}`);
-                    if (imgGrid) {
-                        var html = '';
-                        (data.imgs[zone] || []).forEach(function(img) {
-                            html += `
-                            <div class="img-thumb-wrap">
-                                <img src="${img}" class="img-thumb" onclick="showPopup(this)" alt="Ảnh kiểm thử">
-                                <form method="POST" style="display:inline;position:absolute;top:8px;right:10px;" onsubmit="return deleteSpecialImgAjax(event, '${img.split('/').pop()}', '${type}', '${zone}')">
-                                    <input type="hidden" name="delete_img" value="${img.split('/').pop()}">
-                                    <button type="submit" class="del-btn" title="Xóa ảnh này">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </form>
-                            </div>`;
-                        });
-                        imgGrid.innerHTML = html;
-                    }
-                }
-                input.value = "";
-                if (fakeBtn) fakeBtn.innerText = "Chưa chọn file";
-            };
-            xhr.send(formData);
-        }
-        function updateNormalImgList(imgs) {
-            var html = "";
-            imgs.forEach(function(img) {
+        input.value = "";
+        btn.innerText = "Chưa chọn file";
+    };
+    xhr.send(formData);
+    }
+
+    /* ===== Upload ảnh theo vùng (RH/Drop/Impact/Rot/GT68) ===== */
+    function uploadSpecialImgsAjax(input, type, zone) {
+    var files = input.files;
+    var fakeBtn   = document.getElementById(`${type}-upload-fake-btn-${zone}`);
+    var loading   = document.getElementById(`loading-${type}-${zone}`);
+    var spinner   = document.getElementById(`loading-spinner-${type}-${zone}`);
+    var loadingTx = document.getElementById(`loading-text-${type}-${zone}`);
+
+    if (loading) loading.style.display = 'none';
+    if (fakeBtn)  fakeBtn.innerText = files.length ? Array.from(files).map(f=>f.name).join(', ') : "Chưa chọn file";
+    if (!files.length) return;
+
+    if (loading) loading.style.display = 'flex';
+    if (spinner) spinner.className = 'fa fa-spinner fa-spin';
+    if (loadingTx) loadingTx.innerText = 'Đang tải ảnh...';
+    if (loading) loading.classList.remove('success');
+
+    var formData = new FormData();
+    // ⭐ Quan trọng: dùng đúng tên field từ chính input
+    var field = input.name;
+    for (var i = 0; i < files.length; i++) formData.append(field, files[i]);
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", window.location.href, true);
+    xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+        if (spinner)   spinner.className = 'fa fa-check';
+        if (loadingTx) loadingTx.innerText = 'Đã upload ảnh xong!';
+        if (loading)   loading.classList.add('success');
+
+        try {
+            var data = JSON.parse(xhr.responseText);
+            var list = getRespList(data, type, zone);
+            var imgGrid = document.getElementById(`${type}-img-list-${zone}`);
+            if (imgGrid) {
+            var html = '';
+            list.forEach(function(img) {
+                var fname = img.split('/').pop();
                 html += `
                 <div class="img-thumb-wrap">
                     <img src="${img}" class="img-thumb" onclick="showPopup(this)" alt="Ảnh kiểm thử">
-                    <form method="POST" class="img-del-form" style="display:inline;position:absolute;top:8px;right:10px;" onsubmit="return deleteImgAjax(this, '${img.split('/').pop()}')">
-                        <input type="hidden" name="delete_img" value="${img.split('/').pop()}">
-                        <button type="submit" class="del-btn" title="Xóa ảnh này">
-                            <i class="fa fa-trash"></i>
-                        </button>
+                    <form method="POST" style="display:inline;position:absolute;top:8px;right:10px;"
+                        onsubmit="return deleteSpecialImgAjax(event, '${fname}', '${type}', '${zone}')">
+                    <input type="hidden" name="delete_img" value="${fname}">
+                    <button type="submit" class="del-btn" title="Xóa ảnh này">
+                        <i class="fa fa-trash"></i>
+                    </button>
                     </form>
                 </div>`;
             });
-            document.getElementById('img-list-normal').innerHTML = html;
+            imgGrid.innerHTML = html;
+            }
+        } catch(e) {}
+
+        setTimeout(function() {
+            if (loading) loading.style.display = 'none';
+            if (loading) loading.classList.remove('success');
+            if (spinner) spinner.className = 'fa fa-spinner fa-spin';
+            if (loadingTx) loadingTx.innerText = 'Đang tải ảnh...';
+        }, 1200);
+        } else {
+        if (spinner) spinner.className = 'fa fa-times';
+        if (loadingTx) loadingTx.innerText = `Lỗi upload (${xhr.status}).`;
+        setTimeout(function(){ if (loading) loading.style.display = 'none'; }, 2500);
         }
-        function deleteImgAjax(form, fname) {
-            var formData = new FormData();
-            formData.append("delete_img", fname);
-            var loading = document.getElementById('loading-indicator');
-            var spinner = document.getElementById('loading-spinner');
-            var loadingText = document.getElementById('loading-text');
-            loading.style.display = 'flex';
+
+        input.value = "";
+        if (fakeBtn) fakeBtn.innerText = "Chưa chọn file";
+    };
+    xhr.send(formData);
+    }
+
+    /* ===== Render lại danh sách ảnh thường ===== */
+    function updateNormalImgList(imgs) {
+    var html = "";
+    imgs.forEach(function(img) {
+        var fname = img.split('/').pop();
+        html += `
+        <div class="img-thumb-wrap">
+            <img src="${img}" class="img-thumb" onclick="showPopup(this)" alt="Ảnh kiểm thử">
+            <form method="POST" class="img-del-form" style="display:inline;position:absolute;top:8px;right:10px;"
+                onsubmit="return deleteImgAjax(this, '${fname}')">
+            <input type="hidden" name="delete_img" value="${fname}">
+            <button type="submit" class="del-btn" title="Xóa ảnh này">
+                <i class="fa fa-trash"></i>
+            </button>
+            </form>
+        </div>`;
+    });
+    var grid = document.getElementById('img-list-normal');
+    if (grid) grid.innerHTML = html;
+    }
+
+    /* ===== Xoá ảnh thường ===== */
+    function deleteImgAjax(form, fname) {
+    var formData = new FormData();
+    formData.append("delete_img", fname);
+
+    var loading = document.getElementById('loading-indicator');
+    var spinner = document.getElementById('loading-spinner');
+    var loadingText = document.getElementById('loading-text');
+
+    loading.style.display = 'flex';
+    spinner.className = 'fa fa-spinner fa-spin';
+    loadingText.innerText = 'Đang xóa ảnh...';
+    loading.classList.remove('success');
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", window.location.href, true);
+    xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+        spinner.className = 'fa fa-check';
+        loadingText.innerText = 'Đã xóa ảnh!';
+        loading.classList.add('success');
+        try {
+            var data = JSON.parse(xhr.responseText);
+            updateNormalImgList(data.imgs || []);
+        } catch(e) {}
+        setTimeout(function() {
+            loading.style.display = 'none';
+            loading.classList.remove('success');
             spinner.className = 'fa fa-spinner fa-spin';
             loadingText.innerText = 'Đang tải ảnh...';
-            loading.classList.remove('success');
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", window.location.href, true);
-            xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-            xhr.onload = function() {
-                spinner.className = 'fa fa-check';
-                loadingText.innerText = 'Đã upload ảnh xong!';
-                loading.classList.add('success');
-                setTimeout(function() {
-                    loading.style.display = 'none';
-                    loading.classList.remove('success');
-                    spinner.className = 'fa fa-spinner fa-spin';
-                    loadingText.innerText = 'Đang tải ảnh...';
-                }, 1400);
-                if (xhr.status == 200) {
-                    var data = JSON.parse(xhr.responseText);
-                    updateNormalImgList(data.imgs);
-                }
-            };
-            xhr.send(formData);
-            return false;
+        }, 1200);
+        } else {
+        spinner.className = 'fa fa-times';
+        loadingText.innerText = `Lỗi xóa (${xhr.status}).`;
+        setTimeout(function(){ loading.style.display = 'none'; }, 2500);
         }
-        function deleteSpecialImgAjax(event, fname, type, zone) {
-            event.preventDefault();
-            var formData = new FormData();
-            formData.append("delete_img", fname);
-            var loading = document.getElementById(`loading-${type}-${zone}`);
-            var spinner = document.getElementById(`loading-spinner-${type}-${zone}`);
-            var loadingText = document.getElementById(`loading-text-${type}-${zone}`);
-            if (loading) loading.style.display = 'flex';
-            if (spinner) spinner.className = 'fa fa-spinner fa-spin';
-            if (loadingText) loadingText.innerText = 'Đang xóa ảnh...';
+    };
+    xhr.send(formData);
+    return false;
+    }
+
+    /* ===== Xoá ảnh theo vùng ===== */
+    function deleteSpecialImgAjax(event, fname, type, zone) {
+    event.preventDefault();
+
+    var formData = new FormData();
+    formData.append("delete_img", fname);
+
+    var loading   = document.getElementById(`loading-${type}-${zone}`);
+    var spinner   = document.getElementById(`loading-spinner-${type}-${zone}`);
+    var loadingTx = document.getElementById(`loading-text-${type}-${zone}`);
+
+    if (loading) loading.style.display = 'flex';
+    if (spinner) spinner.className = 'fa fa-spinner fa-spin';
+    if (loadingTx) loadingTx.innerText = 'Đang xóa ảnh...';
+    if (loading) loading.classList.remove('success');
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", window.location.href, true);
+    xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+        if (spinner) spinner.className = 'fa fa-check';
+        if (loadingTx) loadingTx.innerText = 'Đã xóa ảnh!';
+        if (loading) loading.classList.add('success');
+        try {
+            var data = JSON.parse(xhr.responseText);
+            var list = getRespList(data, type, zone);
+            var imgGrid = document.getElementById(`${type}-img-list-${zone}`);
+            if (imgGrid) {
+            var html = '';
+            list.forEach(function(img) {
+                var fn = img.split('/').pop();
+                html += `
+                <div class="img-thumb-wrap">
+                    <img src="${img}" class="img-thumb" onclick="showPopup(this)" alt="Ảnh kiểm thử">
+                    <form method="POST" style="display:inline;position:absolute;top:8px;right:10px;"
+                        onsubmit="return deleteSpecialImgAjax(event, '${fn}', '${type}', '${zone}')">
+                    <input type="hidden" name="delete_img" value="${fn}">
+                    <button type="submit" class="del-btn" title="Xóa ảnh này">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                    </form>
+                </div>`;
+            });
+            imgGrid.innerHTML = html;
+            }
+        } catch(e) {}
+        setTimeout(function() {
+            if (loading) loading.style.display = 'none';
             if (loading) loading.classList.remove('success');
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", window.location.href, true);
-            xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-            xhr.onload = function() {
-                if (spinner) spinner.className = 'fa fa-check';
-                if (loadingText) loadingText.innerText = 'Đã xóa ảnh!';
-                if (loading) loading.classList.add('success');
-                setTimeout(function() {
-                    if (loading) loading.style.display = 'none';
-                    if (loading) loading.classList.remove('success');
-                    if (spinner) spinner.className = 'fa fa-spinner fa-spin';
-                    if (loadingText) loadingText.innerText = 'Đang tải ảnh...';
-                }, 1200);
-                if (xhr.status == 200) {
-                    var data = JSON.parse(xhr.responseText);
-                    var imgGrid = document.getElementById(`${type}-img-list-${zone}`);
-                    if (imgGrid) {
-                        var html = '';
-                        (data.imgs[zone] || []).forEach(function(img) {
-                            html += `
-                            <div class="img-thumb-wrap">
-                                <img src="${img}" class="img-thumb" onclick="showPopup(this)" alt="Ảnh kiểm thử">
-                                <form method="POST" style="display:inline;position:absolute;top:8px;right:10px;" onsubmit="return deleteSpecialImgAjax(event, '${img.split('/').pop()}', '${type}', '${zone}')">
-                                    <input type="hidden" name="delete_img" value="${img.split('/').pop()}">
-                                    <button type="submit" class="del-btn" title="Xóa ảnh này">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </form>
-                            </div>`;
-                        });
-                        imgGrid.innerHTML = html;
-                    }
-                }
-            };
-            xhr.send(formData);
-            return false;
+            if (spinner) spinner.className = 'fa fa-spinner fa-spin';
+            if (loadingTx) loadingTx.innerText = 'Đang tải ảnh...';
+        }, 1200);
+        } else {
+        if (spinner) spinner.className = 'fa fa-times';
+        if (loadingTx) loadingTx.innerText = `Lỗi xóa (${xhr.status}).`;
+        setTimeout(function(){ if (loading) loading.style.display = 'none'; }, 2500);
         }
-        // PHÓNG TO ẢNH
-        function showPopup(img) {
-            var popup = document.getElementById('img-popup');
-            var popupImg = document.getElementById('img-popup-inner');
-            popupImg.src = img.src;
-            popup.classList.add('show');
-        }
-        document.getElementById('img-popup-close').onclick = function(e) {
-            var popup = document.getElementById('img-popup');
-            var popupImg = document.getElementById('img-popup-inner');
-            popup.classList.remove('show');
-            popupImg.src = '';
-            e.stopPropagation();
-        };
-        document.getElementById('img-popup').onclick = function(e) {
-            if (e.target === this) {
-                this.classList.remove('show');
-                document.getElementById('img-popup-inner').src = '';
-            }
-        };
-        document.addEventListener('keydown', function(e) {
-            if (e.key === "Escape") {
-                var popup = document.getElementById('img-popup');
-                popup.classList.remove('show');
-                document.getElementById('img-popup-inner').src = '';
-            }
-        });
-        // Trigger upload file dialog
-        function triggerUpload(inputId) {
-            document.getElementById(inputId).click();
-        }
-        // Darkmode toggle
-        document.addEventListener('DOMContentLoaded', function() {
-            if (localStorage.getItem("darkmode") === "true") {
-                document.documentElement.classList.add('dark');
-                document.body.classList.add('dark');
-            }
-            var themeBtn = document.getElementById('theme-btn');
-            function syncDarkModeBtn() {
-                var dark = document.body.classList.contains('dark');
-                themeBtn.innerHTML = dark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
-            }
-            themeBtn.onclick = function() {
-                var d = document.body.classList.toggle('dark');
-                document.documentElement.classList.toggle('dark');
-                localStorage.setItem("darkmode", d ? "true" : "false");
-                syncDarkModeBtn();
-            };
-            syncDarkModeBtn();
-        });
+    };
+    xhr.send(formData);
+    return false;
+    }
+
+    /* ===== Phóng to ảnh ===== */
+    function showPopup(img) {
+    var popup = document.getElementById('img-popup');
+    var popupImg = document.getElementById('img-popup-inner');
+    popupImg.src = img.src;
+    popup.classList.add('show');
+    }
+    document.getElementById('img-popup-close').onclick = function(e) {
+    var popup = document.getElementById('img-popup');
+    var popupImg = document.getElementById('img-popup-inner');
+    popup.classList.remove('show');
+    popupImg.src = '';
+    e.stopPropagation();
+    };
+    document.getElementById('img-popup').onclick = function(e) {
+    if (e.target === this) {
+        this.classList.remove('show');
+        document.getElementById('img-popup-inner').src = '';
+    }
+    };
+    document.addEventListener('keydown', function(e) {
+    if (e.key === "Escape") {
+        var popup = document.getElementById('img-popup');
+        popup.classList.remove('show');
+        document.getElementById('img-popup-inner').src = '';
+    }
+    });
+
+    /* ===== Mở hộp thoại chọn file ===== */
+    function triggerUpload(inputId) {
+    var el = document.getElementById(inputId);
+    if (el) el.click();
+    }
+
+    /* ===== Dark mode ===== */
+    document.addEventListener('DOMContentLoaded', function() {
+    if (localStorage.getItem("darkmode") === "true") {
+        document.documentElement.classList.add('dark');
+        document.body.classList.add('dark');
+    }
+    var themeBtn = document.getElementById('theme-btn');
+    function syncDarkModeBtn() {
+        var dark = document.body.classList.contains('dark');
+        themeBtn.innerHTML = dark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
+    }
+    themeBtn.onclick = function() {
+        var d = document.body.classList.toggle('dark');
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem("darkmode", d ? "true" : "false");
+        syncDarkModeBtn();
+    };
+    syncDarkModeBtn();
+    });
     </script>
 </body>
 </html>

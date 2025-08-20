@@ -141,22 +141,30 @@
         margin-top: 0;
     }
     .back-btn {
-        background: var(--color-bronze);
-        color: #fff !important;
-        font-size: 15px;
-        font-weight: bold;
-        border: none;
-        border-radius: 8px;
-        padding: 7px 18px;
-        box-shadow: 0 2px 10px var(--shadow-light);
-        cursor: pointer;
-        display: inline-block;
-        transition: background 0.18s, color 0.15s;
-        text-decoration: none !important;
+        background: #faf7ec;
+        color: #73592c !important;
+        border: 1px solid #d5c69d;
+        border-radius: 11px;
+        font-family: 'Inter', 'Open Sans', Arial, sans-serif;
+        font-size: 13.3px;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        padding: 4px 12px 4px 11px;
+        min-width: 0;
+        box-shadow: 0 1px 6px #d4c8942a;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        transition: background 0.13s, color 0.13s, border-color 0.13s;
     }
     .back-btn:hover {
-        background: var(--color-accent);
-        color: #fff !important;
+        background: #ffe082;
+        color: #25312b !important;
+        border-color: #ffe082;
+    }
+    .back-btn svg {
+        margin: 0 !important;
     }
 
     h2 {
@@ -417,10 +425,10 @@
     </div>
     <div class="box" role="main">
         <div class="back-btn-container">
-            <a href="{{ url_for('test_group_page', report=report, group=group) }}" class="back-btn" tabindex="0" aria-label="Quay lại chọn mục kiểm tra">
-                <svg width="19" height="19" style="vertical-align:middle;margin-right:4px;" fill="#fff" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M12.293 16.293a1 1 0 010-1.414L8.414 11H17a1 1 0 100-2H8.414l3.879-3.879a1 1 0 00-1.414-1.414l-5 5a1 1 0 000 1.414l5 5a1 1 0 001.414-1.414z" clip-rule="evenodd"/>
-                </svg>
+            <a href="{{ url_for('test_group_page', report=report, group=group) }}" class="back-btn"
+                tabindex="0"
+                aria-label="Quay lại chọn mục kiểm tra">
+            <i class="fa fa-arrow-left"></i> 
                 Quay lại chọn mục kiểm tra
             </a>
         </div>

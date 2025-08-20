@@ -11,6 +11,7 @@ TEAMS_WEBHOOK_URL_RATE = "https://jonathancharles.webhook.office.com/webhookb2/c
 TEAMS_WEBHOOK_URL_COUNT = "https://jonathancharles.webhook.office.com/webhookb2/c1820b56-e3c0-4435-b1a6-1630c0f8da85@064944f6-1e04-4050-b3e1-e361758625ec/IncomingWebhook/b344a6ce0fbe4f60bbfe8b16ba0d203c/169de55a-0196-4de6-b160-7a456bce2292/V2pE_UIJyO6XQrj7OFUSvU8xKKGS8IzOdwmz8LjLsWT501"
 PASSWORD_STL = "stl"
 PASSWORD_WTL = "wtl"
+PASSWORD_VFR3 = "vfr3"
 SECRET_KEY = "vfr_secret_key_123"
 SO_GIO_TEST = 50
 ALL_SLOTS = (

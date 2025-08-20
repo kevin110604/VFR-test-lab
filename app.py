@@ -1,24 +1,121 @@
-from flask import Flask, request, render_template, session, redirect, url_for, jsonify, flash, send_from_directory
+from flask import Flask, request, render_template, session, redirect, url_for, jsonify, flash, send_from_directory, Response, stream_with_context, abort
 from config import SECRET_KEY, local_main, SAMPLE_STORAGE, UPLOAD_FOLDER, TEST_GROUPS, local_complete, qr_folder, SO_GIO_TEST, ALL_SLOTS, TEAMS_WEBHOOK_URL_TRF, TEAMS_WEBHOOK_URL_RATE, TEAMS_WEBHOOK_URL_COUNT
-from excel_utils import get_item_code, get_col_idx, copy_row_with_style, is_img_at_cell, write_tfr_to_excel, append_row_to_trf, ensure_column
-from image_utils import allowed_file, safe_filename, get_img_urls
-from auth import login, logout, is_logged_in, get_user_type
+from excel_utils import get_item_code, get_col_idx, copy_row_with_style, write_tfr_to_excel, append_row_to_trf
+from image_utils import allowed_file, get_img_urls
+from auth import login, get_user_type
 from test_logic import load_group_notes, get_group_test_status, is_drop_test, is_impact_test, is_rotational_test,  TEST_GROUP_TITLES, TEST_TYPE_VI, DROP_ZONES, DROP_LABELS, GT68_FACE_LABELS, GT68_FACE_ZONES
 from test_logic import IMPACT_ZONES, IMPACT_LABELS, ROT_LABELS, ROT_ZONES, RH_IMPACT_ZONES, RH_VIB_ZONES, RH_SECOND_IMPACT_ZONES, RH_STEP12_ZONES, update_group_note_file, get_group_note_value, F2057_TEST_TITLES
 from notify_utils import send_teams_message, notify_when_enough_time
 from counter_utils import update_counter, check_and_reset_counter, log_report_complete
 from docx_utils import approve_request_fill_docx_pdf
 from file_utils import safe_write_json, safe_read_json, safe_save_excel, safe_load_excel, safe_write_text, safe_read_text
-import re, os, pytz, json, openpyxl, random, subprocess
+import re, os, pytz, json, openpyxl, random, subprocess, traceback, regex, calendar, time
+from contextlib import contextmanager
 from datetime import datetime
 from waitress import serve
 from openpyxl import load_workbook, Workbook
 from openpyxl.styles import PatternFill
 from collections import defaultdict, OrderedDict
 from apscheduler.schedulers.background import BackgroundScheduler
+from threading import Lock
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
+
+# Những test dùng giao diện Hot & Cold
+HOTCOLD_LIKE = {"hot_cold", "standing_water", "stain","corrosion"}
+INDOOR_GROUPS = {"indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal","outdoor_finishing"}
+REPORT_NO_LOCK = Lock()
+BLANK_TOKENS = {"", "-", "—"}
+
+def _is_blank_cell(v):
+    if v is None:
+        return True
+    if isinstance(v, str):
+        s = (v.replace("\u00A0","").replace("\u200B","")
+               .replace("\r","").replace("\n","").replace("\t","").strip())
+        return s in BLANK_TOKENS or s == ""
+    return False
+
+def row_is_filled_for_report(excel_path, report_no):
+    """True nếu dòng có B == report_no ĐÃ có dữ liệu ở bất kỳ cột C..X; False nếu vẫn trống."""
+    wb = load_workbook(excel_path, data_only=True)
+    ws = wb.active
+    target_row = None
+    for r in range(2, ws.max_row + 1):
+        v = ws.cell(row=r, column=2).value  # cột B
+        if (str(v).strip() if v is not None else "") == str(report_no).strip():
+            target_row = r
+            break
+    if target_row is None:
+        wb.close()
+        # Không thấy mã trong cột B (khác thiết kế) -> coi như đã dùng để tránh ghi bậy
+        return True
+    for c in range(3, 25):  # C..X
+        if not _is_blank_cell(ws.cell(row=target_row, column=c).value):
+            wb.close()
+            return True   # ĐÃ có dữ liệu
+    wb.close()
+    return False          # C..X đều trống => CHƯA dùng
+def _require_staff():
+    # Yêu cầu đã nhập Staff ID để vào VFR3
+    if not session.get('staff_id'):
+        abort(403)
+
+def format_excel_date_short(dt):
+    """Convert Python datetime/date -> format 'd-mmm' (e.g., 7-Aug) cho Excel."""
+    if isinstance(dt, str):
+        # Thử parse về date
+        try:
+            dt = datetime.strptime(dt, "%Y-%m-%d")
+        except:
+            try:
+                dt = datetime.strptime(dt, "%d/%m/%Y")
+            except:
+                try:
+                    dt = datetime.strptime(dt, "%m/%d/%Y")
+                except:
+                    return dt  # Trả nguyên nếu không parse được
+    # Trả về dạng 'd-mmm'
+    return f"{dt.day}-{calendar.month_abbr[dt.month]}"
+
+def try_parse_excel_date(dt):
+    """Parse dt về kiểu datetime/date nếu có thể, trả về None nếu không hợp lệ."""
+    if isinstance(dt, datetime):
+        return dt
+    if isinstance(dt, str):
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y"):
+            try:
+                return datetime.strptime(dt, fmt)
+            except Exception:
+                continue
+    return None
+
+def calculate_default_etd(request_date_str, test_group):
+    from datetime import datetime, timedelta
+    if not request_date_str:
+        return ""
+    try:
+        dt = datetime.strptime(request_date_str, "%Y-%m-%d")
+    except:
+        try:
+            dt = datetime.strptime(request_date_str, "%d/%m/%Y")
+        except:
+            return ""
+    test_group_code = ""
+    if test_group:
+        test_group_code = test_group.upper()[:3]
+    days_to_add = 0
+    if test_group_code in ["CON", "TRA"]:
+        days_to_add = 3
+    elif test_group_code in ["MAT", "FIN"]:
+        days_to_add = 5
+    else:
+        days_to_add = 0
+    if days_to_add > 0:
+        etd_date = dt + timedelta(days=days_to_add)
+        return etd_date.strftime("%Y-%m-%d")
+    return ""
 
 # ---- các hàm helper không đổi (giữ nguyên) ----
 def get_group_title(group):
@@ -38,6 +135,124 @@ def generate_unique_trq_id(existing_ids):
 ARCHIVE_LOG = "tfr_archive.json"
 TFR_LOG_FILE = "tfr_requests.json"
 
+@contextmanager
+def report_lock():
+    lock_path = "tfr_report.lock"
+    while True:
+        try:
+            fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_RDWR)
+            break
+        except FileExistsError:
+            time.sleep(0.05 + random.random() * 0.15)
+    try:
+        yield
+    finally:
+        os.close(fd)
+        try:
+            os.remove(lock_path)
+        except:
+            pass
+
+def bump_report_no(s):
+    m = re.search(r'(\d+)$', str(s))
+    if not m:
+        return f"{s}-1"
+    start, end = m.span(1)
+    n = int(m.group(1)) + 1
+    width = end - start
+    return f"{s[:start]}{str(n).zfill(width)}"
+
+def report_no_exists(report_no, tfr_requests):
+    """
+    ĐÃ DÙNG khi:
+    - Dòng B==report_no trong Excel có dữ liệu C..X (không còn trống), HOẶC
+    - File đầu ra cho mã đó đã tồn tại (pdf/docx), HOẶC
+    - Mã này đã nằm trong archive/log (đã approve).
+    """
+    # 1) Excel: dòng đã có dữ liệu?
+    try:
+        if row_is_filled_for_report(local_main, report_no):
+            return True
+    except Exception:
+        pass
+
+    # 2) Trùng file đã sinh?
+    output_folder = os.path.join('static', 'TFR')
+    if os.path.exists(os.path.join(output_folder, f"{report_no}.pdf")):
+        return True
+    if os.path.exists(os.path.join(output_folder, f"{report_no}.docx")):
+        return True
+
+    # 3) Trùng trong log pending đang dùng?
+    for r in tfr_requests:
+        if str(r.get("report_no") or "").strip() == str(report_no):
+            return True
+
+    # 4) Trùng trong archive (đã approve)?
+    try:
+        archive = safe_read_json(ARCHIVE_LOG)
+        for r in archive:
+            if str(r.get("report_no") or "").strip() == str(report_no):
+                return True
+    except Exception:
+        pass
+
+    return False
+
+def allocate_unique_report_no(make_report_func, req, tfr_requests, max_try=2):
+    """
+    Cấp và cố định report_no đúng logic:
+    - Nếu req đã có report_no: kiểm tra dòng B==report_no còn trống (C..X). Nếu đã có dữ liệu -> báo lỗi.
+    - Nếu chưa có: để make_report_func chọn DÒNG TRỐNG (C..X trống) và trả về report_no tương ứng.
+    - Không bump tuần hoàn theo 'mã có trong Excel' vì cột B luôn có sẵn toàn bộ mã.
+    - Có retry nhẹ (2 lần) để chống race-condition hiếm gặp.
+    """
+    with report_lock():
+        tries = 0
+
+        # Case A: đã có report_no trong req -> validate & dùng đúng số này
+        fixed_req = dict(req)
+        preset = str(fixed_req.get("report_no", "")).strip()
+        if preset:
+            if row_is_filled_for_report(local_main, preset):
+                raise RuntimeError(f"Mã report {preset} đã có dữ liệu, không thể ghi đè.")
+            pdf_path, report_no = make_report_func(fixed_req)  # docx_utils ưu tiên số đã set
+            return pdf_path, report_no
+
+        # Case B: chưa có -> để make_report_func chọn dòng C..X trống
+        while True:
+            pdf_path, report_no = make_report_func(req)
+            # xác nhận lại: dòng vẫn còn trống?
+            if not row_is_filled_for_report(local_main, report_no):
+                return pdf_path, report_no
+
+            # hi hữu: ai đó vừa điền vào dòng này giữa chừng -> thử lại một lần
+            tries += 1
+            if tries >= max_try:
+                raise RuntimeError("Không tìm được dòng trống để cấp mã report.")
+            # xoá file vừa sinh (đi nhầm dòng)
+            try:
+                outdir = os.path.join('static', 'TFR')
+                for ext in ('.pdf', '.docx'):
+                    fp = os.path.join(outdir, f"{report_no}{ext}")
+                    if os.path.exists(fp):
+                        os.remove(fp)
+            except Exception:
+                pass
+
+            # Bump số và tái tạo với số cố định
+            tries += 1
+            if tries >= max_try:
+                raise RuntimeError("Không cấp được report_no duy nhất sau nhiều lần thử")
+
+            bumped = bump_report_no(report_no)
+            # ép số mới vào req để make_report_func dùng đúng số này
+            fixed_req = dict(req)
+            fixed_req["report_no"] = bumped
+            pdf_path, report_no = make_report_func(fixed_req)
+
+        return pdf_path, report_no
+
 # ---- ARCHIVE REQUEST LOG ----
 def archive_request(short_data):
     now = datetime.now()
@@ -48,6 +263,48 @@ def archive_request(short_data):
     archive = [r for r in archive if (now - get_dt(r["request_date"])).days < 14]
     archive.append(short_data)
     safe_write_json(ARCHIVE_LOG, archive)
+
+# --- ADD NEW: cleanup archive file (>14 ngày) ---
+def cleanup_archive_json(days=14):
+    """
+    Xóa các bản ghi archive quá 'days' ngày (xóa thật trong JSON).
+    Ưu tiên ARCHIVE_LOG / TFR_ARCHIVE_FILE nếu có; nếu không suy ra từ TFR_LOG_FILE.
+    """
+    try:
+        archive_path = globals().get("ARCHIVE_LOG") or globals().get("TFR_ARCHIVE_FILE")
+        if not archive_path:
+            base, ext = os.path.splitext(TFR_LOG_FILE)
+            archive_path = f"{base}_archive.json"
+
+        data = safe_read_json(archive_path)
+        if not isinstance(data, list) or not data:
+            return
+
+        from datetime import datetime
+        import pytz
+
+        def _parse_date(s):
+            if not s:
+                return None
+            for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%Y/%m/%d", "%d-%m-%Y"):
+                try:
+                    return datetime.strptime(str(s), fmt).date()
+                except Exception:
+                    pass
+            return None
+
+        today = datetime.now(pytz.timezone("Asia/Ho_Chi_Minh")).date()
+        kept = []
+        for r in data:
+            d = None
+            if isinstance(r, dict):
+                d = _parse_date(r.get("approved_date")) or _parse_date(r.get("etd")) or _parse_date(r.get("request_date"))
+            if not d or (today - d).days <= days:
+                kept.append(r)
+        if len(kept) != len(data):
+            safe_write_json(archive_path, kept)
+    except Exception as _e:
+        print("cleanup_archive_json error:", _e)
 
 # ---- HOME PAGE ----
 @app.route("/", methods=["GET", "POST"])
@@ -60,23 +317,26 @@ def home():
         if item_search:
             return redirect(url_for("home", item_search=item_search))
         if request.form.get("action") == "login":
-            password_input = request.form.get("password")
+            password_input = request.form.get("password", "")
             if login(password_input):
-                session['auth_ok'] = True
-                if 'stl' in password_input.lower() or (session.get("staff_id") and session["staff_id"].lower().startswith('stl')):
-                    session['role'] = 'stl'
-                else:
-                    session['role'] = 'wtl'
+                # auth.login đã set session['auth_ok'] và session['user_type']
+                session['role'] = get_user_type()  # 'stl' / 'wtl' / 'vfr3'
                 return redirect(url_for("home"))
             else:
                 message = "Incorrect password. Please try again."
         elif request.form.get("action") == "set_staff_id":
             staff_id = request.form.get("staff_id", "").strip()
-            if staff_id:
+            # Regex: số - họ tên (hỗ trợ Unicode tiếng Việt)
+            pattern = r'^\d+\s*-\s*[\p{L}]+(?:\s+[\p{L}]+){1,}$'
+            if not staff_id:
+                message = "Please enter your ID!"
+            elif not regex.match(pattern, staff_id):
+                message = ("Please enter the correct format: Staff ID - Full name "
+                          "(e.g., 19797 - Nguyen Van A)")
+            else:
                 session["staff_id"] = staff_id
                 return redirect(url_for("home"))
-            else:
-                message = "Please enter your staff ID!"
+
 
     # ==== Load Excel data ====
     full_report_list = []
@@ -230,7 +490,7 @@ def home():
         status_set=status_set,
         selected_status=selected_status,
         session=session,
-        report_list=report_list_page,
+        report_list=report_list,
         summary_by_type=summary_by_type,
         counter=counter,
         page=page,
@@ -238,27 +498,61 @@ def home():
         page_size=page_size,
         total_reports=total_reports,
         request=request,
+        darkmode=session.get('darkmode', '0'),
+        slang=session.get('lang', 'vi'),
     )
 
 TFR_LOG_FILE = "tfr_requests.json"  # Dùng file json cho đơn giản
 
+def get_category_component_position(finishing_type, material_type):
+    # material_type: chỉ nhận WOOD hoặc METAL (nên xử lý hoa thường hóa)
+    if not finishing_type or not material_type:
+        return ""
+    finishing_type = finishing_type.strip().upper()
+    material_type = material_type.strip().upper()
+    if finishing_type == "QA TEST":
+        if material_type == "WOOD":
+            return "COLOR PANEL"
+        elif material_type == "METAL":
+            return "METAL"
+    elif finishing_type == "LINE TEST":
+        if material_type == "WOOD":
+            return "LINE TEST_COLOR"
+        elif material_type == "METAL":
+            return "LINE TEST_METAL"
+    return ""
+
 @app.route("/tfr_request_form", methods=["GET", "POST"])
 def tfr_request_form():
-    # Đọc danh sách đã request (an toàn multiuser)
     tfr_requests = safe_read_json(TFR_LOG_FILE)
-
     error = ""
     form_data = {}
     missing_fields = []
 
-    # Khi người dùng vừa vào form (GET), sinh sẵn TRQ-ID
-    existing_ids = {r.get("trq_id") for r in tfr_requests if "trq_id" in r}
-    default_trq_id = generate_unique_trq_id(existing_ids)
+    # Lấy tham số từ URL hoặc từ POST
+    trq_id = request.args.get("trq_id") or request.form.get("trq_id")
+    edit_idx = request.args.get("edit_idx") or request.form.get("edit_idx")
+    editing = False
+
+    # Nếu có trq_id + edit_idx -> đang ở chế độ EDIT: nạp sẵn dữ liệu vào form_data
+    if trq_id is not None and edit_idx is not None:
+        try:
+            edit_idx = int(edit_idx)
+            matches = [i for i, req in enumerate(tfr_requests) if req.get("trq_id") == trq_id]
+            if len(matches) > edit_idx:
+                idx = matches[edit_idx]
+                form_data = tfr_requests[idx].copy()
+                editing = True
+        except Exception:
+            pass
+
+    # Giữ lại edit_idx trong form_data để template render hidden input
+    if editing:
+        form_data.setdefault("edit_idx", edit_idx)
 
     if request.method == "POST":
         form = request.form
 
-        # Validate các trường bắt buộc
         required_fields = [
             "requestor", "employee_id", "department", "request_date",
             "sample_description", "test_status", "quantity", "sample_return"
@@ -267,71 +561,74 @@ def tfr_request_form():
             if not form.get(field) and not form.get(f"{field}_na"):
                 missing_fields.append(field)
 
-        # Validate nhóm test (radio)
         test_group = form.get("test_group", "")
         if not test_group:
             missing_fields.append("test_group")
             error = "Phải chọn loại test!"
 
-        # Validate Furniture testing (radio)
         furniture_testing = form.get("furniture_testing", "")
         if not furniture_testing:
             missing_fields.append("furniture_testing")
             error = "Phải chọn Indoor hoặc Outdoor!"
 
-        # Lấy finishing_type nếu có (sẽ là "" nếu không chọn FINISHING TEST)
         finishing_type = form.get("finishing_type", "")
-        form_data = form.to_dict(flat=False)
+        material_type = form.get("material_type", "")
+
+        # form_data để render lại khi lỗi
+        form_data = form.to_dict(flat=True)
         form_data["test_group"] = test_group
         form_data["furniture_testing"] = furniture_testing
-        form_data["trq_id"] = request.form.get("trq_id", default_trq_id)
+        form_data["trq_id"] = form.get("trq_id", trq_id)
         form_data["employee_id"] = form.get("employee_id", "").strip()
         form_data["sample_return"] = form.get("sample_return", "")
         form_data["remark"] = form.get("remark", "").strip()
         form_data["finishing_type"] = finishing_type
+        form_data["material_type"] = material_type
 
-        # Validate N/A logic cho các trường option
+        # giữ lại edit_idx qua POST nếu có
+        if edit_idx is not None:
+            form_data["edit_idx"] = edit_idx
+
         def na_or_value(key):
             na_key = key + "_na"
             if form.get(na_key):
                 return "N/A"
             return form.get(key, "").strip()
 
-        # Nếu chọn FINISHING TEST thì bắt buộc finishing_type
-        if test_group == "FINISHING TEST":
-            if not finishing_type:
-                missing_fields.append("finishing_type")
-                error = "Phải chọn QA TEST hoặc LINE TEST!"
+        if test_group == "FINISHING TEST" and not finishing_type:
+            missing_fields.append("finishing_type")
+            error = "Phải chọn QA TEST hoặc LINE TEST!"
 
         if missing_fields:
             if not error:
                 error = "Vui lòng điền đủ các trường bắt buộc (*)"
             return render_template(
                 "tfr_request_form.html",
+                darkmode=session.get("darkmode", "0"),
+                lang=session.get("lang", "vi"),
                 error=error,
                 form_data=form_data,
-                missing_fields=missing_fields
+                missing_fields=missing_fields,
+                editing=bool(edit_idx is not None),
+                trq_id=trq_id,
+                edit_idx=edit_idx
             )
 
-        # Nếu không lỗi, tạo request mới
         item_code = na_or_value("item_code")
         supplier = na_or_value("supplier")
         subcon = na_or_value("subcon")
+
         test_status = form.get("test_status")
         if test_status == "nth":
             nth = form.get("test_status_nth", "").strip()
             test_status = nth + "th" if nth.isdigit() else "nth"
 
-        # Logic Remark với FINISHING TEST + QA/LINE TEST
         remark = form.get("remark", "").strip()
         if test_group == "FINISHING TEST" and finishing_type:
-            if remark:
-                remark = f"{remark} ({finishing_type})"
-            else:
-                remark = finishing_type
+            remark = f"{remark} ({finishing_type})" if remark else finishing_type
 
         new_request = {
-            "trq_id": form.get("trq_id", default_trq_id),
+            "trq_id": form.get("trq_id", trq_id),
             "requestor": form.get("requestor"),
             "employee_id": form.get("employee_id", ""),
             "department": form.get("department"),
@@ -346,15 +643,48 @@ def tfr_request_form():
             "sample_return": form.get("sample_return", ""),
             "remark": remark,
             "test_group": test_group,
-            "finishing_type": finishing_type,  # Lưu luôn trường này!
+            "finishing_type": finishing_type,
+            "material_type": material_type,
             "status": "Submitted",
             "decline_reason": "",
             "report_no": ""
         }
-        tfr_requests.append(new_request)
+
+        # Tự tính ETD nếu chưa có
+        new_request["etd"] = calculate_default_etd(
+            new_request.get("request_date", ""),
+            new_request.get("test_group", "")
+        )
+
+        # Nếu là EDIT: giữ lại các trường hệ thống cũ (PDF/DOCX/report_no/etd/status/decline_reason)
+        if editing or (trq_id and edit_idx is not None):
+            try:
+                _edit_idx_int = int(edit_idx)
+                matches = [i for i, req in enumerate(tfr_requests) if req.get("trq_id") == trq_id]
+                if len(matches) > _edit_idx_int:
+                    old = tfr_requests[matches[_edit_idx_int]]
+                    for k in ("status", "report_no", "pdf_path", "docx_path", "etd", "decline_reason"):
+                        if k in old and old.get(k) not in (None, ""):
+                            new_request[k] = old.get(k)
+            except Exception:
+                pass
+
+        # Ghi đè item cũ hoặc append mới
+        if editing or (trq_id and edit_idx is not None):
+            try:
+                _edit_idx_int = int(edit_idx)
+                matches = [i for i, req in enumerate(tfr_requests) if req.get("trq_id") == trq_id]
+                if len(matches) > _edit_idx_int:
+                    tfr_requests[matches[_edit_idx_int]] = new_request
+                else:
+                    tfr_requests.append(new_request)
+            except Exception:
+                tfr_requests.append(new_request)
+        else:
+            tfr_requests.append(new_request)
+
         safe_write_json(TFR_LOG_FILE, tfr_requests)
-        
-        # Gửi thông báo Teams khi xuất TFR
+
         message = (
             f"📝 [TRF] Có yêu cầu Test Request mới!\n"
             f"- Người gửi: {new_request.get('requestor')}\n"
@@ -368,150 +698,376 @@ def tfr_request_form():
 
         return redirect(url_for('tfr_request_status'))
 
-    # GET – truy cập lần đầu, truyền sẵn ID vào form
-    form_data["trq_id"] = default_trq_id
-    return render_template("tfr_request_form.html", error=error, form_data=form_data, missing_fields=missing_fields)
+    # GET lần đầu (không EDIT) -> auto fill employee_id, requestor từ session
+    if not editing:
+        staff_id_full = session.get("staff_id", "").strip()
+        if staff_id_full and "-" in staff_id_full:
+            emp_id, name = staff_id_full.split("-", 1)
+            emp_id = emp_id.strip()
+            name = name.strip()
+        else:
+            emp_id = staff_id_full
+            name = ""
+        form_data.setdefault("employee_id", emp_id)
+        form_data.setdefault("requestor", name)
+
+    # Tạo TRQ-ID mới nếu chưa có
+    if not form_data.get("trq_id"):
+        form_data["trq_id"] = generate_unique_trq_id({r.get("trq_id") for r in tfr_requests if "trq_id" in r})
+
+    # Mặc định request_date = hôm nay nếu trống
+    if not form_data.get("request_date"):
+        vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
+        today = datetime.now(vn_tz).strftime("%Y-%m-%d")
+        form_data["request_date"] = today
+
+    return render_template(
+        "tfr_request_form.html",
+        darkmode=session.get("darkmode", "0"),
+        lang=session.get("lang", "vi"),
+        error=error,
+        form_data=form_data,
+        missing_fields=missing_fields,
+        editing=editing,
+        trq_id=trq_id,
+        edit_idx=edit_idx
+    )
+
+# --- ADD NEW: gom logic approve 1 request để tái dùng ---
+def approve_all_one(req):
+    """
+    Approve 1 request:
+      - cấp report_no + tạo DOCX/PDF
+      - cập nhật Excel + TRF.xlsx
+      - đẩy vào archive (short_data)
+      - trả về req đã cập nhật (status/report_no/pdf_path/docx_path)
+    """
+    with REPORT_NO_LOCK:
+        # đọc mới nhất để tránh “đua”
+        current_list = safe_read_json(TFR_LOG_FILE)
+        pdf_path, report_no = allocate_unique_report_no(
+            approve_request_fill_docx_pdf, req, current_list
+        )
+
+    req["status"] = "Approved"
+    req["decline_reason"] = ""
+    req["report_no"] = report_no
+
+    output_folder = os.path.join('static', 'TFR')
+    output_docx = os.path.join(output_folder, f"{report_no}.docx")
+    output_pdf = os.path.join(output_folder, f"{report_no}.pdf")
+
+    # FALLBACK PDF: nếu convert lỗi (pythoncom/pywin32), không crash — cho phép dùng DOCX
+    try:
+        # nếu bạn có hàm try_convert_to_pdf thì gọi ở đây, an toàn với try/except
+        if not os.path.exists(output_pdf):
+            from docx_utils import try_convert_to_pdf
+            try_convert_to_pdf(output_docx, output_pdf)  # hàm này sẽ raise nếu thiếu pythoncom
+    except Exception as _pdf_e:
+        # ghi log nhẹ để debug, nhưng KHÔNG dừng approve
+        print("PDF convert failed, fallback to DOCX:", _pdf_e)
+
+    # gán đường dẫn ưu tiên PDF nếu đã tồn tại
+    if os.path.exists(output_pdf):
+        req['pdf_path'] = f"TFR/{report_no}.pdf"
+        req['docx_path'] = None
+    else:
+        req['pdf_path'] = None
+        req['docx_path'] = f"TFR/{report_no}.docx"
+
+    # Ghi Excel (giữ đúng cột/format như code cũ)
+    try:
+        write_tfr_to_excel(local_main, report_no, req)
+        wb = load_workbook(local_main)
+        ws = wb.active
+        report_col = get_col_idx(ws, "report#")
+        row_idx = None
+        for row in range(2, ws.max_row + 1):
+            v = ws.cell(row=row, column=report_col).value
+            if v and str(v).strip() == str(report_no):
+                row_idx = row
+                break
+        if row_idx:
+            def set_val(col_name, value, is_date_col=False):
+                col_idx = get_col_idx(ws, col_name)
+                if col_idx:
+                    cell = ws.cell(row=row_idx, column=col_idx)
+                    if is_date_col:
+                        dt_val = try_parse_excel_date(value)
+                        if dt_val:
+                            cell.value = dt_val
+                            cell.number_format = 'd-mmm'
+                        else:
+                            cell.value = value
+                    else:
+                        cell.value = value.upper() if isinstance(value, str) else value
+
+            def clean_type_of(val):
+                return val[:-5].strip() if val and isinstance(val, str) and val.upper().endswith(" TEST") else val
+
+            set_val("item#", req.get("item_code", ""))
+            set_val("type of", clean_type_of(req.get("test_group", "")))
+            set_val("item name/ description", req.get("sample_description", ""))
+            set_val("furniture testing", req.get("furniture_testing", ""))
+            set_val("submiter in", req.get("requestor", ""))
+            set_val("submited", req.get("department", ""))
+            set_val("qa comment", req.get("remark", ""))
+
+            etd_val = req.get("etd", "")
+            if etd_val:
+                set_val("etd", format_excel_date_short(etd_val), is_date_col=True)
+            else:
+                set_val("etd", "")
+
+            from datetime import datetime
+            import pytz
+            vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
+            log_in_date = datetime.now(vn_tz)
+            set_val("log in date", format_excel_date_short(log_in_date), is_date_col=True)
+
+            finishing_type = req.get("finishing_type", "")
+            material_type  = req.get("material_type", "")
+            cat_comp_pos   = get_category_component_position(finishing_type, material_type)
+            set_val("category / component name / position", cat_comp_pos)
+            wb.save(local_main)
+    except Exception as e:
+        print("Ghi vào Excel bị lỗi:", e)
+
+    # Cập nhật TRF.xlsx
+    try:
+        append_row_to_trf(report_no, local_main, "TRF.xlsx", trq_id=req.get("trq_id", ""))
+    except Exception as e:
+        print("Append TRF lỗi:", e)
+
+    # Đưa vào archive (archive_request của bạn đang tự dọn >14 ngày theo request_date)
+    try:
+        from datetime import datetime
+        import pytz
+        short_data = {
+            "trq_id": req.get("trq_id", ""),
+            "report_no": req.get("report_no", ""),
+            "requestor": req.get("requestor", ""),
+            "department": req.get("department", ""),
+            "request_date": req.get("request_date", ""),
+            "status": req.get("status", ""),
+            "pdf_path": req.get("pdf_path"),
+            "docx_path": req.get("docx_path"),
+            "approved_date": datetime.now(pytz.timezone("Asia/Ho_Chi_Minh")).strftime("%Y-%m-%d"),
+        }
+        archive_request(short_data)
+    except Exception as e:
+        print("Archive lỗi:", e)
+
+    return req
 
 @app.route("/tfr_request_status", methods=["GET", "POST"])
 def tfr_request_status():
     tfr_requests = safe_read_json(TFR_LOG_FILE)
-
     is_admin = session.get("user_type") == "stl"
 
-    # =============================== #
-    # Xử lý POST (dành cho mọi người) #
-    # =============================== #
     if request.method == "POST":
-        trq_id = request.form.get("trq_id")
         action = request.form.get("action")
+        tfr_requests = safe_read_json(TFR_LOG_FILE)  # reload
+
+        # === APPROVE ALL ===
+        if is_admin and action == "approve_all":
+            approved_count = 0
+            # duyệt bản copy để có thể remove phần tử trong danh sách gốc
+            current = safe_read_json(TFR_LOG_FILE)
+            for idx, req in enumerate(current[:]):
+                if req.get("status") != "Submitted":
+                    continue
+                etd = request.form.get(f"etd-{idx}", "").strip()
+                if not etd:
+                    continue
+
+                # cập nhật ETD trước khi approve
+                req["etd"] = etd
+                req["estimated_completion_date"] = etd
+
+                try:
+                    # gom toàn bộ logic approve vào 1 hàm (giữ đúng cách ghi excel/trf/archive)
+                    approve_all_one(req)
+                    # XÓA request đã approve khỏi JSON pending để đỡ nặng
+                    trq_id = req.get("trq_id")
+                    current = [r for r in current if r.get("trq_id") != trq_id]
+                    approved_count += 1
+                except Exception as e:
+                    print("Approve one (approve_all) error:", e)
+
+            safe_write_json(TFR_LOG_FILE, current)
+            flash(f"Đã duyệt {approved_count} request (chỉ duyệt các dòng đã có ETD)!")
+            return redirect(url_for('tfr_request_status'))
         
-        # Đọc lại dữ liệu mới nhất để tránh xung đột ghi
-        tfr_requests = safe_read_json(TFR_LOG_FILE)
-        
-        # --- XÓA request: ai cũng xóa được ---
-        if action == "delete" and trq_id:
-            for i, req in enumerate(tfr_requests):
-                if req.get("trq_id") == trq_id:
-                    deleted_req = tfr_requests.pop(i)
+        # === APPROVE SINGLE ===
+        elif is_admin and action == "approve":
+            trq_id = request.form.get("trq_id")
+            edit_idx = int(request.form.get("edit_idx", 0)) if "edit_idx" in request.form else None
+            matches = [i for i, req in enumerate(tfr_requests) if req.get("trq_id") == trq_id]
+            idx = matches[edit_idx] if edit_idx is not None and edit_idx < len(matches) else (
+                matches[0] if matches else None
+            )
+            if idx is not None:
+                req = tfr_requests[idx]
+                etd = request.form.get("etd", "").strip()
+                if not etd:
+                    flash("Bạn cần điền Estimated Completion Date (ETD) trước khi approve!")
+                    return redirect(url_for('tfr_request_status'))
+
+                req["etd"] = etd
+                req["estimated_completion_date"] = etd
+
+                try:
+                    approve_all_one(req)      # gom full logic approve 1 chỗ
+                    del tfr_requests[idx]     # XÓA ngay khỏi pending để giảm nặng file
+                    safe_write_json(TFR_LOG_FILE, tfr_requests)
+                except Exception as e:
+                    print("Approve one (single) error:", e)
+                    flash("Có lỗi khi approve, vui lòng thử lại.")
+            return redirect(url_for('tfr_request_status'))
+
+        # === DECLINE ===
+        elif is_admin and action == "decline":
+            trq_id = request.form.get("trq_id")
+            reason = request.form.get("decline_reason", "").strip()
+            edit_idx = int(request.form.get("edit_idx", 0)) if "edit_idx" in request.form else None
+            matches = [i for i, req in enumerate(tfr_requests) if req.get("trq_id") == trq_id]
+            idx = matches[edit_idx] if edit_idx is not None and edit_idx < len(matches) else (
+                matches[0] if matches else None
+            )
+            if idx is not None:
+                tfr_requests[idx]["status"] = "Declined"
+                tfr_requests[idx]["decline_reason"] = reason
+            safe_write_json(TFR_LOG_FILE, tfr_requests)
+            return redirect(url_for('tfr_request_status'))
+
+        # === DUPLICATE ===
+        elif action == "duplicate":
+            trq_id = request.form.get("trq_id")
+            edit_idx = int(request.form.get("edit_idx", 0)) if "edit_idx" in request.form else None
+            matches = [i for i, req in enumerate(tfr_requests) if req.get("trq_id") == trq_id]
+            idx = matches[edit_idx] if edit_idx is not None and edit_idx < len(matches) else (
+                matches[0] if matches else None
+            )
+            if idx is not None:
+                old_req = tfr_requests[idx]
+                new_req = old_req.copy()
+                new_req["report_no"] = ""
+                new_req["status"] = "Submitted"
+                new_req["pdf_path"] = ""
+                new_req["decline_reason"] = ""
+                # Tự động điền etd khi duplicate
+                new_req["etd"] = calculate_default_etd(new_req.get("request_date", ""), new_req.get("test_group", ""))
+                tfr_requests.insert(idx + 1, new_req)
+            safe_write_json(TFR_LOG_FILE, tfr_requests)
+            return redirect(url_for('tfr_request_status'))
+
+        # === DELETE ===
+        elif action == "delete":
+            trq_id = request.form.get("trq_id")
+            edit_idx = request.form.get("edit_idx")
+            if edit_idx is not None:
+                try:
+                    edit_idx = int(edit_idx)
+                    deleted_req = tfr_requests.pop(edit_idx)
                     from notify_utils import send_teams_message
                     send_teams_message(
                         TEAMS_WEBHOOK_URL_TRF,
                         f"🗑️ [TRF] Đã có yêu cầu bị xóa!\n- TRQ-ID: {deleted_req.get('trq_id')}\n- Người thao tác: {session.get('staff_id', 'Không rõ')}"
                     )
-                    break
+                except Exception as e:
+                    print("Xóa bị lỗi:", e)
+            else:
+                # fallback: xóa theo trq_id (trường hợp cũ)
+                for i, req in enumerate(tfr_requests):
+                    if req.get("trq_id") == trq_id:
+                        deleted_req = tfr_requests.pop(i)
+                        from notify_utils import send_teams_message
+                        send_teams_message(
+                            TEAMS_WEBHOOK_URL_TRF,
+                            f"🗑️ [TRF] Đã có yêu cầu bị xóa!\n- TRQ-ID: {deleted_req.get('trq_id')}\n- Người thao tác: {session.get('staff_id', 'Không rõ')}"
+                        )
+                        break
+            safe_write_json(TFR_LOG_FILE, tfr_requests)
+            return redirect(url_for('tfr_request_status'))
 
-        # --- Các action còn lại: chỉ cho admin ---
-        elif is_admin and trq_id:
-            for idx, req in enumerate(tfr_requests):
-                if req.get("trq_id") == trq_id:
-                    if action == "approve":
-                        etd_value = request.form.get("etd", "").strip()
-                        if not etd_value:
-                            from flask import flash
-                            flash("Bạn cần điền Estimated Completion Date (ETD) trước khi approve!")
-                            return redirect(url_for('tfr_request_status'))
-                        tfr_requests[idx]["etd"] = etd_value
-                        tfr_requests[idx]["estimated_completion_date"] = etd_value
-                        pdf_path, report_no = approve_request_fill_docx_pdf(tfr_requests[idx])
-                        tfr_requests[idx]["status"] = "Approved"
-                        tfr_requests[idx]["decline_reason"] = ""
-                        tfr_requests[idx]["report_no"] = report_no
-
-                        # ---- kiểm tra tồn tại file PDF, nếu không thì gán docx_path
-                        output_folder = os.path.join('static', 'TFR')
-                        output_docx = os.path.join(output_folder, f"{report_no}.docx")
-                        output_pdf = os.path.join(output_folder, f"{report_no}.pdf")
-                        if os.path.exists(output_pdf):
-                            tfr_requests[idx]['pdf_path'] = f"TFR/{report_no}.pdf"
-                            tfr_requests[idx]['docx_path'] = None
-                        else:
-                            tfr_requests[idx]['pdf_path'] = None
-                            tfr_requests[idx]['docx_path'] = f"TFR/{report_no}.docx"
-
-                        write_tfr_to_excel(local_main, report_no, tfr_requests[idx])
-                        # === GHI THÔNG TIN VÀO EXCEL DS ===
-                        try:
-                            wb = load_workbook(local_main)
-                            ws = wb.active
-                            report_col = get_col_idx(ws, "report#")
-                            row_idx = None
-                            for row in range(2, ws.max_row + 1):
-                                v = ws.cell(row=row, column=report_col).value
-                                if v and str(v).strip() == str(report_no):
-                                    row_idx = row
-                                    break
-                            if row_idx:
-                                def set_val(col_name, value):
-                                    col_idx = get_col_idx(ws, col_name)
-                                    if col_idx:
-                                        ws.cell(row=row_idx, column=col_idx).value = value.upper() if isinstance(value, str) else value
-
-                                def clean_type_of(val):
-                                    return val[:-5].strip() if val and val.upper().endswith(" TEST") else val
-
-                                set_val("item#", tfr_requests[idx].get("item_code", ""))
-                                set_val("type of", clean_type_of(tfr_requests[idx].get("test_group", "")))
-                                set_val("item name/ description", tfr_requests[idx].get("sample_description", ""))
-                                set_val("furniture testing", tfr_requests[idx].get("furniture_testing", ""))
-                                set_val("submiter in", tfr_requests[idx].get("requestor", ""))
-                                set_val("submited", tfr_requests[idx].get("department", ""))
-                                set_val("etd", tfr_requests[idx].get("etd", ""))
-                                vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
-                                now_str = datetime.now(vn_tz).strftime("%m/%d/%Y %H:%M")
-                                set_val("log in date", now_str)
-                                wb.save(local_main)
-                        except Exception as e:
-                            print("Ghi vào Excel bị lỗi:", e)
-
-                        append_row_to_trf(report_no, local_main, "TRF.xlsx", trq_id=tfr_requests[idx].get("trq_id", ""))
-                        short_data = {
-                            "trq_id": tfr_requests[idx].get("trq_id", ""),
-                            "report_no": tfr_requests[idx].get("report_no", ""),
-                            "requestor": tfr_requests[idx].get("requestor", ""),
-                            "department": tfr_requests[idx].get("department", ""),
-                            "request_date": tfr_requests[idx].get("request_date", ""),
-                            "status": tfr_requests[idx].get("status", ""),
-                            "pdf_path": tfr_requests[idx].get("pdf_path"),
-                            "docx_path": tfr_requests[idx].get("docx_path"),
-                        }
-                        archive_request(short_data)
-                        tfr_requests.pop(idx)
-                    elif action == "decline":
-                        tfr_requests[idx]["status"] = "Declined"
-                        tfr_requests[idx]["decline_reason"] = request.form.get("decline_reason", "")
-                    elif action == "duplicate":
-                        old_req = tfr_requests[idx]
-                        new_req = old_req.copy()
-                        new_req["report_no"] = ""
-                        new_req["status"] = "Submitted"
-                        new_req["pdf_path"] = ""
-                        new_req["decline_reason"] = ""
-                        new_req["etd"] = ""
-                        tfr_requests.insert(idx + 1, new_req)
-                    break  # chỉ xử lý 1 request, rồi thoát vòng for
-
-        # Ghi lại file JSON sau mọi thay đổi (dùng safe_write_json)
-        safe_write_json(TFR_LOG_FILE, tfr_requests)
-        return redirect(url_for('tfr_request_status'))
-
-    return render_template("tfr_request_status.html", requests=tfr_requests, is_admin=is_admin)
+    # ===== FILTER SAU CÙNG: chỉ show request chưa duyệt =====
+    show_requests = []
+    real_indices = []
+    for i, r in enumerate(tfr_requests):
+        if r.get("status") == "Submitted":
+            show_requests.append(r)
+            real_indices.append(i)
+    return render_template(
+        "tfr_request_status.html",
+        requests=show_requests,
+        is_admin=is_admin,
+        real_indices=real_indices
+    )
 
 @app.route("/tfr_request_archive")
 def tfr_request_archive():
-    from datetime import datetime
+
     archive = safe_read_json(ARCHIVE_LOG)
     now = datetime.now()
+
     def get_dt(d):
-        if "-" in d: return datetime.strptime(d, "%Y-%m-%d")
-        else: return datetime.strptime(d, "%d/%m/%Y")
-    archive = [r for r in archive if (now - get_dt(r["request_date"])).days < 14]
-    # Sắp xếp mới nhất lên đầu (giảm dần theo ngày)
+        if "-" in d: 
+            return datetime.strptime(d, "%Y-%m-%d")
+        else: 
+            return datetime.strptime(d, "%d/%m/%Y")
+
+    def safe_report_no(val):
+        if isinstance(val, int):
+            return val
+        if isinstance(val, str):
+            # Tách lấy phần sau dấu '-'
+            if "-" in val:
+                parts = val.split("-")
+                try:
+                    return int(parts[-1])
+                except:
+                    pass
+            # Nếu không thì thử chuyển trực tiếp
+            try:
+                return int(val)
+            except:
+                return 0
+        return 0
+
     archive = sorted(
         archive,
-        key=lambda r: get_dt(r["request_date"]),
+        key=lambda r: (
+            get_dt(r["request_date"]), 
+            safe_report_no(r.get("report_no", 0))
+        ),
         reverse=True
     )
+
     return render_template("tfr_request_archive.html", requests=archive)
+
+@app.route('/save_etd', methods=['POST'])
+def save_etd():
+    if not request.is_json:
+        return jsonify(success=False, message="Invalid request"), 400
+    data = request.get_json()
+    trq_id = data.get("trq_id")
+    etd = data.get("etd")
+    idx = data.get("idx")
+    if trq_id is None or etd is None or idx is None:
+        return jsonify(success=False, message="Thiếu thông tin"), 400
+
+    tfr_requests = safe_read_json(TFR_LOG_FILE)
+    try:
+        idx = int(idx)
+        if idx < 0 or idx >= len(tfr_requests):
+            return jsonify(success=False, message="Sai index!"), 404
+        # Cập nhật trực tiếp vào dòng idx, KHÔNG CẦN DÒ THEO trq_id NỮA!
+        tfr_requests[idx]["etd"] = etd
+        safe_write_json(TFR_LOG_FILE, tfr_requests)
+        return jsonify(success=True)
+    except Exception as e:
+        return jsonify(success=False, message="Lỗi: " + str(e)), 500
 
 @app.route('/run_export_excel', methods=['POST'])
 def run_export_excel():
@@ -572,6 +1128,33 @@ def logout():
     session.pop("staff_id", None)  # Đăng xuất thì xóa luôn staff_id
     return "<h3 style='text-align:center;margin-top:80px;'>Đã đăng xuất!<br><a href='/' style='color:#4d665c;'>Về trang chọn sản phẩm</a></h3>"
 
+@app.get("/vfr3/wax")
+def vfr3_wax_menu():
+    return render_template(
+        "vfr3_area.html",
+        area="vfr3/wax",
+        area_name="Mẫu sáp",
+        logout_url=url_for("logout")
+    )
+
+@app.get("/vfr3/sand-casting")
+def vfr3_sand_menu():
+    return render_template(
+        "vfr3_area.html",
+        area="vfr3/sand-casting",
+        area_name="Mẫu đúc cát",
+        logout_url=url_for("logout")
+    )
+
+@app.get("/vfr3/ceramic-plaster")
+def vfr3_ceramic_menu():
+    return render_template(
+        "vfr3_area.html",
+        area="vfr3/ceramic-plaster",
+        area_name="Mẫu ceramic thạch cao",
+        logout_url=url_for("logout")
+    )
+
 @app.route("/update", methods=["GET", "POST"])
 def update():
     report = request.args.get("report")
@@ -602,15 +1185,6 @@ def update():
 
         valid = True
 
-        # PHÂN QUYỀN: chỉ kiểm tra khi đã đăng nhập
-        if is_logged_in:
-            user_type = get_user_type()
-            status_col = get_col_idx(ws, "status")
-            status_val = ws.cell(row=row_idx, column=status_col).value if status_col else ""
-            status_val = str(status_val).strip().upper() if status_val else ""
-            if user_type == "wtl" and status_val == "DONE":
-                return "Bạn không có quyền truy cập report này!", 403
-
 # LẤY DATA CHO HIỂN THỊ (info_line)
         if not is_logged_in:
             summary_keys = [
@@ -635,7 +1209,6 @@ def update():
                 if label and value not in (None, ""):
                     lines.append((str(label).upper(), str(value)))
     except Exception as e:
-        import traceback
         print("Lỗi khi đọc file excel:", e)
         print(traceback.format_exc())
         return f"Lỗi khi xử lý file: {e}", 500
@@ -888,7 +1461,6 @@ def update():
             safe_save_excel(wb, local_main)
 
             # ==== PHẦN BỔ SUNG: Ghi log ngay khi hoàn thành ====
-            from counter_utils import log_report_complete
             type_of_col = get_col_idx(ws, "type of")
             type_of = ws.cell(row=row_idx, column=type_of_col).value if type_of_col else ""
             vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
@@ -1010,21 +1582,26 @@ def test_group_page(report, group): # Import trong hàm để tránh circular im
 
 @app.route('/test_group/<report>/<group>/<test_key>', methods=['GET', 'POST'])
 def test_group_item_dynamic(report, group, test_key):
+    # Lưu lại loại test gần nhất
     session[f"last_test_type_{report}"] = get_group_title(group)
-    if test_key == "hot_cold" and group in ["indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal"]:
-        return redirect(url_for("hot_cold_test", report=report, group=group))
 
+    # Hot/Cold chuyển sang route riêng
+    if test_key in HOTCOLD_LIKE and group in INDOOR_GROUPS:
+        return redirect(url_for("hot_cold_test", report=report, group=group, test_key=test_key))
+
+    # Kiểm tra tồn tại test key
     group_titles = TEST_GROUP_TITLES.get(group)
     if not group_titles or test_key not in group_titles:
         return "Mục kiểm tra không tồn tại!", 404
     title = group_titles[test_key]
 
+    # Thư mục theo report
     report_folder = os.path.join(UPLOAD_FOLDER, str(report))
     os.makedirs(report_folder, exist_ok=True)
     status_file = os.path.join(report_folder, f"status_{group}.txt")
     comment_file = os.path.join(report_folder, f"comment_{group}.txt")
 
-    # Xác định đặc thù vùng RH, drop, impact, rot
+    # Đặc thù nhóm TRANSIT
     is_rh_np = (group == "transit_RH_np")
     is_drop = (is_drop_test(title) if group.startswith("transit") else False) or (group == "transit_181_lt68" and test_key == "step4")
     is_impact = is_impact_test(title) if group.startswith("transit") else False
@@ -1038,12 +1615,13 @@ def test_group_item_dynamic(report, group, test_key):
     if request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
         # Kiểm tra các vùng ảnh đặc biệt RH
         imgs = {}
-        # GT68 FACE ZONES
+
+        # ========== GT68 FACE ZONES (chỉ xử lý GT68 ở đây) ==========
         if group == "transit_181_gt68" and test_key == "step4":
             for idx, zone in enumerate(GT68_FACE_ZONES):
                 files = request.files.getlist(f'gt68_face_img_{zone}')
                 if files:
-                    imgs[f'gt68_{idx}'] = []
+                    imgs[str(idx)] = []  # FIX: đồng bộ key "0".."5" để FE đọc data.imgs[zone]
                     for file in files:
                         if file and allowed_file(file.filename):
                             ext = file.filename.rsplit('.', 1)[-1].lower()
@@ -1052,11 +1630,14 @@ def test_group_item_dynamic(report, group, test_key):
                             next_num = max(nums, default=0) + 1
                             fname = f"{prefix}{next_num}.{ext}"
                             file.save(os.path.join(report_folder, fname))
-                            imgs[f'gt68_{idx}'].append(f"/images/{report}/{fname}")
-            # RH Impact zones
-            for zone, _ in rh_impact_zones:
-                files = request.files.getlist(f'rh_impact_img_{zone}')
-                imgs[zone] = []
+                            imgs[str(idx)].append(f"/images/{report}/{fname}")
+
+        # ========== RH Impact zones (tách ra ngoài nhánh GT68) ==========
+        # FIX: các khối RH/Drop/Impact/Rot KHÔNG còn lồng trong nhánh GT68
+        for zone, _ in rh_impact_zones:
+            files = request.files.getlist(f'rh_impact_img_{zone}')
+            if files:
+                imgs.setdefault(zone, [])
                 for file in files:
                     if file and allowed_file(file.filename):
                         ext = file.filename.rsplit('.', 1)[-1].lower()
@@ -1066,10 +1647,12 @@ def test_group_item_dynamic(report, group, test_key):
                         fname = f"{prefix}{next_num}.{ext}"
                         file.save(os.path.join(report_folder, fname))
                         imgs[zone].append(f"/images/{report}/{fname}")
-            # RH Vib zones
-            for zone, _ in rh_vib_zones:
-                files = request.files.getlist(f'rh_vib_img_{zone}')
-                imgs[zone] = []
+
+        # ========== RH Vib zones ==========
+        for zone, _ in rh_vib_zones:
+            files = request.files.getlist(f'rh_vib_img_{zone}')
+            if files:
+                imgs.setdefault(zone, [])
                 for file in files:
                     if file and allowed_file(file.filename):
                         ext = file.filename.rsplit('.', 1)[-1].lower()
@@ -1079,10 +1662,12 @@ def test_group_item_dynamic(report, group, test_key):
                         fname = f"{prefix}{next_num}.{ext}"
                         file.save(os.path.join(report_folder, fname))
                         imgs[zone].append(f"/images/{report}/{fname}")
-            # RH Second impact zones
-            for zone, _ in rh_second_impact_zones:
-                files = request.files.getlist(f'rh_second_impact_img_{zone}')
-                imgs[zone] = []
+
+        # ========== RH Second impact zones ==========
+        for zone, _ in rh_second_impact_zones:
+            files = request.files.getlist(f'rh_second_impact_img_{zone}')
+            if files:
+                imgs.setdefault(zone, [])
                 for file in files:
                     if file and allowed_file(file.filename):
                         ext = file.filename.rsplit('.', 1)[-1].lower()
@@ -1092,10 +1677,12 @@ def test_group_item_dynamic(report, group, test_key):
                         fname = f"{prefix}{next_num}.{ext}"
                         file.save(os.path.join(report_folder, fname))
                         imgs[zone].append(f"/images/{report}/{fname}")
-            # RH step12 zones
-            for zone, _ in rh_step12_zones:
-                files = request.files.getlist(f'rh_step12_img_{zone}')
-                imgs[zone] = []
+
+        # ========== RH step12 zones ==========
+        for zone, _ in rh_step12_zones:
+            files = request.files.getlist(f'rh_step12_img_{zone}')
+            if files:
+                imgs.setdefault(zone, [])
                 for file in files:
                     if file and allowed_file(file.filename):
                         ext = file.filename.rsplit('.', 1)[-1].lower()
@@ -1105,12 +1692,14 @@ def test_group_item_dynamic(report, group, test_key):
                         fname = f"{prefix}{next_num}.{ext}"
                         file.save(os.path.join(report_folder, fname))
                         imgs[zone].append(f"/images/{report}/{fname}")
-            # DROP, IMPACT, ROTATION
-            # Drop
+
+        # ========== DROP, IMPACT, ROTATION (tách ra ngoài nhánh GT68) ==========
+        # Drop
+        if is_drop:
             for idx, zone in enumerate(DROP_ZONES):
                 files = request.files.getlist(f'drop_img_{zone}')
                 if files:
-                    imgs[idx] = []
+                    imgs.setdefault(idx, [])
                     for file in files:
                         if file and allowed_file(file.filename):
                             ext = file.filename.rsplit('.', 1)[-1].lower()
@@ -1120,11 +1709,13 @@ def test_group_item_dynamic(report, group, test_key):
                             fname = f"{prefix}{next_num}.{ext}"
                             file.save(os.path.join(report_folder, fname))
                             imgs[idx].append(f"/images/{report}/{fname}")
-            # Impact
+
+        # Impact
+        if is_impact:
             for idx, zone in enumerate(IMPACT_ZONES):
                 files = request.files.getlist(f'impact_img_{zone}')
                 if files:
-                    imgs[idx] = []
+                    imgs.setdefault(idx, [])
                     for file in files:
                         if file and allowed_file(file.filename):
                             ext = file.filename.rsplit('.', 1)[-1].lower()
@@ -1134,11 +1725,13 @@ def test_group_item_dynamic(report, group, test_key):
                             fname = f"{prefix}{next_num}.{ext}"
                             file.save(os.path.join(report_folder, fname))
                             imgs[idx].append(f"/images/{report}/{fname}")
-            # Rotation
+
+        # Rotation
+        if is_rot:
             for idx, zone in enumerate(ROT_ZONES):
                 files = request.files.getlist(f'rot_img_{zone}')
                 if files:
-                    imgs[idx] = []
+                    imgs.setdefault(idx, [])
                     for file in files:
                         if file and allowed_file(file.filename):
                             ext = file.filename.rsplit('.', 1)[-1].lower()
@@ -1148,6 +1741,7 @@ def test_group_item_dynamic(report, group, test_key):
                             fname = f"{prefix}{next_num}.{ext}"
                             file.save(os.path.join(report_folder, fname))
                             imgs[idx].append(f"/images/{report}/{fname}")
+
         # THƯỜNG
         if request.files.getlist('test_imgs'):
             imgs['normal'] = []
@@ -1160,6 +1754,7 @@ def test_group_item_dynamic(report, group, test_key):
                     fname = f"{prefix}{next_num}.{ext}"
                     file.save(os.path.join(report_folder, fname))
                     imgs['normal'].append(f"/images/{report}/{fname}")
+
         # Xóa ảnh AJAX
         if 'delete_img' in request.form:
             fname = request.form['delete_img']
@@ -1192,10 +1787,10 @@ def test_group_item_dynamic(report, group, test_key):
                     idx = int(idx)
                     zone = GT68_FACE_ZONES[idx]
                     prefix = f"test_{group}_{test_key}_gt68_face_{zone}_"
-                    imgs[f'gt68_{idx}'] = []
+                    imgs[str(idx)] = []  # FIX: trả về key "0".."5" để khớp FE
                     for f in os.listdir(report_folder):
                         if allowed_file(f) and f.startswith(prefix):
-                            imgs[f'gt68_{idx}'].append(f"/images/{report}/{f}")
+                            imgs[str(idx)].append(f"/images/{report}/{f}")
                 else:
                     # RH zones
                     zone = idx
@@ -1210,6 +1805,7 @@ def test_group_item_dynamic(report, group, test_key):
                 for f in os.listdir(report_folder):
                     if allowed_file(f) and f.startswith(f"test_{group}_{test_key}_"):
                         imgs['normal'].append(f"/images/{report}/{f}")
+
         return jsonify(imgs=imgs)
 
     # --- Trạng thái PASS/FAIL/N/A ---
@@ -1526,37 +2122,67 @@ def render_test_group_item(report, group, key, group_titles, comment):
         gt68_face_imgs=gt68_face_imgs,
     )
 
-@app.route("/hot_cold_test/<report>/<group>", methods=["GET", "POST"])
-def hot_cold_test(report, group):
-    session[f"last_test_type_{report}"] = f"HOT & COLD CYCLE TEST ({group.upper()})"
+# Cho phép URL có/không có test_key (mặc định là 'hot_cold' để không phá link cũ)
+@app.route("/hot_cold_test/<report>/<group>", defaults={'test_key': 'hot_cold'}, methods=["GET", "POST"])
+@app.route("/hot_cold_test/<report>/<group>/<test_key>", methods=["GET", "POST"])
+def hot_cold_test(report, group, test_key):
+    from_line = request.args.get("from_line")
+
+    # ====== Lấy tên hiển thị đúng theo test_key ======
+    # Ưu tiên lấy từ TEST_GROUP_TITLES; nếu không có thì prettify từ key
+    try:
+        raw_title = TEST_GROUP_TITLES.get(group, {}).get(test_key)
+    except Exception:
+        raw_title = None
+
+    if isinstance(raw_title, dict):
+        display_title = raw_title.get('short') or raw_title.get('full') or test_key.replace('_', ' ').title()
+    elif raw_title:
+        display_title = raw_title
+    else:
+        display_title = test_key.replace('_', ' ').title()
+
+    session[f"last_test_type_{report}"] = f"{display_title} ({group.upper()})"
+
+    # ====== Chuẩn bị đường dẫn/lưu trữ (tách theo test_key) ======
     vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
     folder = os.path.join(UPLOAD_FOLDER, str(report))
     os.makedirs(folder, exist_ok=True)
-    status_file = os.path.join(folder, f"hotcold_status_{group}.txt")
-    comment_file = os.path.join(folder, f"hotcold_comment_{group}.txt")
-    before_tag = f"hotcold_before_{group}"
-    after_tag = f"hotcold_after_{group}"
-    before_time_file = os.path.join(folder, f"hotcold_before_time_{group}.txt")
-    after_time_file = os.path.join(folder, f"hotcold_after_time_{group}.txt")
 
-    # --- Xử lý POST ---
+    # Prefix riêng cho từng test
+    prefix           = f"{test_key}_{group}"
+    status_file      = os.path.join(folder, f"{prefix}_status.txt")
+    comment_file     = os.path.join(folder, f"{prefix}_comment.txt")
+    before_tag       = f"{test_key}_before_{group}"
+    after_tag        = f"{test_key}_after_{group}"
+    before_time_file = os.path.join(folder, f"{prefix}_before_time.txt")
+    after_time_file  = os.path.join(folder, f"{prefix}_after_time.txt")
+    duration_file    = os.path.join(folder, f"{prefix}_duration.txt")  # <— giờ đếm ngược
+
+    # ====== Xử lý POST ======
     if request.method == "POST":
+        # 1) Cập nhật trạng thái
         if "status" in request.form:
             safe_write_text(status_file, request.form["status"])
+
+        # 2) Lưu ghi chú
         if "save_comment" in request.form:
             safe_write_text(comment_file, request.form.get("comment_input", ""))
+
+        # 3) Upload ảnh (before/after) + ghi mốc thời gian tương ứng
         for tag, time_file in [(before_tag, before_time_file), (after_tag, after_time_file)]:
-            if f"{tag}_imgs" in request.files:
-                files = request.files.getlist(f"{tag}_imgs")
+            field_name = f"{tag}_imgs"
+            if field_name in request.files:
+                files = request.files.getlist(field_name)
                 count = 0
                 for file in files:
                     if file and allowed_file(file.filename):
                         ext = file.filename.rsplit('.', 1)[-1].lower()
-                        prefix = f"{tag}_"
+                        prefix_img = f"{tag}_"
                         nums = [
-                            int(f[len(prefix):].split('.')[0])
-                            for f in os.listdir(folder)
-                            if f.startswith(prefix) and f[len(prefix):].split('.')[0].isdigit()
+                            int(fname[len(prefix_img):].split('.')[0])
+                            for fname in os.listdir(folder)
+                            if fname.startswith(prefix_img) and fname[len(prefix_img):].split('.')[0].isdigit()
                         ]
                         next_num = max(nums) + 1 if nums else 1
                         new_fname = f"{tag}_{next_num}.{ext}"
@@ -1565,6 +2191,8 @@ def hot_cold_test(report, group):
                 if count > 0:
                     now = datetime.now(vn_tz).strftime("%d/%m/%Y %H:%M")
                     safe_write_text(time_file, now)
+
+        # 4) Xoá ảnh (và dọn mốc thời gian nếu hết ảnh)
         if "delete_img" in request.form:
             img = request.form["delete_img"]
             img_path = os.path.join(folder, img)
@@ -1572,47 +2200,71 @@ def hot_cold_test(report, group):
                 try:
                     os.remove(img_path)
                 except Exception:
-                    pass  # Bị xóa bởi thread khác
-            # Xử lý xóa file time nếu không còn ảnh
+                    pass
+            # Nếu không còn ảnh trước/sau thì xoá file time tương ứng
             if img.startswith(before_tag):
-                still_imgs = [f for f in os.listdir(folder) if allowed_file(f) and f.startswith(before_tag)]
-                if not still_imgs and os.path.exists(before_time_file):
-                    try:
-                        os.remove(before_time_file)
-                    except Exception:
-                        pass
+                still = [f for f in os.listdir(folder) if allowed_file(f) and f.startswith(before_tag)]
+                if not still and os.path.exists(before_time_file):
+                    try: os.remove(before_time_file)
+                    except Exception: pass
             if img.startswith(after_tag):
-                still_imgs = [f for f in os.listdir(folder) if allowed_file(f) and f.startswith(after_tag)]
-                if not still_imgs and os.path.exists(after_time_file):
-                    try:
-                        os.remove(after_time_file)
-                    except Exception:
-                        pass
-        session[f"last_test_type_{report}"] = f"HOT & COLD CYCLE TEST ({group.upper()})"
+                still = [f for f in os.listdir(folder) if allowed_file(f) and f.startswith(after_tag)]
+                if not still and os.path.exists(after_time_file):
+                    try: os.remove(after_time_file)
+                    except Exception: pass
+
+        # 5) Cập nhật thời gian test (giờ) — cho phép người dùng chọn
+        if "set_duration" in request.form:
+            raw = (request.form.get("duration") or "").strip()
+            try:
+                dur = float(raw)
+                if dur <= 0: raise ValueError
+                safe_write_text(duration_file, str(dur))
+                flash("Đã cập nhật thời gian test.", "success")
+            except Exception:
+                flash("Giá trị thời gian không hợp lệ.", "danger")
+
+        # quay lại GET để tránh resubmit
+        session[f"last_test_type_{report}"] = f"{display_title} ({group.upper()})"
         return redirect(request.url)
 
-    # --- Lấy trạng thái và comment ---
-    status = safe_read_text(status_file).strip()
-    comment = safe_read_text(comment_file).strip()
-    test_key = "hot_cold"
-    imgs_mo_ta = TEST_GROUP_TITLES[group][test_key]["img"]
-    # --- Lấy danh sách ảnh before/after ---
-    imgs_before = []
-    imgs_after = []
-    for f in sorted(os.listdir(folder)):
-        if allowed_file(f):
-            if f.startswith(before_tag):
-                imgs_before.append(f"/images/{report}/{f}")
-            if f.startswith(after_tag):
-                imgs_after.append(f"/images/{report}/{f}")
-    # --- Lấy thời gian upload nếu có ---
-    before_upload_time = safe_read_text(before_time_file).strip() if os.path.exists(before_time_file) else None
-    after_upload_time = safe_read_text(after_time_file).strip() if os.path.exists(after_time_file) else None
+    # ====== Đọc dữ liệu để render ======
+    status  = (safe_read_text(status_file) or "").strip()
+    comment = (safe_read_text(comment_file) or "").strip()
 
+    # Hình mô tả (nếu có trong TEST_GROUP_TITLES)
+    try:
+        imgs_mo_ta = (TEST_GROUP_TITLES.get(group, {}).get(test_key) or {}).get("img", [])
+    except Exception:
+        imgs_mo_ta = []
+
+    # Danh sách ảnh before/after
+    imgs_before, imgs_after = [], []
+    for fname in sorted(os.listdir(folder)):
+        if allowed_file(fname):
+            if fname.startswith(before_tag):
+                imgs_before.append(f"/images/{report}/{fname}")
+            elif fname.startswith(after_tag):
+                imgs_after.append(f"/images/{report}/{fname}")
+
+    # Thời gian upload
+    before_upload_time = (safe_read_text(before_time_file) or "").strip() if os.path.exists(before_time_file) else None
+    after_upload_time  = (safe_read_text(after_time_file) or "").strip()  if os.path.exists(after_time_file)  else None
+
+    # Thời gian đếm ngược (giờ): đọc từ file; fallback SO_GIO_TEST nếu trống/lỗi
+    raw_duration = safe_read_text(duration_file)
+    try:
+        so_gio_test = float(raw_duration) if raw_duration not in (None, "") else float(SO_GIO_TEST)
+    except Exception:
+        so_gio_test = 4.0  # fallback
+
+    # ====== Render ======
     return render_template(
-        "hot_cold_test.html",  # Template riêng cho hot-cold, hoặc dùng lại LINE_TEST_TEMPLATE đều được!
+        "hot_cold_test.html",
         report=report,
         group=group,
+        test_key=test_key,                                    # truyền xuống template để hiển thị tên/đặt field
+        title={'short': display_title, 'full': display_title},
         status=status,
         comment=comment,
         imgs_mo_ta=imgs_mo_ta,
@@ -1620,7 +2272,10 @@ def hot_cold_test(report, group):
         imgs_after=imgs_after,
         before_upload_time=before_upload_time,
         after_upload_time=after_upload_time,
-        so_gio_test=SO_GIO_TEST,
+        so_gio_test=so_gio_test,                              # JS đếm ngược dùng biến này
+        from_line=from_line,
+        before_tag=before_tag,   # <— thêm
+        after_tag=after_tag,     
     )
 
 def get_hotcold_elapsed(report, group):
@@ -1757,6 +2412,8 @@ def store_sample():
 
     # Đọc sample storage an toàn
     SAMPLE_STORAGE = safe_read_json(SAMPLE_STORAGE_FILE)
+    if not isinstance(SAMPLE_STORAGE, dict):
+        SAMPLE_STORAGE = {}
 
     # Kiểm tra đã có mẫu lưu với report+item_code này chưa
     found_location = None
@@ -1791,6 +2448,8 @@ def store_sample():
         location_id = free_slots[0]
         # --- Đọc lại (tránh ghi đè khi có nhiều người thao tác đồng thời) ---
         SAMPLE_STORAGE = safe_read_json(SAMPLE_STORAGE_FILE)
+        if not isinstance(SAMPLE_STORAGE, dict):
+            SAMPLE_STORAGE = {}
         SAMPLE_STORAGE[location_id] = {
             'report': report,
             'item_code': item_code,
@@ -1816,6 +2475,9 @@ def sample_map():
     location_id = request.args.get('location_id')
     # Luôn đọc dữ liệu từ file, không dùng biến toàn cục
     SAMPLE_STORAGE = safe_read_json(SAMPLE_STORAGE_FILE)
+    if not isinstance(SAMPLE_STORAGE, dict):
+        SAMPLE_STORAGE = {}
+
     sample = SAMPLE_STORAGE.get(location_id)
     if not sample:
         return "Không tìm thấy mẫu", 404
@@ -1835,6 +2497,8 @@ def sample_map():
 def list_samples():
     # Luôn đọc file dữ liệu mẫu
     SAMPLE_STORAGE = safe_read_json(SAMPLE_STORAGE_FILE)
+    if not isinstance(SAMPLE_STORAGE, dict):
+        SAMPLE_STORAGE = {}
 
     if request.method == "POST":
         loc = request.form.get("loc")
@@ -1882,8 +2546,6 @@ def serve_test_img(report, group, test_key, filename):
 
 @app.route("/view_counter_log")
 def view_counter_log():
-    import openpyxl
-    from collections import defaultdict, OrderedDict
 
     excel_path = "counter_detail_log.xlsx"
     rows = []
@@ -1948,6 +2610,13 @@ def view_counter_log():
         type_of_list=type_of_list,
     )
 
+DISPLAY = {
+    "hot_cold": "Hot & Cold cycle test",
+    "standing_water": "Standing water test",
+    "stain": "Stain test",
+    "corrosion": "Corrosion test",
+}
+
 def auto_notify_all_first_time():
     webhook_url = TEAMS_WEBHOOK_URL_COUNT
     try:
@@ -1974,26 +2643,28 @@ def auto_notify_all_first_time():
 
             # Hotcold test: gửi ngay khi đủ giờ (job mỗi phút)
             for group in ["indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal"]:
-                try:
-                    notify_when_enough_time(
-                        report=report_folder,
-                        so_gio_test=SO_GIO_TEST,
-                        tag_after="hot_cold_after",
-                        time_file_name=f"hotcold_before_time_{group}.txt",
-                        flag_file_name=f"teams_notified_hotcold_{group}.txt",
-                        webhook_url=webhook_url,
-                        notify_msg=f"✅ [TỰ ĐỘNG] Hot & Cold cycle test của REPORT {report_folder} ({group.upper()}) đã đủ {SO_GIO_TEST} tiếng! Vui lòng upload ảnh after.",
-                        force_send=False,
-                        pending_notify_name=f"pending_notify_hotcold_{group}.txt"
-                    )
-                except Exception as e:
-                    print(f"[auto_notify_all_first_time] Error notifying HOTCOLD ({group}) for {report_folder}:", e)
+                for key in HOTCOLD_LIKE:
+                    try:
+                        notify_when_enough_time(
+                            report=report_folder,
+                            so_gio_test=SO_GIO_TEST,
+                            tag_after=f"{key}_after",                             # ví dụ: hot_cold_after
+                            time_file_name=f"{key}_{group}_before_time.txt",      # ví dụ: hot_cold_indoor_thuong_before_time.txt
+                            flag_file_name=f"teams_notified_{key}_{group}.txt",
+                            webhook_url=webhook_url,
+                            notify_msg=(f"✅ [TỰ ĐỘNG] {DISPLAY.get(key, key.title())} của REPORT {report_folder} "
+                                        f"({group.upper()}) đã đủ {SO_GIO_TEST} tiếng! Vui lòng upload ảnh after."),
+                            force_send=False,
+                            pending_notify_name=f"pending_notify_{key}_{group}.txt"
+                        )
+                    except Exception as e:
+                        print(f"[auto_notify_all_first_time] Error notifying {key} ({group}) for {report_folder}:", e)
     except Exception as e:
         print("[auto_notify_all_first_time] Error listing folders:", e)
 
 def auto_notify_all_repeat():
     webhook_url = TEAMS_WEBHOOK_URL_COUNT
-    MAX_REPEAT = 3  # Chỉ nhắc lại 3 lần
+    MAX_REPEAT = 3
 
     def get_repeat_count(folder, file_name):
         path = os.path.join(folder, file_name)
@@ -2041,22 +2712,24 @@ def auto_notify_all_repeat():
 
         # --- HOTCOLD TEST ---
         for group in ["indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal"]:
-            repeat_file_hotcold = f"repeat_notify_hotcold_{group}.txt"
-            count_hotcold = get_repeat_count(folder, repeat_file_hotcold)
-            if count_hotcold < MAX_REPEAT:
-                sent = notify_when_enough_time(
-                    report=report_folder,
-                    so_gio_test=SO_GIO_TEST,
-                    tag_after="hot_cold_after",
-                    time_file_name=f"hotcold_before_time_{group}.txt",
-                    flag_file_name=None,
-                    webhook_url=webhook_url,
-                    notify_msg=f"✅ [TỰ ĐỘNG, NHẮC LẠI 1 TIẾNG] Hot & Cold cycle test của REPORT {report_folder} ({group.upper()}) đã đủ {SO_GIO_TEST} tiếng! Vui lòng upload ảnh after.",
-                    force_send=True,
-                    pending_notify_name=f"pending_notify_hotcold_{group}.txt"
-                )
-                if sent:
-                    increase_repeat_count(folder, repeat_file_hotcold)
+            for key in HOTCOLD_LIKE:
+                repeat_file = f"repeat_notify_{key}_{group}.txt"
+                count = get_repeat_count(folder, repeat_file)
+                if count < MAX_REPEAT:
+                    sent = notify_when_enough_time(
+                        report=report_folder,
+                        so_gio_test=SO_GIO_TEST,
+                        tag_after=f"{key}_after",
+                        time_file_name=f"{key}_{group}_before_time.txt",
+                        flag_file_name=None,
+                        webhook_url=webhook_url,
+                        notify_msg=(f"✅ [TỰ ĐỘNG, NHẮC LẠI 1 TIẾNG] {DISPLAY.get(key, key.title())} của REPORT "
+                                    f"{report_folder} ({group.upper()}) đã đủ {SO_GIO_TEST} tiếng! Vui lòng upload ảnh after."),
+                        force_send=True,
+                        pending_notify_name=f"pending_notify_{key}_{group}.txt"
+                    )
+                    if sent:
+                        increase_repeat_count(folder, repeat_file)
 
 def auto_notify_all_pending():
     webhook_url = TEAMS_WEBHOOK_URL_COUNT
@@ -2081,12 +2754,13 @@ def auto_notify_all_pending():
 
         # Hotcold test
         for group in ["indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal"]:
-            pending_path = os.path.join(folder, f"pending_notify_hotcold_{group}.txt")
-            if os.path.exists(pending_path):
-                with open(pending_path, "r", encoding="utf-8") as f:
-                    msg = f.read()
-                send_teams_message(webhook_url, msg)
-                os.remove(pending_path)
+            for key in HOTCOLD_LIKE:
+                pending_path = os.path.join(folder, f"pending_notify_{key}_{group}.txt")
+                if os.path.exists(pending_path):
+                    with open(pending_path, "r", encoding="utf-8") as f:
+                        msg = f.read()
+                    send_teams_message(webhook_url, msg)
+                    os.remove(pending_path)
 
 # Khởi tạo scheduler
 scheduler = BackgroundScheduler()
@@ -2095,5 +2769,116 @@ scheduler.add_job(func=auto_notify_all_repeat, trigger="interval", seconds=3600)
 scheduler.add_job(func=auto_notify_all_pending, trigger="interval", seconds=300)  # Kiểm tra pending mỗi 5 phút
 scheduler.start()
 
+@app.route("/set_pref", methods=["POST"])
+def set_pref():
+    key = request.json.get("key")
+    value = request.json.get("value")
+    if key in ("darkmode", "lang"):
+        session[key] = value
+        return jsonify({"success": True})
+    return jsonify({"success": False}), 400
+
+@app.post("/approve_all_stream")
+def approve_all_stream():
+    def gen():
+        # (0) Nhận các ETD cập nhật hàng loạt (nếu FE có gửi kèm)
+        try:
+            data = request.get_json(silent=True) or {}
+            updates = data.get("updates", [])
+            if updates:
+                pending0 = safe_read_json(TFR_LOG_FILE)
+                for u in updates:
+                    try:
+                        i = int(u.get("idx"))
+                        if 0 <= i < len(pending0) and pending0[i].get("trq_id") == u.get("trq_id"):
+                            pending0[i]["etd"] = (u.get("etd") or "").strip()
+                    except Exception:
+                        pass
+                safe_write_json(TFR_LOG_FILE, pending0)
+        except Exception as e:
+            yield json.dumps({"type": "error", "message": f"Bulk ETD update: {e}"}) + "\n"
+
+        # (1) Cleanup archive cũ (không chặn tiến trình)
+        try:
+            cleanup_archive_json(days=14)
+        except Exception as e:
+            yield json.dumps({"type": "error", "message": f"Cleanup: {e}"}) + "\n"
+
+        # (2) Lấy danh sách cần duyệt = Submitted + có ETD
+        pending = safe_read_json(TFR_LOG_FILE)
+        todo = [r for r in pending if r.get("status") == "Submitted" and r.get("etd")]
+        total = len(todo)
+        yield json.dumps({"type": "start", "total": total}) + "\n"
+
+        if total == 0:
+            yield json.dumps({"type": "done", "done": 0, "total": 0}) + "\n"
+            return
+
+        done = 0
+        for item in list(todo):
+            trq_id = item.get("trq_id")
+            try:
+                # (3) Cấp report_no + tạo DOCX/PDF với hàm trong docx_utils
+                with REPORT_NO_LOCK:
+                    # Trả về đường dẫn PDF tương đối (vd: "TFR/XXXX.pdf") và report_no
+                    pdf_rel_path, report_no = approve_request_fill_docx_pdf(item)
+
+                    # Cập nhật trạng thái + trường hiển thị
+                    item["status"] = "Approved"
+                    item["decline_reason"] = ""
+                    item["report_no"] = report_no
+                    item["pdf_path"] = pdf_rel_path  # đã có PDF
+                    item["docx_path"] = None         # PDF có sẵn nên ẩn DOCX nếu bạn muốn
+
+                # (4) (Tuỳ code) Ghi Excel TRF nếu bạn có hàm write_tfr_to_excel
+                try:
+                    write_tfr_to_excel(local_main, report_no, item)  # nếu không có, bỏ qua
+                except Exception:
+                    pass  # không chặn luồng approve
+
+                # (5) Archive bản rút gọn
+                try:
+                    short_data = {
+                        "trq_id": trq_id,
+                        "report_no": report_no,
+                        "requestor": item.get("requestor",""),
+                        "department": item.get("department",""),
+                        "request_date": item.get("request_date",""),
+                        "status": item.get("status",""),
+                        "pdf_path": item.get("pdf_path"),
+                        "docx_path": item.get("docx_path"),
+                        "approved_date": datetime.now(pytz.timezone("Asia/Ho_Chi_Minh")).strftime("%Y-%m-%d"),
+                    }
+                    archive_request(short_data)
+                except Exception:
+                    pass
+
+                # (6) Xoá request đã duyệt khỏi pending và lưu file
+                pending = [r for r in pending if r.get("trq_id") != trq_id]
+                safe_write_json(TFR_LOG_FILE, pending)
+
+                # (7) Báo tiến độ 1/n → n/n
+                done += 1
+                yield json.dumps({
+                    "type": "progress",
+                    "done": done,
+                    "total": total,
+                    "trq_id": trq_id,
+                    "report_no": report_no
+                }) + "\n"
+
+            except Exception as e:
+                yield json.dumps({"type": "error", "message": str(e), "trq_id": trq_id}) + "\n"
+
+        # (8) Kết thúc
+        yield json.dumps({"type": "done", "done": done, "total": total}) + "\n"
+
+    headers = {
+        "Content-Type": "application/x-ndjson; charset=utf-8",
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    }
+    return Response(stream_with_context(gen()), headers=headers)
+
 if __name__ == "__main__":
-    serve(app, host="0.0.0.0", port=8246)
+    app.run(host="0.0.0.0", port=8246,debug=True)

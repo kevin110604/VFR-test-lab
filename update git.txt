@@ -1,65 +1,9 @@
-Dưới đây là bản tổng hợp đầy đủ và dễ hiểu dành cho bạn:
-👉 Cách xóa toàn bộ thay đổi local và pull lại code mới nhất từ GitHub mà không ảnh hưởng file bị .gitignore (như .venv, .xlsx, .json,...)
+git add .
+git commit -m "update all code"
+git push --force
 
-✅ 1. Khi nào cần làm việc này?
-Bạn có nhiều file trong tab CHANGES mà không muốn giữ
+git fetch
+git checkout origin/main -- "*.py" "*.html"
 
-Bạn muốn lấy lại repo sạch y chang GitHub
-
-Bạn đã thiết lập .gitignore đúng
-
-✅ 2. Các bước thực hiện
-🧹 BƯỚC 1: Xóa toàn bộ thay đổi local (đã chỉnh nhưng chưa commit)
-git reset --hard
-✔️ Khôi phục toàn bộ file về đúng bản trong Git (GitHub)
-
-🧽 BƯỚC 2: Xóa file "chưa được theo dõi" (untracked files/folders)
-git clean -fd
-✔️ Xóa các file mới tạo mà chưa add vào Git
-⚠️ KHÔNG đụng đến các file đã nằm trong .gitignore
-
-🔄 BƯỚC 3: Pull lại code sạch từ GitHub
-git pull
-✔️ Đồng bộ project của bạn về bản mới nhất từ GitHub
-
-📌 3. Sau khi làm xong, chuyện gì xảy ra?
-Thứ gì	                                    Kết quả
-.venv/, *.xlsx, *.json, static/,...	✅ Vẫn giữ nguyên
-Những file bạn sửa (chưa commit)	❌ Bị mất (khôi phục về bản Git)
-Những file mới tạo (untracked)	        ❌ Bị xóa (nếu dùng git clean)
-Code trong VS Code	                ✅ Cập nhật bản mới nhất từ GitHub
-Tab CHANGES	                        ✅ Trống, sạch sẽ
-
-💬 Gợi ý thêm
-Kiểm tra trạng thái trước khi làm:
-
-bash
-Copy
-Edit
-git status
-Nếu chỉ muốn xoá 1 file cụ thể, dùng:
-
-bash
-Copy
-Edit
-git restore tên_file.py
-🧠 Mẹo an toàn
-Nếu không chắc chắn, hãy backup project trước:
-
-bash
-Copy
-Edit
-cp -r project_folder project_backup
-Nếu bạn muốn, mình có thể gói toàn bộ lệnh này thành 1 script .bat (Windows) hoặc .sh (Mac/Linux) để bạn chạy 1 lần là dọn sạch.
-
-Bạn cần bản nào không?
-
-
-
-
-
-
-
-
-
-Ask ChatGPT
+if __name__ == "__main__":
+    serve(app,host="0.0.0.0", port=8246)
