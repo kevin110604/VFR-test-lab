@@ -3,8 +3,12 @@ import zipfile
 import hashlib
 import json
 import time
-from datetime import datetime
-from PIL import Image
+import shutil
+import tempfile
+import re
+from datetime import datetime, date
+from collections import Counter
+from PIL import Image, ImageOps, ExifTags
 from office365.sharepoint.client_context import ClientContext
 from office365.runtime.auth.authentication_context import AuthenticationContext
 
@@ -14,74 +18,61 @@ username = "tan_qa@vfr.net.vn"
 password = "qaz@Tat@123"
 upload_folder_sharepoint = "/sites/TESTLAB-VFR9/Shared Documents/DATA DAILY/IMAGES_ZIP/"
 local_images = "images"
-MAX_ZIP_SIZE_MB = 200
-MAX_ZIP_SIZE = MAX_ZIP_SIZE_MB * 1024 * 1024
+
 tmp_download_folder = "__tmp_sharepoint__"
-if not os.path.exists(tmp_download_folder):
-    os.makedirs(tmp_download_folder)
+os.makedirs(tmp_download_folder, exist_ok=True)
 
-# ==== Tiện ích dọn file .txt rác: repeat / notified, chỉ xóa khi ≥ 2 ngày ====
-def clean_noise_txt(root_folder: str, dry_run: bool = False, min_age_days: int = 2) -> int:
-    """
-    Xóa các file .txt có 'repeat' hoặc 'notified' trong tên (không phân biệt hoa/thường)
-    CHỈ KHI file đã tồn tại ít nhất `min_age_days` ngày (dựa trên mtime).
-
-    - root_folder: thư mục gốc để quét
-    - dry_run: True -> chỉ in ra file sẽ xóa, không xóa thật
-    - min_age_days: số ngày tối thiểu file phải "già" để được xóa
-
-    Trả về: số lượng file đã (hoặc sẽ) xóa.
-    """
-    keywords = ("repeat", "notified")
-    deleted = 0
+# =============== TXT CLEAN ===============
+def clean_unlabeled_txt(root_folder: str, dry_run: bool = False, min_age_days: int = 0) -> int:
     if not os.path.isdir(root_folder):
         return 0
-
+    keep_keywords = ("comment", "status")
+    deleted = 0
     now = time.time()
-    threshold_seconds = min_age_days * 24 * 60 * 60
-
+    threshold_seconds = max(0, min_age_days) * 24 * 60 * 60
     for foldername, _, filenames in os.walk(root_folder):
         for filename in filenames:
-            name_lower = filename.lower()
-            if not (name_lower.endswith(".txt") and any(kw in name_lower for kw in keywords)):
+            if not filename.lower().endswith(".txt"):
                 continue
-
+            name_lower = filename.lower()
+            if any(kw in name_lower for kw in keep_keywords):
+                continue
             file_path = os.path.join(foldername, filename)
             try:
-                mtime = os.path.getmtime(file_path)  # thời điểm sửa đổi cuối cùng
+                mtime = os.path.getmtime(file_path)
             except FileNotFoundError:
-                # Có thể file vừa bị xóa/di chuyển
                 continue
             age_seconds = now - mtime
-
-            if age_seconds >= threshold_seconds:
-                if dry_run:
-                    print(f"[DRY-RUN] Sẽ xóa: {file_path} (tuổi ~ {age_seconds/86400:.2f} ngày)")
-                    deleted += 1
-                else:
-                    try:
-                        os.remove(file_path)
-                        print(f"Đã xóa: {file_path} (tuổi ~ {age_seconds/86400:.2f} ngày)")
-                        deleted += 1
-                    except Exception as e:
-                        print(f"Lỗi khi xóa {file_path}: {e}")
+            if threshold_seconds > 0 and age_seconds < threshold_seconds:
+                continue
+            if dry_run:
+                print(f"[DRY-RUN] Sẽ xoá: {file_path}")
+                deleted += 1
             else:
-                # File còn mới (< 2 ngày), không xóa
-                print(f"Giữ lại (mới < {min_age_days} ngày): {file_path}")
+                try:
+                    os.remove(file_path)
+                    print(f"Đã xoá: {file_path}")
+                    deleted += 1
+                except Exception as e:
+                    print(f"Lỗi khi xoá {file_path}: {e}")
     return deleted
 
-# ==== Hàm nén ảnh trực tiếp (chỉ khi cần) ====
-def compress_image_inplace(path, quality=70, max_size=(1920,1080)):
+# =============== IMAGE COMPRESS (IN-PLACE, IDEMPOTENT) ===============
+def compress_image_inplace(path, quality=80, max_side=2000):
     try:
-        img = Image.open(path)
-        img.thumbnail(max_size, Image.LANCZOS)
-        if img.mode in ("RGBA", "P"):
-            img = img.convert("RGB")
-        img.save(path, "JPEG", quality=quality, optimize=True)
+        with Image.open(path) as img:
+            img = ImageOps.exif_transpose(img)
+            w, h = img.size
+            m = max(w, h)
+            if m > max_side:
+                scale = max_side / float(m)
+                img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            img.save(path, "JPEG", quality=quality, optimize=True)
     except Exception as e:
-        print(f"Lỗi nén ảnh {path}: {e}")
+        print(f"[WARN] Lỗi nén ảnh {path}: {e}")
 
-# ==== Metadata: Lưu/đọc thông tin nén trong từng folder con ====
 def write_compress_meta(folder, files_info):
     meta_file = os.path.join(folder, ".compressed_info.json")
     with open(meta_file, "w") as f:
@@ -94,40 +85,55 @@ def read_compress_meta(folder):
     with open(meta_file, "r") as f:
         return json.load(f)
 
-def compress_folder_inplace_smart(folder, quality=70, max_size=(1920,1080)):
+def compress_folder_inplace_smart(folder, quality=80, max_side=2000):
     old_meta = read_compress_meta(folder)
     files_info = {}
-    nened = False
+    changed = False
     for root, _, files in os.walk(folder):
         for file in files:
             ext = file.lower().split(".")[-1]
             if ext not in ["jpg", "jpeg", "png"]:
                 continue
             path = os.path.join(root, file)
-            mtime = os.path.getmtime(path)
-            size = os.path.getsize(path)
+            try:
+                mtime = os.path.getmtime(path)
+                size = os.path.getsize(path)
+            except FileNotFoundError:
+                continue
             key = os.path.relpath(path, folder)
             files_info[key] = [mtime, size]
             old = old_meta.get(key)
-            # Nếu file mới, hoặc đã sửa/đổi size, mới nén lại!
             if (old is None) or (old[0] != mtime or old[1] != size):
-                compress_image_inplace(path, quality, max_size)
-                nened = True
-                # Cập nhật lại mtime và size sau nén
-                mtime2 = os.path.getmtime(path)
-                size2 = os.path.getsize(path)
-                files_info[key] = [mtime2, size2]
+                compress_image_inplace(path, quality=quality, max_side=max_side)
+                changed = True
+                try:
+                    mtime2 = os.path.getmtime(path)
+                    size2 = os.path.getsize(path)
+                    files_info[key] = [mtime2, size2]
+                except FileNotFoundError:
+                    pass
     write_compress_meta(folder, files_info)
-    return nened
+    return changed
 
+# =============== SHAREPOINT & ZIP UTILS ===============
 def md5sum(filename, bufsize=65536):
     h = hashlib.md5()
-    with open(filename, 'rb') as f:
+    with open(filename, "rb") as f:
         while True:
             chunk = f.read(bufsize)
             if not chunk:
                 break
             h.update(chunk)
+    return h.hexdigest()
+
+def file_md5(path, bufsize=65536):
+    h = hashlib.md5()
+    with open(path, "rb") as f:
+        while True:
+            b = f.read(bufsize)
+            if not b:
+                break
+            h.update(b)
     return h.hexdigest()
 
 def download_file_from_sharepoint(ctx, folder_url, filename, local_path):
@@ -142,147 +148,229 @@ def download_file_from_sharepoint(ctx, folder_url, filename, local_path):
             return True
     return False
 
-def folder_month(folder):
-    """Lấy tháng theo file earliest created trong folder."""
-    min_time = None
-    for root, _, files in os.walk(folder):
-        for file in files:
-            path = os.path.join(root, file)
-            ctime = os.path.getctime(path)
-            if min_time is None or ctime < min_time:
-                min_time = ctime
-    if not min_time:
+def upload_file_to_sharepoint(ctx, folder_url, local_file, remote_name=None):
+    if remote_name is None:
+        remote_name = os.path.basename(local_file)
+    with open(local_file, "rb") as fz:
+        ctx.web.get_folder_by_server_relative_url(folder_url) \
+            .upload_file(remote_name, fz.read()).execute_query()
+
+def unzip_to_dir(zip_path, dest_dir):
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        zf.extractall(dest_dir)
+
+# =============== DATE DERIVATION FROM IMAGES ===============
+IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".tif", ".tiff", ".bmp", ".heic", ".heif"}
+
+def is_image_file(path):
+    return os.path.splitext(path)[1].lower() in IMAGE_EXTS
+
+def parse_date_from_name(name: str):
+    s = name.lower()
+    pats = [
+        r'(?P<y>20\d{2})[-_\.]?(?P<m>0[1-9]|1[0-2])[-_\.]?(?P<d>0[1-9]|[12]\d|3[01])',  # 20250817 / 2025-08-17
+        r'(?P<d>0[1-9]|[12]\d|3[01])[-_\.](?P<m>0[1-9]|1[0-2])[-_\.](?P<y>20\d{2})',     # 17-08-2025
+    ]
+    for pat in pats:
+        m = re.search(pat, s)
+        if m:
+            try:
+                y, mth, d = int(m.group("y")), int(m.group("m")), int(m.group("d"))
+                return datetime(y, mth, d)
+            except Exception:
+                continue
+    return None
+
+EXIF_KEYS = {k for k, v in ExifTags.TAGS.items() if v in ("DateTimeOriginal", "DateTimeDigitized", "DateTime")}
+
+def get_exif_datetime(path):
+    try:
+        with Image.open(path) as im:
+            exif = getattr(im, "getexif", lambda: None)()
+            if not exif:
+                return None
+            for k in EXIF_KEYS:
+                if k in exif:
+                    val = str(exif.get(k))
+                    try:
+                        return datetime.strptime(val.replace("-", ":").replace(".", ":"), "%Y:%m:%d %H:%M:%S")
+                    except Exception:
+                        pass
+    except Exception:
+        pass
+    return None
+
+def best_guess_datetime(path):
+    dt = get_exif_datetime(path)
+    if dt:
+        return dt
+    dt = parse_date_from_name(os.path.basename(path))
+    if dt:
+        return dt
+    try:
+        return datetime.fromtimestamp(os.path.getmtime(path))
+    except Exception:
         return None
-    return datetime.fromtimestamp(min_time).strftime('%Y%m')
 
-def get_folder_size(folder):
-    total = 0
-    for dirpath, _, filenames in os.walk(folder):
-        for f in filenames:
-            fp = os.path.join(dirpath, f)
-            if os.path.isfile(fp):
-                total += os.path.getsize(fp)
-    return total
+def folder_day_by_images(folder) -> str:
+    """
+    Tính ngày cho CẢ folder dựa trên ảnh bên trong:
+      - Lấy ngày (YYYY-MM-DD) cho TỪNG ảnh: EXIF -> tên file -> mtime.
+      - Chọn NGÀY PHỔ BIẾN NHẤT (mode). Nếu hoà, lấy ngày SỚM NHẤT.
+      - Nếu không có ảnh → dùng earliest ctime của mọi file.
+    """
+    dates: list[date] = []
+    earliest_ts = None
 
-# ==== Đăng nhập SharePoint ====
+    for root, _, files in os.walk(folder):
+        for fname in files:
+            full = os.path.join(root, fname)
+            # track earliest ts as fallback
+            try:
+                ctime = os.path.getctime(full)
+                earliest_ts = ctime if earliest_ts is None or ctime < earliest_ts else earliest_ts
+            except FileNotFoundError:
+                pass
+
+            if not is_image_file(full):
+                continue
+            dt = best_guess_datetime(full)
+            if dt:
+                dates.append(dt.date())
+
+    if dates:
+        cnt = Counter(dates)
+        max_count = max(cnt.values())
+        candidates = [d for d, c in cnt.items() if c == max_count]
+        chosen = min(candidates)  # tie-breaker: earliest
+        return chosen.strftime("%Y-%m-%d")
+
+    if earliest_ts is not None:
+        return datetime.fromtimestamp(earliest_ts).strftime("%Y-%m-%d")
+
+    # last resort: today
+    return datetime.now().strftime("%Y-%m-%d")
+
+def month_from_day_label(day_label: str) -> str:
+    # "YYYY-MM-DD" -> "YYYYMM"
+    try:
+        return day_label[:4] + day_label[5:7]
+    except Exception:
+        return datetime.now().strftime("%Y%m")
+
+def ensure_dir(path):
+    os.makedirs(path, exist_ok=True)
+
+def copy_merge_folder(src_folder, dst_folder):
+    """
+    Gộp src_folder vào dst_folder:
+      - bỏ .txt không nhãn
+      - nếu file chưa tồn tại: copy
+      - nếu tồn tại: so sánh size+md5; nếu khác -> ghi đè
+    """
+    for root, _, files in os.walk(src_folder):
+        for fname in files:
+            src_path = os.path.join(root, fname)
+            if fname.lower().endswith(".txt"):
+                low = fname.lower()
+                if ("comment" not in low) and ("status" not in low):
+                    continue
+            rel = os.path.relpath(src_path, src_folder)
+            dst_path = os.path.join(dst_folder, rel)
+            ensure_dir(os.path.dirname(dst_path))
+            if not os.path.exists(dst_path):
+                shutil.copy2(src_path, dst_path)
+            else:
+                try:
+                    if os.path.getsize(src_path) != os.path.getsize(dst_path) or file_md5(src_path) != file_md5(dst_path):
+                        shutil.copy2(src_path, dst_path)
+                except FileNotFoundError:
+                    shutil.copy2(src_path, dst_path)
+
+# =============== AUTH ===============
 ctx_auth = AuthenticationContext(site_url)
 if not ctx_auth.acquire_token_for_user(username, password):
     raise Exception("Không kết nối được SharePoint!")
 ctx = ClientContext(site_url, ctx_auth)
 
-# ==== Duyệt từng folder, dọn .txt rác (≥2 ngày), nén nếu cần, ghi log ====
-folders = [os.path.join(local_images, f) for f in os.listdir(local_images) if os.path.isdir(os.path.join(local_images, f))]
-folders.sort()
+# =============== MAIN PIPELINE ===============
+def process():
+    # Liệt kê các folder 25-xxxx
+    folders = [os.path.join(local_images, f) for f in os.listdir(local_images)
+               if os.path.isdir(os.path.join(local_images, f))]
+    folders.sort()
 
-folders_by_month = {}
-for folder in folders:
-    folder_name = os.path.basename(folder)
+    # 1) Clean + Resize in-place trên GỐC (idempotent)
+    for folder in folders:
+        clean_unlabeled_txt(folder, dry_run=False, min_age_days=0)
+        compress_folder_inplace_smart(folder, quality=80, max_side=2000)
 
-    # 1) Dọn file .txt rác trước (chỉ xóa khi ≥ 2 ngày)
-    print(f"Clean .txt (repeat/notified, tuổi ≥ 2 ngày) trong folder {folder_name} ...")
-    removed_count = clean_noise_txt(folder, dry_run=False, min_age_days=2)
-    if removed_count:
-        print(f"→ Đã xóa {removed_count} file .txt rác.")
-    else:
-        print("→ Không có file .txt rác đủ điều kiện để xóa.")
+    # 2) Gom bucket theo THÁNG, nhưng tháng lấy từ day_label (của folder theo ảnh)
+    month_buckets = {}  # { 'YYYYMM': [(folder_path, day_label)] }
+    for folder in folders:
+        day_label = folder_day_by_images(folder)      # YYYY-MM-DD (từ ảnh)
+        m_label = month_from_day_label(day_label)     # YYYYMM
+        month_buckets.setdefault(m_label, []).append((folder, day_label))
 
-    # 2) Nén ảnh thông minh
-    print(f"Check nén folder {folder_name} ...")
-    nened = compress_folder_inplace_smart(folder, quality=70, max_size=(1920,1080))
-    if nened:
-        print(f"→ Đã nén lại ảnh mới/chưa nén.")
-    else:
-        print(f"→ Không có ảnh mới, bỏ qua nén.")
+    # 3) Với mỗi tháng -> tải zip cũ (nếu có), merge, thêm local, zip lại & upload
+    for thang, entries in sorted(month_buckets.items()):
+        month_zip_name = f"images_{thang}.zip"
 
-    # 3) Gom nhóm theo tháng
-    thang = folder_month(folder)
-    if not thang:
-        continue
-    if thang not in folders_by_month:
-        folders_by_month[thang] = []
-    folders_by_month[thang].append(folder)
+        with tempfile.TemporaryDirectory() as staging_parent:
+            staging_root = os.path.join(staging_parent, f"{thang}_root")  # YYYY-MM-DD/25-xxxx/...
+            ensure_dir(staging_root)
 
-# ==== Gom các folder cùng tháng thành 1 zip (<= 200MB/zip) ====
-for thang, month_folders in sorted(folders_by_month.items()):
-    cur_group = []
-    cur_size = 0
-    group_idx = 1
-    for folder in month_folders:
-        fsize = get_folder_size(folder)
-        if cur_group and cur_size + fsize > MAX_ZIP_SIZE:
-            zip_file = f"images_{thang}_part{group_idx}.zip" if group_idx > 1 else f"images_{thang}.zip"
-            # Tạo zip
-            with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                for f in cur_group:
-                    for root, _, files in os.walk(f):
-                        for file in files:
-                            full_path = os.path.join(root, file)
-                            arcname = os.path.relpath(full_path, os.path.dirname(month_folders[0]))
-                            zipf.write(full_path, arcname)
-            # Check hash với SharePoint
-            local_md5 = md5sum(zip_file)
-            remote_zip_path = os.path.join(tmp_download_folder, zip_file)
-            exists = download_file_from_sharepoint(ctx, upload_folder_sharepoint, zip_file, remote_zip_path)
-            if exists:
-                remote_md5 = md5sum(remote_zip_path)
-                if remote_md5 == local_md5:
-                    print(f"Không có thay đổi trong {zip_file}, KHÔNG upload lên SharePoint.")
-                    os.remove(zip_file)
-                    os.remove(remote_zip_path)
-                    cur_group = []
-                    cur_size = 0
-                    group_idx += 1
-                    continue
+            # 3.1 Merge từ SharePoint nếu có
+            sp_local_copy = os.path.join(staging_parent, f"dl_{month_zip_name}")
+            exists_remote = download_file_from_sharepoint(ctx, upload_folder_sharepoint, month_zip_name, sp_local_copy)
+            if exists_remote:
+                print(f"[INFO] Tải {month_zip_name} từ SharePoint để merge...")
+                unzip_to_dir(sp_local_copy, staging_parent)
+
+                # Tìm tất cả thư mục ngày đã unzip, copy vào staging_root
+                # (chúng ta không giả định exact root trong zip; copy mọi dir con vào staging_root)
+                for item in os.listdir(staging_parent):
+                    p = os.path.join(staging_parent, item)
+                    if os.path.isdir(p) and item != os.path.basename(staging_root):
+                        for day_folder in os.listdir(p):
+                            src_day = os.path.join(p, day_folder)
+                            dst_day = os.path.join(staging_root, day_folder)
+                            if os.path.isdir(src_day):
+                                ensure_dir(dst_day)
+                                copy_merge_folder(src_day, dst_day)
+
+            # 3.2 Thêm dữ liệu LOCAL theo đúng ngày
+            for folder, day_label in entries:
+                dst_day_dir = os.path.join(staging_root, day_label)
+                dst_folder = os.path.join(dst_day_dir, os.path.basename(folder))
+                ensure_dir(dst_folder)
+                copy_merge_folder(folder, dst_folder)
+
+            # 3.3 Đóng gói lại zip tháng (không giữ byday trên máy)
+            parent_for_zip = os.path.dirname(staging_root)
+            zip_path_temp = os.path.join(staging_parent, month_zip_name)
+            with zipfile.ZipFile(zip_path_temp, "w", zipfile.ZIP_DEFLATED) as zf:
+                for root, _, files in os.walk(staging_root):
+                    for name in files:
+                        full = os.path.join(root, name)
+                        arc = os.path.relpath(full, parent_for_zip)
+                        zf.write(full, arc)
+
+            # 3.4 So sánh MD5 với bản cũ & upload nếu có thay đổi
+            if exists_remote:
+                old_md5 = md5sum(sp_local_copy)
+                new_md5 = md5sum(zip_path_temp)
+                if old_md5 == new_md5:
+                    print(f"[INFO] {month_zip_name}: Không có thay đổi. Bỏ qua upload.")
                 else:
-                    print(f"{zip_file} trên SharePoint đã khác, sẽ upload mới (ghi đè).")
-                os.remove(remote_zip_path)
+                    print(f"[INFO] {month_zip_name}: Có thay đổi. Upload lên SharePoint...")
+                    upload_file_to_sharepoint(ctx, upload_folder_sharepoint, zip_path_temp, month_zip_name)
+                    print(f"[OK] Uploaded {month_zip_name}")
             else:
-                print(f"SharePoint chưa có {zip_file}, sẽ upload mới.")
+                print(f"[INFO] {month_zip_name} chưa tồn tại. Upload mới...")
+                upload_file_to_sharepoint(ctx, upload_folder_sharepoint, zip_path_temp, month_zip_name)
+                print(f"[OK] Uploaded {month_zip_name}")
 
-            with open(zip_file, "rb") as fz:
-                ctx.web.get_folder_by_server_relative_url(upload_folder_sharepoint) \
-                    .upload_file(zip_file, fz.read()).execute_query()
-            print(f"Đã upload {zip_file} lên SharePoint.")
-            os.remove(zip_file)
-            print(f"Đã xoá {zip_file} ở local.")
-
-            # Reset group
-            cur_group = []
-            cur_size = 0
-            group_idx += 1
-        cur_group.append(folder)
-        cur_size += fsize
-    # Xử lý phần cuối cùng chưa zip
-    if cur_group:
-        zip_file = f"images_{thang}_part{group_idx}.zip" if group_idx > 1 else f"images_{thang}.zip"
-        with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            for f in cur_group:
-                for root, _, files in os.walk(f):
-                    for file in files:
-                        full_path = os.path.join(root, file)
-                        arcname = os.path.relpath(full_path, os.path.dirname(month_folders[0]))
-                        zipf.write(full_path, arcname)
-        local_md5 = md5sum(zip_file)
-        remote_zip_path = os.path.join(tmp_download_folder, zip_file)
-        exists = download_file_from_sharepoint(ctx, upload_folder_sharepoint, zip_file, remote_zip_path)
-        if exists:
-            remote_md5 = md5sum(remote_zip_path)
-            if remote_md5 == local_md5:
-                print(f"Không có thay đổi trong {zip_file}, KHÔNG upload lên SharePoint.")
-                os.remove(zip_file)
-                os.remove(remote_zip_path)
-                continue
-            else:
-                print(f"{zip_file} trên SharePoint đã khác, sẽ upload mới (ghi đè).")
-            os.remove(remote_zip_path)
-        else:
-            print(f"SharePoint chưa có {zip_file}, sẽ upload mới.")
-
-        with open(zip_file, "rb") as fz:
-            ctx.web.get_folder_by_server_relative_url(upload_folder_sharepoint) \
-                .upload_file(zip_file, fz.read()).execute_query()
-        print(f"Đã upload {zip_file} lên SharePoint.")
-        os.remove(zip_file)
-        print(f"Đã xoá {zip_file} ở local.")
-
-print("\nĐã xử lý xong tất cả các nhóm folder theo tháng (đã dọn .txt rác cũ ≥2 ngày, ảnh chỉ nén và up khi có thay đổi).")
+if __name__ == "__main__":
+    process()
+    print("\nHoàn tất: gom theo NGÀY dựa trên metadata ảnh (không dùng tên folder), merge với zip tháng trên SharePoint, zip lại & upload. Không giữ byday/zip ở local.")

@@ -638,7 +638,7 @@
                             <div class="radio-row" style="margin-top:8px;">
                                 <label>
                                     <input type="radio" name="material_type" value="WOOD">
-                                    <span class="text-wood">WOOD</span>
+                                    <span class="text-wood">WOOD/OTHERS...</span>
                                 </label>
                                 <label>
                                     <input type="radio" name="material_type" value="METAL">
@@ -746,22 +746,21 @@
         }
 
         // ===================== DARKMODE TOGGLE =====================
-        let dark = localStorage.getItem("vfr-darkmode") === "1";
+        let INIT_DARK = {{ 'true' if darkmode in ('1', 1, True) else 'false' }};
         function applyDark(b) {
-            document.body.classList.toggle("darkmode", b);
+            // gắn cả 2 class để khớp CSS cũ và mới
+            document.body.classList.toggle('darkmode', b);
+            document.body.classList.toggle('dark', b);
             let btn = document.getElementById('theme-btn');
             if (btn) btn.innerHTML = b ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
-            setPref("darkmode", b ? "1" : "0");
+            setPref('darkmode', b ? '1' : '0');
         }
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
+            // ưu tiên localStorage, fallback INIT_DARK từ server
+            let dark = (localStorage.getItem('vfr-darkmode') ?? (INIT_DARK ? '1' : '0')) === '1';
             applyDark(dark);
-            let themeBtn = document.getElementById('theme-btn');
-            if (themeBtn) {
-                themeBtn.onclick = function() {
-                    dark = !dark;
-                    applyDark(dark);
-                };
-            }
+            const themeBtn = document.getElementById('theme-btn');
+            if (themeBtn) themeBtn.onclick = () => { dark = !dark; applyDark(dark); };
         });
 
         // ===================== LANGUAGE TOGGLE (multi-language, có bổ sung) =====================
@@ -814,7 +813,7 @@
                 "text-qa-test": "QA TEST",
                 "text-line-test": "LINE TEST",
                 "text-material-type-label": "Chọn loại vật liệu <span class='required'>*</span>",
-                "text-wood": "GỖ",
+                "text-wood": "GỖ VÀ VẬT LIỆU KHÁC...",
                 "text-metal": "KIM LOẠI"
             },
             en: {
@@ -864,7 +863,7 @@
                 "text-qa-test": "QA TEST",
                 "text-line-test": "LINE TEST",
                 "text-material-type-label": "Choose material type <span class='required'>*</span>",
-                "text-wood": "WOOD",
+                "text-wood": "WOOD/OTHERS...",
                 "text-metal": "METAL"
             }
         };

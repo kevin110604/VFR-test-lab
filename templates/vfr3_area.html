@@ -203,7 +203,7 @@
         <i class="fa fa-rotate-left"></i><span>Trả hàng</span>
       </a>
 
-      {% if session.get('role') == 'vfr3' %}
+      {% if session.get('role') in ['vfr3', 'superadmin'] %}
       <a href="/{{ area }}/inventory" class="action-btn">
         <i class="fa fa-table"></i><span>Danh sách sản phẩm</span>
       </a>
