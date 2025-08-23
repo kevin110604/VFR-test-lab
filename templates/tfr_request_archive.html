@@ -64,7 +64,7 @@
             background: #fffbe8e5; border-radius: 14px; font-size: .97rem; box-shadow: 0 2px 12px #bca96b18; table-layout: fixed;
         }
         th, td { padding: 9px 7px; text-align: center; vertical-align: middle; white-space: nowrap; word-break: break-word; }
-        th, td { width: calc(100% / 9); } /* 9 cột */
+        th, td { width: calc(100% / 10); } /* 9 cột */
         th { background: var(--main-th); color: #25312b; font-weight: 700; font-size: 1rem; letter-spacing: 0.04em; border: none; }
         tr:first-child th:first-child { border-radius: 12px 0 0 0; }
         tr:first-child th:last-child  { border-radius: 0 12px 0 0; }
@@ -162,6 +162,7 @@
                 <th>Requestor</th>
                 <th>Dept.</th>
                 <th>Date</th>
+                <th>ETD</th>
                 <th>Status</th>
                 <th>Result</th>
                 <th>File</th>
@@ -176,6 +177,7 @@
                 <td>{{ r.request_date }}</td>
                 <td class="status {{ (r.status_display or '').replace(' ', '_') }}">{{ r.status_display or "" }}</td>
                 <td class="rating {{ (r.rating or '').upper() }}">{{ r.rating or "-" }}</td>
+                <td>{{ r.etd or "-" }}</td> 
                 <td>
                     {% if r.pdf_path %}
                         <a class="btn-pdf" href="{{ url_for('static', filename=r.pdf_path) }}" target="_blank">
