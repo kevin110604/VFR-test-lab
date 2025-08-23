@@ -120,7 +120,7 @@ def _find_report_col(ws):
         n = _norm_str(name)
         if "REPORT" in n and "NO" in n:
             return col
-    return 2
+    return 1
 
 def _find_row_by_report(ws, report_no, report_col=None):
     """Tìm row có giá trị cột REPORT NO == report_no (so khớp mạnh)."""

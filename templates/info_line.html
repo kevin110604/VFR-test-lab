@@ -597,6 +597,12 @@
             <a href="/" tabindex="0">[Chọn mã sản phẩm khác]</a>
         </div>
         <div class="info-title">THÔNG TIN SẢN PHẨM</div>
+        {% if trq_id %}
+        <div class="item-row">
+            <span class="label">TRQ‑ID</span>
+            <span class="value">{{ trq_id }}</span>
+        </div>
+        {% endif %}
         {% if last_test_type %}
         <div class="test-type-notify" style="text-align:center;color:#b68b22;font-size:18px;font-weight:600;margin-bottom:13px;">
                <b>Loại test:</b> {{ last_test_type }}

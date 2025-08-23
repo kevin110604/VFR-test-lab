@@ -729,25 +729,33 @@ def tfr_request_form():
     editing = False
 
     # Nếu có trq_id + edit_idx -> đang ở chế độ EDIT: nạp sẵn dữ liệu vào form_data
-    if trq_id is not None and edit_idx is not None:
+    if trq_id:
         try:
-            abs_idx = int(edit_idx)
-            # Ưu tiên: coi edit_idx là index tuyệt đối
-            if 0 <= abs_idx < len(tfr_requests) and tfr_requests[abs_idx].get("trq_id") == trq_id:
+            # Lấy tất cả vị trí có cùng TRQ-ID trong file gốc
+            matches = [i for i, req in enumerate(tfr_requests) if (req.get("trq_id") or "").strip() == str(trq_id).strip()]
+
+            if matches:
+                # Nếu có nhiều bản ghi cùng TRQ (trường hợp admin giữ TRQ khi duplicate)
+                # và edit_idx POST lên là ordinal trong 'matches' thì dùng, ngược lại lấy phần tử đầu tiên.
+                sel = 0
+                if edit_idx is not None:
+                    try:
+                        _ordinal = int(edit_idx)
+                        if 0 <= _ordinal < len(matches):
+                            sel = _ordinal
+                    except Exception:
+                        pass
+
+                abs_idx = matches[sel]
                 form_data = tfr_requests[abs_idx].copy()
                 editing = True
+                # Đảm bảo hidden edit_idx là "chỉ số tuyệt đối" để các lần submit sau không lệch
+                form_data["edit_idx"] = str(abs_idx)
             else:
-                # Fallback: logic cũ theo ordinal trong nhóm cùng trq_id
-                matches = [i for i, req in enumerate(tfr_requests) if req.get("trq_id") == trq_id]
-                if len(matches) > abs_idx:
-                    form_data = tfr_requests[matches[abs_idx]].copy()
-                    editing = True
+                # Không tìm thấy theo TRQ-ID -> coi như tạo mới
+                editing = False
         except Exception:
-            pass
-
-    # Giữ lại edit_idx trong form_data để template render hidden input
-    if editing:
-        form_data.setdefault("edit_idx", edit_idx)
+            editing = False
 
     if request.method == "POST":
         form = request.form
@@ -1139,6 +1147,7 @@ def approve_all_one(req):
             "docx_path": req.get("docx_path"),
             "employee_id": req.get("employee_id", ""),
             "approved_date": datetime.now(vn_tz).strftime("%Y-%m-%d"),
+            "test_group": req.get("test_group", ""),
         }
         archive_request(short_data)
     except Exception as e:
@@ -1412,7 +1421,12 @@ def tfr_request_status():
 
                 if is_admin:
                     # Admin: giữ nguyên TRQ-ID (hành vi cũ)
-                    pass
+                    # -> vẫn chèn ngay sau bản gốc để tiện edit
+                    insert_pos = idx + 1
+                    current.insert(insert_pos, new_req)
+                    safe_write_json(TFR_LOG_FILE, current)
+                    # Admin vẫn quay về trang danh sách như cũ
+                    return _redirect_back()
                 else:
                     # Xác thực chủ sở hữu theo TÊN hoặc EMPLOYEE ID
                     viewer_staff_id_post = (session.get("staff_id") or request.form.get("staff_id") or request.args.get("staff_id") or "").strip()
@@ -1428,11 +1442,10 @@ def tfr_request_status():
                     if not is_owner:
                         return _redirect_back()
 
-                    # Người thường: TRQ mới + request_date & ETD mới (luôn tính ETD)
+                    # Người thường: tạo TRQ mới + request_date & ETD mới (luôn tính ETD)
                     existing_ids = [str(r.get("trq_id")) for r in current if r.get("trq_id")]
                     new_req["trq_id"] = generate_unique_trq_id(existing_ids)
                     new_req["request_date"] = compute_request_date_now()
-                    # ✅ ETD luôn được cộng/tính khi duplicate đối với user chưa đăng nhập
                     new_req["etd"] = calculate_default_etd(
                         new_req["request_date"],
                         new_req.get("test_group", ""),
@@ -1440,9 +1453,17 @@ def tfr_request_status():
                     )
                     new_req["estimated_completion_date"] = new_req["etd"]
 
-                # Lưu bản dup ngay sau bản gốc
-                current.insert(idx + 1, new_req)
-                safe_write_json(TFR_LOG_FILE, current)
+                    # Chèn ngay sau bản gốc
+                    insert_pos = idx + 1
+                    current.insert(insert_pos, new_req)
+                    safe_write_json(TFR_LOG_FILE, current)
+
+                    # 🔁 NEW: Sau khi Dup thành công, chuyển thẳng tới form edit của bản mới
+                    return redirect(url_for(
+                        'tfr_request_form',
+                        trq_id=new_req["trq_id"],
+                        edit_idx=insert_pos
+                    ))
 
             return _redirect_back()
 
@@ -1761,6 +1782,7 @@ def update():
 # LẤY DATA CHO HIỂN THỊ (info_line)
         if not is_logged_in:
             summary_keys = [
+                ('TRQ ID', 'TRQ ID'),
                 ('report#', 'REPORT#'),
                 ('item#', 'ITEM#'),
                 ('type of', 'TYPE OF'),
@@ -1776,7 +1798,7 @@ def update():
                 show_value = str(value).strip() if value not in ("", None) else ""
                 lines.append((label, show_value))
         else:
-            for col in range(2, ws.max_column + 1):
+            for col in range(1, ws.max_column):
                 label = ws.cell(row=1, column=col).value
                 value = ws.cell(row=row_idx, column=col).value
                 if label and value not in (None, ""):
@@ -1874,21 +1896,25 @@ def update():
             ws.cell(row=row_idx, column=rating_col).value = value
 
             # --- LẤY LOẠI TEST GẦN NHẤT (từ session hoặc từ type_of Excel) ---
-            last_test_type = session.get(f"last_test_type_{report}")
-            type_of = ""
-            group_code = None
-            group_title = None
-            if last_test_type:
-                group_title = last_test_type
-                for g_id, g_name in TEST_GROUPS:
-                    if g_name == last_test_type:
-                        group_code = g_id
-                        break
+            group_code = session.get(f"last_test_code_{report}")
+            group_title = get_group_title(group_code) if group_code else None
+
+            # Fallback 1: nếu chỉ có tiêu đề nhóm (cũ)
+            if not group_code:
+                last_test_type = session.get(f"last_test_type_{report}")
+                if last_test_type:
+                    for g_id, g_name in TEST_GROUPS:
+                        if g_name == last_test_type:
+                            group_code = g_id
+                            group_title = g_name
+                            break
+
+            # Fallback 2: đoán từ Excel 'type of' (giữ logic cũ)
             if not group_code:
                 type_of_col = get_col_idx(ws, "type of")
-                if type_of_col:
-                    type_of = ws.cell(row=row_idx, column=type_of_col).value or ""
-                group_code = str(type_of).strip().lower().replace(" ", "_")
+                type_of = ws.cell(row=row_idx, column=type_of_col).value if type_of_col else ""
+                # TODO: nếu có bảng map chuẩn hóa riêng thì áp dụng ở đây thay vì replace space.
+                group_code = (str(type_of).strip().lower().replace(" ", "_")) if type_of else None
                 group_title = get_group_title(group_code) or (type_of or "")
 
             country_col = get_col_idx(ws, "country of destination")
@@ -1897,13 +1923,13 @@ def update():
             furniture_testing = ws.cell(row=row_idx, column=furniture_testing_col).value if furniture_testing_col else ""
 
             # ======= Lấy thêm các trường bổ sung =======
+            trq_col = get_col_idx(ws, "trq id")
             item_col = get_col_idx(ws, "item#")
-            item_code_col = get_col_idx(ws, "item code") or get_col_idx(ws, "item_code")
             desc_col = get_col_idx(ws, "item name/ description")
             requestor_col = get_col_idx(ws, "submiter in") or get_col_idx(ws, "submitter in charge") or get_col_idx(ws, "requestor")
 
+            trq = ws.cell(row=row_idx, column=trq_col).value if trq_col else ""
             item = ws.cell(row=row_idx, column=item_col).value if item_col else ""
-            item_code = ws.cell(row=row_idx, column=item_code_col).value if item_code_col else ""
             desc = ws.cell(row=row_idx, column=desc_col).value if desc_col else ""
             requestor = ws.cell(row=row_idx, column=requestor_col).value if requestor_col else ""
 
@@ -1916,9 +1942,9 @@ def update():
             if value == "PASS":
                 teams_msg = (
                     f"✅ **PASS** {group_title}\n"
+                    f"- TRQ: {trq}\n"
                     f"- Report#: {report}\n"
                     f"- Item#: {item}\n"
-                    f"- Item code: {item_code}\n"
                     f"- Description: {desc}\n"
                     f"- Group: {group_title}\n"
                     f"- Country of Destination: {country}\n"
@@ -1944,15 +1970,15 @@ def update():
                 if group_fails:
                     teams_msg = (
                         f"{status_text} {group_title}\n"
+                        f"- TRQ: {trq}\n"
                         f"- Report#: {report}\n"
                         f"- Item#: {item}\n"
-                        f"- Item code: {item_code}\n"
                         f"- Description: {desc}\n"
                         f"- Group: {group_title}\n"
                         f"- Country of Destination: {country}\n"
                         f"- Furniture Testing: {furniture_testing}\n"
                         f"- Requestor: {requestor}\n"
-                        f"- Nhân viên thao tác: {staff_id}\n"  
+                        f"- Nhân viên thao tác: {staff_id}\n"
                         f"- Các mục FAIL:\n"
                         + "\n".join(group_fails)
                         + f"\nChi tiết: {report_url}"
@@ -1960,9 +1986,9 @@ def update():
                 else:
                     teams_msg = (
                         f"{status_text} {group_title}\n"
+                        f"- TRQ: {trq}\n"
                         f"- Report#: {report}\n"
                         f"- Item#: {item}\n"
-                        f"- Item code: {item_code}\n"
                         f"- Description: {desc}\n"
                         f"- Group: {group_title}\n"
                         f"- Country of Destination: {country}\n"
@@ -2097,6 +2123,7 @@ def update():
 def test_group_page(report, group): # Import trong hàm để tránh circular import nếu cần
 
     session[f"last_test_type_{report}"] = get_group_title(group)
+    session[f"last_test_code_{report}"] = group
     group_titles = TEST_GROUP_TITLES.get(group)
     if not group_titles:
         return "Nhóm kiểm tra không tồn tại!", 404
@@ -2169,6 +2196,7 @@ def test_group_page(report, group): # Import trong hàm để tránh circular im
 def test_group_item_dynamic(report, group, test_key):
     # Lưu lại loại test gần nhất
     session[f"last_test_type_{report}"] = get_group_title(group)
+    session[f"last_test_code_{report}"] = group
 
     # Hot/Cold chuyển sang route riêng
     if test_key in HOTCOLD_LIKE and group in INDOOR_GROUPS:
