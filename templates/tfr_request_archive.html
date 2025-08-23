@@ -175,9 +175,9 @@
                 <td>{{ r.requestor }}</td>
                 <td>{{ r.department }}</td>
                 <td>{{ r.request_date }}</td>
+                <td>{{ r.etd or "-" }}</td> 
                 <td class="status {{ (r.status_display or '').replace(' ', '_') }}">{{ r.status_display or "" }}</td>
                 <td class="rating {{ (r.rating or '').upper() }}">{{ r.rating or "-" }}</td>
-                <td>{{ r.etd or "-" }}</td> 
                 <td>
                     {% if r.pdf_path %}
                         <a class="btn-pdf" href="{{ url_for('static', filename=r.pdf_path) }}" target="_blank">

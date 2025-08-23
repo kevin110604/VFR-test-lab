@@ -9,7 +9,7 @@ from notify_utils import send_teams_message, notify_when_enough_time
 from counter_utils import update_counter, check_and_reset_counter, log_report_complete
 from docx_utils import approve_request_fill_docx_pdf
 from file_utils import safe_write_json, safe_read_json, safe_save_excel, safe_load_excel, safe_write_text, safe_read_text
-import re, os, pytz, json, openpyxl, random, subprocess, regex, traceback, calendar, time, tempfile, uuid
+import re, os, pytz, json, openpyxl, random, subprocess, regex, traceback, calendar, time, tempfile, uuid, secrets
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from waitress import serve
@@ -3449,6 +3449,137 @@ def set_pref():
         session[key] = value
         return jsonify({"success": True})
     return jsonify({"success": False}), 400
+
+KIOSK_TOKEN = os.environ.get("KIOSK_TOKEN") or ("kiosk-" + secrets.token_urlsafe(18))
+
+def _kiosk_ok(req):
+    """Chỉ cho phép truy cập khi có token đúng (đặt ?t=<token> trên URL)."""
+    return req.args.get("t") == KIOSK_TOKEN
+
+# ------------------------------------------------------------------------------
+# 2) Bộ nhớ đệm dữ liệu cuối cùng của trang home.html (để cấp cho kiosk)
+#    -> Không đụng vào hàm load dữ liệu của bạn, chỉ nghe lúc template render.
+# ------------------------------------------------------------------------------
+_last_home_ctx = {
+    "summary_by_type": [],           # dạng: [{"short":"TR","late":1,"due":2,"must":0,"active":5,"total":8}, ...]
+    "report_list": [],               # dạng: [{"report":"25-xxxx","item":"...","type_of":"...","status":"DUE","log_date":"YYYY-MM-DD","etd":"YYYY-MM-DD"}, ...]
+    "counter": {"office": 0, "ot": 0},  # {"office": <HC done>, "ot": <OT done>}
+    "generated_at": None
+}
+
+def _extract_for_kiosk(context: dict):
+    """
+    Từ context render của home.html, rút gọn dữ liệu cần cho kiosk.
+    Hàm này an toàn nếu thiếu biến (sẽ dùng default).
+    """
+    summary_by_type = context.get("summary_by_type") or []
+    report_list     = context.get("report_list") or []
+    counter         = context.get("counter") or {"office": 0, "ot": 0}
+
+    # Chuẩn hoá từng phần tử để đảm bảo key đầy đủ
+    def _norm_summary(x):
+        return {
+            "short":  x.get("short", ""),
+            "late":   int(x.get("late", 0) or 0),
+            "due":    int(x.get("due", 0) or 0),
+            "must":   int(x.get("must", 0) or 0),
+            "active": int(x.get("active", 0) or 0),
+            "total":  int(x.get("total", 0) or 0),
+        }
+
+    def _norm_report(r):
+        return {
+            "report":   r.get("report", "") or "",
+            "item":     r.get("item", "") or "",
+            "type_of":  r.get("type_of", "") or "",
+            "status":   r.get("status", "") or "",
+            "log_date": r.get("log_date", "") or "",
+            "etd":      r.get("etd", "") or "",
+        }
+
+    norm_summary = [_norm_summary(x) for x in summary_by_type if isinstance(x, dict)]
+    norm_reports = [_norm_report(r)  for r in report_list      if isinstance(r, dict)]
+    norm_counter = {
+        "office": int((counter or {}).get("office", 0) or 0),
+        "ot":     int((counter or {}).get("ot", 0) or 0),
+    }
+
+    return {
+        "summary_by_type": norm_summary,
+        "report_list": norm_reports,
+        "counter": norm_counter,
+        "generated_at": datetime.now().isoformat(timespec="seconds")
+    }
+
+@template_rendered.connect_via(app)
+def _capture_home_context(sender, template, context, **extra):
+    """
+    Nghe signal mỗi khi Flask render template nào đó.
+    Khi template là 'home.html', lấy những biến cần và cache vào _last_home_ctx.
+    """
+    try:
+        # Nếu tên file template của trang chính không phải 'home.html', đổi lại tại đây:
+        if getattr(template, "name", None) == "home.html":
+            data = _extract_for_kiosk(context or {})
+            _last_home_ctx.update(copy.deepcopy(data))
+    except Exception:
+        # không để lỗi tại đây phá render của app
+        pass
+
+# ------------------------------------------------------------------------------
+# 3) API dữ liệu cho kiosk: /api/display_data?t=<KIOSK_TOKEN>
+# ------------------------------------------------------------------------------
+@app.route("/api/display_data")
+def api_display_data():
+    if not _kiosk_ok(request):
+        abort(403)
+
+    # Nếu muốn fallback (khi server mới khởi động, chưa render home lần nào),
+    # bạn có thể tự gọi hàm load dữ liệu của bạn ở đây, ví dụ:
+    #
+    # try:
+    #     from yourmodule import load_home_data    # nếu bạn có sẵn hàm này
+    #     summary_by_type, report_list, counter = load_home_data()
+    #     data = _extract_for_kiosk({
+    #         "summary_by_type": summary_by_type,
+    #         "report_list": report_list,
+    #         "counter": counter
+    #     })
+    #     _last_home_ctx.update(copy.deepcopy(data))
+    # except Exception:
+    #     pass
+    #
+    # Mặc định sẽ trả về cache gần nhất đã bắt được khi render home.html
+
+    return jsonify({
+        "generated_at": _last_home_ctx.get("generated_at") or datetime.now().isoformat(timespec="seconds"),
+        "summary": _last_home_ctx.get("summary_by_type", []),
+        "reports": _last_home_ctx.get("report_list", []),
+        "counter": _last_home_ctx.get("counter", {"office": 0, "ot": 0})
+    })
+
+# ------------------------------------------------------------------------------
+# 4) Trang kiosk: /display?t=<KIOSK_TOKEN>&page_len=15&rotate_sec=60&refresh_sec=30&dark=1
+# ------------------------------------------------------------------------------
+@app.route("/display")
+def display_board():
+    if not _kiosk_ok(request):
+        abort(403)
+
+    # Tham số cấu hình nhanh qua URL
+    page_len    = int(request.args.get("page_len", 15))     # số dòng mỗi trang chi tiết
+    rotate_sec  = int(request.args.get("rotate_sec", 60))   # lật trang mỗi X giây
+    refresh_sec = int(request.args.get("refresh_sec", 30))  # nạp lại dữ liệu mỗi X giây
+    dark        = request.args.get("dark", "1").lower() in ("1", "true", "yes")
+
+    return render_template(
+        "display.html",
+        token=KIOSK_TOKEN,
+        page_len=page_len,
+        rotate_sec=rotate_sec,
+        refresh_sec=refresh_sec,
+        dark=dark
+    )
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8246,debug=True)

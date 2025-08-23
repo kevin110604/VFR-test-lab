@@ -1,0 +1,210 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta http-equiv="cache-control" content="no-store"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>VFR Display</title>
+  <style>
+    :root {
+      --bg: #0b0f14; --fg: #e6edf3; --accent:#ffe082; --muted:#8aa0a8;
+      --late:#f87171; --due:#fbbf24; --must:#38bdf8; --active:#4ade80;
+      --card:#10161b; --line:#1f2a33;
+    }
+    {% if not dark %}
+    :root { --bg:#fffdfc; --fg:#25312b; --card:#fffdfc; --line:#d8d8cc; --muted:#6b6b6b; }
+    {% endif %}
+
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font:500 18px/1.45 "Segoe UI",Inter,system-ui,-apple-system,Arial}
+    *{cursor:none!important}
+    .wrap{display:flex;flex-direction:column;height:100%}
+
+    .header{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:10px 18px;border-bottom:1px solid var(--line);background:var(--card);
+      position:sticky;top:0;z-index:3
+    }
+    .header .title{font-weight:800;letter-spacing:.02em}
+    .header .ts{font-size:14px;color:var(--muted)}
+
+    .summary{
+      padding:10px 18px;background:var(--card);border-bottom:1px solid var(--line);
+      position:sticky;top:48px;z-index:3
+    }
+    .summary table{width:100%;border-collapse:separate;border-spacing:0}
+    .summary th,.summary td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--line)}
+    .summary th{color:#b78e24;background:#fffbe80f;font-size:14px;letter-spacing:.04em}
+    .summary .late{color:var(--late);font-weight:800}
+    .summary .due{color:var(--due);font-weight:800}
+    .summary .must{color:var(--must);font-weight:800}
+    .summary .active{color:var(--active);font-weight:800}
+
+    .done-box{
+      display:flex;gap:16px;padding:8px 18px 12px;background:var(--card);
+      border-bottom:1px solid var(--line);position:sticky;top:calc(48px + 56px);z-index:2
+    }
+    .done-chip{padding:8px 12px;border-radius:12px;font-weight:700;background:#fffbe80f;border:1px solid var(--line)}
+    .done-chip.hc b{color:#4ade80}
+    .done-chip.ot b{color:#f87171}
+
+    .table-box{flex:1;overflow:hidden;padding:10px 18px 14px}
+    table#board{width:100%;border-collapse:collapse;table-layout:fixed}
+    #board th,#board td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:center}
+    #board th{position:sticky;top:calc(48px + 56px + 54px);background:var(--card);font-size:15px;z-index:1}
+    #board td{font-size:18px}
+    #board .status{font-weight:800;-webkit-text-stroke:.5px #0003;text-shadow:0 1px 2px #0006;letter-spacing:.03em}
+    #board .LATE{color:var(--late)}
+    #board .DUE{color:var(--due)}
+    #board .MUST{color:var(--must)}
+    #board .ACTIVE{color:var(--active)}
+
+    .footer{
+      display:flex;align-items:center;justify-content:center;gap:18px;
+      padding:8px 12px;border-top:1px solid var(--line);background:var(--card);font-size:14px;color:var(--muted)
+    }
+
+    @media (min-width:1400px){ #board td{font-size:20px} }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="title">VFR – TEST LAB BOARD</div>
+    <div class="ts" id="ts">—</div>
+  </div>
+
+  <!-- BẢNG TRẠNG THÁI TỔNG -->
+  <div class="summary">
+    <div style="overflow-x:auto;">
+      <table id="sum">
+        <thead>
+          <tr>
+            <th>TRẠNG THÁI</th>
+            <th id="sum-head"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="late"><b>LATE</b></td><td id="sum-late"></td></tr>
+          <tr><td class="due"><b>DUE</b></td><td id="sum-due"></td></tr>
+          <tr><td class="must"><b>MUST</b></td><td id="sum-must"></td></tr>
+          <tr><td class="active"><b>ACTIVE</b></td><td id="sum-active"></td></tr>
+          <tr><td><b>TOTAL</b></td><td id="sum-total" style="font-weight:800;"></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ĐƠN HOÀN THÀNH HC / OT (CỐ ĐỊNH) -->
+  <div class="done-box">
+    <div class="done-chip hc">Đơn hoàn thành giờ HC (8:00–16:45): <b id="done-hc">0</b></div>
+    <div class="done-chip ot">Đơn hoàn thành giờ OT (16:45–23:59): <b id="done-ot">0</b></div>
+  </div>
+
+  <!-- BẢNG CHI TIẾT (AUTO PHÂN TRANG) -->
+  <div class="table-box">
+    <div style="overflow:auto;height:100%;">
+      <table id="board">
+        <thead>
+          <tr>
+            <th style="width:18%;">REPORT#</th>
+            <th style="width:22%;">ITEM#</th>
+            <th style="width:18%;">TYPE OF</th>
+            <th style="width:14%;">STATUS</th>
+            <th style="width:14%;">LOG IN DATE</th>
+            <th style="width:14%;">ETD</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div>Trang <span id="page">1</span>/<span id="pages">1</span></div>
+    <div>Cập nhật mỗi {{ refresh_sec }}s – lật trang mỗi {{ rotate_sec }}s</div>
+  </div>
+</div>
+
+<script>
+  // ==== THAM SỐ TỪ BACKEND ====
+  const TOKEN = "{{ token }}";
+  const PAGE_LEN   = {{ page_len|default(15) }};
+  const ROTATE_SEC = {{ rotate_sec|default(60) }};
+  const REFRESH_SEC= {{ refresh_sec|default(30) }};
+
+  let data = { summary:[], reports:[], generated_at:"", counter:{office:0, ot:0} };
+  let page = 0, pages = 1;
+
+  function fmt(x){ return (x==null||x==="") ? "" : x; }
+
+  function renderSummary() {
+    const s = data.summary || [];
+    const head = document.getElementById('sum-head');
+    const late = document.getElementById('sum-late');
+    const due  = document.getElementById('sum-due');
+    const must = document.getElementById('sum-must');
+    const act  = document.getElementById('sum-active');
+    const tot  = document.getElementById('sum-total');
+
+    head.textContent = s.map(x => x.short).join(' | ');
+    late.textContent = s.map(x => x.late).join(' | ');
+    due.textContent  = s.map(x => x.due).join(' | ');
+    must.textContent = s.map(x => x.must).join(' | ');
+    act.textContent  = s.map(x => x.active).join(' | ');
+    tot.textContent  = s.map(x => x.total).join(' | ');
+
+    document.getElementById('ts').textContent = "Cập nhật: " + (data.generated_at || "");
+
+    // Counter HC/OT
+    const c = data.counter || {};
+    const hc = document.getElementById('done-hc');
+    const ot = document.getElementById('done-ot');
+    if (hc) hc.textContent = (c.office != null ? c.office : 0);
+    if (ot) ot.textContent = (c.ot != null ? c.ot : 0);
+  }
+
+  function renderPage() {
+    const tbody = document.getElementById('tbody');
+    tbody.innerHTML = "";
+    const arr = data.reports || [];
+    pages = Math.max(1, Math.ceil(arr.length / PAGE_LEN));
+    if (page >= pages) page = 0;
+    const start = page * PAGE_LEN;
+    const end   = Math.min(arr.length, start + PAGE_LEN);
+    for (let i=start; i<end; i++){
+      const r = arr[i];
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        `<td>${fmt(r.report)}</td>
+         <td>${fmt(r.item)}</td>
+         <td>${fmt(r.type_of)}</td>
+         <td><span class="status ${fmt(r.status)}">${fmt(r.status)}</span></td>
+         <td>${fmt(r.log_date)}</td>
+         <td>${fmt(r.etd)}</td>`;
+      tbody.appendChild(tr);
+    }
+    document.getElementById('page').textContent = (page+1);
+    document.getElementById('pages').textContent = pages;
+  }
+
+  async function refreshData() {
+    try{
+      const res = await fetch(`/api/display_data?t=${encodeURIComponent(TOKEN)}`, {cache:"no-store"});
+      if(!res.ok) throw new Error("HTTP " + res.status);
+      const json = await res.json();
+      data = json || {summary:[], reports:[], generated_at:"", counter:{office:0,ot:0}};
+      renderSummary();
+      renderPage();
+    }catch(e){
+      // giữ nguyên dữ liệu cũ nếu lỗi
+    }
+  }
+
+  (async function init(){
+    await refreshData();
+    setInterval(refreshData, REFRESH_SEC*1000);
+    setInterval(()=>{ page = (page+1)%pages; renderPage(); }, ROTATE_SEC*1000);
+  })();
+</script>
+</body>
+</html>
