@@ -587,30 +587,73 @@ def compute_request_date_now(cutoff_hour: int = 15) -> str:
 
 def _count_by_date_and_group(all_reqs, req_date: str, group_name: str) -> int:
     """
-    Đếm số request đã có (trước khi thêm request mới) theo (request_date, group).
-    (DÙNG CHO TÍNH ETD – vẫn đếm từng request như cũ, KHÔNG liên quan màu.)
+    Đếm số request theo (request_date, group) trên 1 danh sách 'all_reqs'.
+    Đếm THEO REQUEST (mỗi record = 1), và chỉ tính các record có status != Declined
+    (với pending), nhằm phục vụ tính ETD.
     """
     gn = _group_of(group_name)
     dd = (req_date or "").strip()
     c = 0
-    for r in all_reqs or []:
-        if (r.get("request_date") or "").strip() == dd and _group_of(r.get("test_group")) == gn:
-            c += 1
+    for r in (all_reqs or []):
+        try:
+            r_date = (r.get("request_date") or "").strip()
+            r_group = _group_of(r.get("test_group") or r.get("type_of_test"))
+            if r_date == dd and r_group == gn:
+                st = (r.get("status") or "").strip()
+                # Pending: chỉ tính Submitted; nếu record đến từ archive có thể không có status -> vẫn tính
+                if st and st != "Submitted" and st != "Approved":
+                    # loại Declined và các trạng thái pending khác
+                    continue
+                c += 1
+        except Exception:
+            continue
     return c
+
+
+def _build_reportno_to_group_map():
+    """
+    Dò Excel 'local_main' để map report_no -> group chuẩn hoá (CONSTRUCTION/TRANSIT/FINISHING/MATERIAL/OTHER)
+    Dựa vào cột 'type of' mà approve_all_one() đã điền.
+    """
+    try:
+        wb = safe_load_excel(local_main)
+        ws = wb.active
+        col_report = get_col_idx(ws, "report#")
+        col_typeof = get_col_idx(ws, "type of")
+        if not col_report or not col_typeof:
+            return {}
+
+        mapping = {}
+        for row in range(2, ws.max_row + 1):
+            rep = ws.cell(row=row, column=col_report).value
+            tp  = ws.cell(row=row, column=col_typeof).value
+            rep_s = ("" if rep is None else str(rep)).strip()
+            tp_s  = ("" if tp  is None else str(tp )).strip()
+            if not rep_s:
+                continue
+            # Excel lưu "type of" KHÔNG có " TEST", nên thêm " TEST" để _group_of() hiểu,
+            # hoặc bạn có thể map thẳng nếu muốn.
+            grp = _group_of(tp_s + " TEST") if tp_s else "OTHER"
+            mapping[rep_s] = grp
+        return mapping
+    except Exception:
+        return {}
+
 
 def calculate_default_etd(request_date: str, test_group: str, *, all_reqs=None) -> str:
     """
-    ETD mặc định, tính từ request_date (tính CẢ ngày request):
+    ETD mặc định, tính từ request_date (tính CẢ ngày request).
+    TẢI TRONG NGÀY = Pending (chỉ Submitted) + Approved (Archive), loại bỏ Declined.
 
     - CONSTRUCTION / TRANSIT: 3 ngày  -> base +2 ngày
       * tải (trong cùng request_date), đếm THEO REQUEST:
-        - đã có ≥5 req  (đang là req #6..#10)  -> +1 ngày
+        - đã có ≥5  req  (đang là req #6..#10)  -> +1 ngày
         - đã có ≥10 req (đang là req #11..#15) -> +2 ngày
 
     - FINISHING / MATERIAL : 5 ngày  -> base +4 ngày
       * tải:
-        - đã có ≥15 req (đang là req #16..#30) -> +2 ngày
-        - đã có ≥30 req (đang là req #31..#45) -> +4 ngày
+        - đã có ≥15 req (đang là #16..#30) -> +2 ngày
+        - đã có ≥30 req (đang là #31..#45) -> +4 ngày
     """
     if not request_date:
         return ""
@@ -623,19 +666,51 @@ def calculate_default_etd(request_date: str, test_group: str, *, all_reqs=None) 
     else:
         base = 2
 
+    # GHÉP Pending (chỉ Submitted) + Archive để đếm tải theo ngày/type
+    try:
+        archive_list = safe_read_json(ARCHIVE_LOG) or []
+    except Exception:
+        archive_list = []
+
+    # Archive không có test_group, nên join qua Excel để gán group
+    rep2grp = _build_reportno_to_group_map()
+    archive_mapped = []
+    for a in archive_list:
+        try:
+            # giữ các khóa cần cho _count_by_date_and_group
+            req_date = (a.get("request_date") or "").strip()
+            rep_no   = (a.get("report_no") or "").strip()
+            grp      = rep2grp.get(rep_no, "")
+            if not req_date or not grp:
+                continue
+            archive_mapped.append({
+                "request_date": req_date,
+                "test_group": grp,       # để _group_of hiểu
+                "status": "Approved",    # đánh dấu để lọc hợp lệ
+            })
+        except Exception:
+            continue
+
+    combined = []
+    # Pending (all_reqs) – chỉ muốn Submitted
+    if isinstance(all_reqs, list):
+        combined += [r for r in all_reqs if (r.get("status") or "").strip() == "Submitted"]
+    # Approved (archive đã map)
+    combined += archive_mapped
+
+    cnt = _count_by_date_and_group(combined, request_date, g)
+
     extra = 0
-    if all_reqs is not None:
-        cnt = _count_by_date_and_group(all_reqs, request_date, g)
-        if g in ("CONSTRUCTION", "TRANSIT"):
-            if cnt >= 10:      # đang là #11..#15
-                extra = 2
-            elif cnt >= 5:     # đang là #6..#10
-                extra = 1
-        elif g in ("FINISHING", "MATERIAL"):
-            if cnt >= 30:      # đang là #31..#45
-                extra = 4
-            elif cnt >= 15:    # đang là #16..#30
-                extra = 2
+    if g in ("CONSTRUCTION", "TRANSIT"):
+        if cnt >= 10:      # đang là #11..#15
+            extra = 2
+        elif cnt >= 5:     # đang là #6..#10
+            extra = 1
+    elif g in ("FINISHING", "MATERIAL"):
+        if cnt >= 30:      # đang là #31..#45
+            extra = 4
+        elif cnt >= 15:    # đang là #16..#30
+            extra = 2
 
     d0 = datetime.strptime(request_date, "%Y-%m-%d").date()
     etd = d0 + timedelta(days=base + extra)
@@ -1416,32 +1491,52 @@ def tfr_request_status():
     real_indices  = [i for i, _ in ordered_pairs]
     show_requests = [r.copy() for _, r in ordered_pairs]  # copy để gán _rank
 
-    # ===== Tính thứ tự trong ngày theo nhóm (để tô màu) – ĐẾM THEO TRQ-ID DUY NHẤT =====
-    # Key: (request_date, group) -> { "count": n, "rank_by_tid": {tid: rank} }
-    rank_state = {}
-    for r in show_requests:
-        d = (r.get("request_date") or "").strip()
-        g = _group_of(r.get("test_group"))
-        key = (d, g)
-        st = rank_state.setdefault(key, {"count": 0, "rank_by_tid": {}})
+    # ===== Tính thứ tự trong ngày theo nhóm (để tô màu) =====
+    if is_admin:
+    # 1) Seed bộ đếm từ archive theo (date, group) -> count (đếm THEO REQUEST Approved)
+        try:
+            archive_all = safe_read_json(ARCHIVE_LOG) or []
+        except Exception:
+            archive_all = []
 
-        tid = (r.get("trq_id") or "").strip()
+        rep2grp = _build_reportno_to_group_map()
+        base_counts = {}  # (date, group) -> int
+        for a in archive_all:
+            try:
+                d0 = (a.get("request_date") or "").strip()
+                rep = (a.get("report_no") or "").strip()
+                g0 = rep2grp.get(rep, "")
+                if d0 and g0:
+                    key = (d0, _group_of(g0))
+                    base_counts[key] = base_counts.get(key, 0) + 1
+            except Exception:
+                continue
 
-        if tid:
-            if tid in st["rank_by_tid"]:
-                # dùng lại rank của TRQ-ID đã gặp
-                r["_rank_in_day_group"] = st["rank_by_tid"][tid]
+        # 2) Duyệt các request đang hiển thị rồi đánh số tiếp
+        running = {}  # (date, group) -> current_count
+        for r in show_requests:
+            d = (r.get("request_date") or "").strip()
+            g = _group_of(r.get("test_group") or r.get("type_of_test"))
+            st = (r.get("status") or "").strip()
+            key = (d, g)
+
+            # current = seed (Approved) hoặc giá trị đang chạy
+            cur = running.get(key, base_counts.get(key, 0))
+
+            if st == "Submitted":
+                cur += 1
+                running[key] = cur
+                r["_rank_in_day_group"] = cur
             else:
-                # TRQ-ID mới -> tăng bộ đếm duy nhất
-                st["count"] += 1
-                st["rank_by_tid"][tid] = st["count"]
-                r["_rank_in_day_group"] = st["count"]
-        else:
-            # Không có TRQ-ID: coi như 1 mã riêng -> vẫn tăng
-            st["count"] += 1
-            r["_rank_in_day_group"] = st["count"]
+                # Declined: không cộng dồn, không rank
+                r["_rank_in_day_group"] = None
 
-        r["_group_norm"] = g
+            r["_group_norm"] = g
+    else:
+        # Người thường: KHÔNG gán rank/màu
+        for r in show_requests:
+            r.pop("_rank_in_day_group", None)
+            r.pop("_group_norm", None)
 
     return render_template(
         "tfr_request_status.html",
