@@ -112,9 +112,6 @@
         transition: background 0.16s, color 0.16s;
     }
     #theme-btn:hover { background: var(--color-accent); color: #fff; opacity:1; }
-    .inline-status, .inline-status.fail, .inline-status.na {
-        transition: background 0.38s cubic-bezier(.37,.15,.36,1), color 0.36s cubic-bezier(.44,.09,.42,.97), border-color 0.36s;
-    }
     .sample-img, .img-thumb {
         transition: box-shadow 0.22s, transform 0.18s, background 0.34s, border-color 0.32s;
     }
@@ -178,81 +175,41 @@
         text-shadow: 0 2px 14px #c49c484a;
         font-family: 'Merriweather', serif;
     }
-    .status-block {text-align:center;margin-bottom:14px;}
-    .inline-status {
-        font-size: 22px;
-        font-weight: bold;
-        margin: 0 auto 7px auto;
-        border-radius: 10px;
-        padding: 5px 22px;
-        display: inline-block;
-        letter-spacing: 0.08em;
-        box-shadow: 0 2px 13px #0002;
-    }
-    .inline-status {
-        background: #f8fff8;
-        color: var(--color-pass);
-        border: 2px solid var(--color-pass);
-    }
-    .inline-status.fail {
-        background: #fff5f7;
-        color: var(--color-fail) !important;
-        border: 2px solid var(--color-fail);
-    }
-    .inline-status.na {
-        background: #f1f1f1;
-        color: var(--color-na);
-        border: 2px solid #b8b8b8;
-    }
-    /* Keep status badges bright in dark mode */
-    body.dark .inline-status {
-        background: #f8fff8 !important;
-        color: var(--color-pass) !important;
-        border-color: var(--color-pass) !important;
-    }
-    body.dark .inline-status.fail {
-        background: #fff5f7 !important;
-        color: var(--color-fail) !important;
-        border-color: var(--color-fail) !important;
-    }
-    body.dark .inline-status.na {
-        background: #f1f1f1 !important;
-        color: var(--color-na) !important;
-        border-color: #b8b8b8 !important;
-    }
 
-    /* === NEW OVERRIDES === */
-    /* Keep status badges bright in dark mode */
-    body.dark .inline-status {
-        background: #f8fff8 !important;
-        color: var(--color-pass) !important;
-        border-color: var(--color-pass) !important;
+    /* ===== STATUS + COMMENT (giống hot_cold) ===== */
+    .status-block { text-align:center; margin-bottom:10px; }
+    .inline-status {
+        font-size: 20px;
+        font-weight: 700;
+        margin: 0 auto 6px auto;
+        display: inline-block;
+        letter-spacing: .04em;
+        background: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0;
     }
-    body.dark .inline-status.fail {
-        background: #fff5f7 !important;
-        color: var(--color-fail) !important;
-        border-color: var(--color-fail) !important;
-    }
-    body.dark .inline-status.na {
-        background: #f1f1f1 !important;
-        color: var(--color-na) !important;
-        border-color: #b8b8b8 !important;
-    }
-    /* ====================== */
+    .inline-status.pass { color: var(--color-pass); }
+    .inline-status.fail { color: var(--color-fail); }
+    .inline-status.na   { color: var(--color-na); }
 
     .missing-img-warn {color:#e33;font-size:16px;text-align:center;margin:4px auto 6px auto;font-weight:bold;}
-    .cmt-view {
-        border-radius:8px;
+
+    .cmt-view { text-align:center; margin-top:6px; }
+    .cmt-view span{
+        border-radius: 6px;
         background:#f2f6f6;
-        padding:8px 13px;
-        margin:8px auto 0 auto;
-        font-size:17px;
+        padding:6px 11px;
+        font-size:15px;
         color:#215d37;
-        min-height:25px;
-        max-width:95%;
-        border: 1.2px solid #b6c3c0;
-        display: inline-block;
+        display:inline-block;
     }
+    body.dark .cmt-view span {
+        background:#314844;
+        color:#ffe082;
+    }
+    /* ============================================= */
+
     .section { margin-bottom:28px; text-align:center;}
     .section b { color: var(--color-green); font-size:18px; font-weight:700; letter-spacing: 0.06em;}
     .sample-img {
@@ -263,7 +220,6 @@
         object-fit: contain;
         background: #fff;
         box-shadow: 0 8px 24px var(--shadow-light);
-        transition: box-shadow 0.16s, transform 0.12s, background 0.23s, border-color 0.23s;
         cursor: zoom-in;
     }
     .sample-img:hover {box-shadow: 0 12px 38px var(--color-accent);transform: scale(1.08) rotate(-1.5deg);}
@@ -433,17 +389,27 @@
             </a>
         </div>
         <h2>{{ title['short'] }}</h2>
+
+        <!-- STATUS + COMMENT (đã sửa cho giống hot_cold) -->
         <div class="status-block" role="status" aria-live="polite" aria-atomic="true">
             {% if status %}
-                <div class="inline-status {% if status == 'FAIL' %}fail{% elif status == 'N/A' %}na{% endif %}">{{status}}</div>
+                <div class="inline-status {{ 'pass' if status == 'PASS' else ('fail' if status == 'FAIL' else 'na') }}">
+                    {{ status }}
+                </div>
             {% endif %}
+
             {% if (status == "PASS" or status == "FAIL") and (imgs|length == 0) %}
                 <div class="missing-img-warn">Chưa upload ảnh kiểm thử!</div>
             {% endif %}
+
             {% if comment %}
-                <div class="cmt-view"><b>Comment:</b> {{ comment }}</div>
+                <div class="cmt-view">
+                    <span><i class="fa fa-comment"></i> {{ comment }}</span>
+                </div>
             {% endif %}
         </div>
+        <!-- /STATUS + COMMENT -->
+
         <div class="section">
             <b>Mô tả kiểm thử:</b><br>
             {% for img in title['img'] %}

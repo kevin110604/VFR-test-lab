@@ -627,6 +627,50 @@
     /* Darkmode cho card */
     body.darkmode #mode-card { background: #ffe082; border-color: #ffe082; }
     body.darkmode #mode-card h3 { color: #232; }
+    /* Nút quét QR – đối xứng nút đổi ngôn ngữ */
+    #qr-btn{
+    position:absolute; top:20px; left:32px; z-index:22;
+    background:#ffe082; color:#35523A; border-radius:100px; 
+    font-size:15px; padding:5px 12px; border:none; font-weight:600;
+    box-shadow:0 2px 10px #bca96b22; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+    }
+    #qr-btn:hover{ background:#ffd25b; color:#1b3429 }
+
+    /* Overlay quét QR */
+    #qr-overlay{
+    display:none; position:fixed; inset:0; z-index:30000;
+    background:rgba(35,42,55,0.22); backdrop-filter:blur(2px);
+    align-items:center; justify-content:center; padding:16px;
+    }
+    #qr-card{
+    background:#fffbe8; border:1.5px solid #ffe082; border-radius:18px;
+    width:min(560px, 94vw); box-shadow:0 8px 40px #c49c4844; 
+    padding:16px 16px 18px 16px; color:#333;
+    }
+    #qr-head{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;
+    }
+    #qr-title{ font-size:18px; font-weight:800; color:#b78e24; margin:4px 0 }
+    #qr-close{
+    background:#c49c48; color:#fff; border:none; border-radius:10px; font-weight:700;
+    padding:6px 10px; cursor:pointer;
+    }
+    #qr-close:hover{ background:#35523A; color:#ffe082 }
+
+    /* Khung camera */
+    #qr-reader{
+    width:100%; background:#00000010; border:2px solid #c49c48; border-radius:12px; overflow:hidden;
+    aspect-ratio: 4 / 3; /* giúp ổn định khung hình trên mobile/desktop */
+    }
+
+    /* Nhãn kết quả */
+    #qr-result{ margin-top:8px; font-weight:700; color:#b78e24; text-align:center; font-size:14px }
+
+    /* Dark mode */
+    body.darkmode #qr-card{ background:#ffe082; border-color:#ffe082; color:#232 }
+    body.darkmode #qr-title{ color:#232 }
+    body.darkmode #qr-btn{ background:#6c837f; color:#fefefe }
+    body.darkmode #qr-btn:hover{ background:#4f6a66; color:#fff }
     </style>
 </head>
 <body>
@@ -685,6 +729,10 @@
         </div>
         {% endif %}
         <div class="center-form">
+            <!-- Nút quét QR (góc trái trên trong box) -->
+            <button id="qr-btn" title="Quét QR Report">
+                <i class="fa fa-qrcode"></i> <span>QR</span>
+            </button>
             <!-- Nút chuyển ngôn ngữ -->
             <div style="position:absolute; top:20px; right:32px; z-index:22;">
                 <button id="lang-btn" title="Đổi ngôn ngữ/Change language" style="background:#ffe082; color:#35523A; border-radius:100px; font-size:15px; padding:5px 16px; border:none; font-weight:600; box-shadow:0 2px 10px #bca96b22; cursor:pointer;">
@@ -709,13 +757,6 @@
                     <a href="/vfr3/sand-casting" class="vfr3-btn"><i class="fa fa-mountain"></i> <span class="text-vfr3-sand">Mẫu đúc cát</span></a>
                     <a href="/vfr3/ceramic-plaster" class="vfr3-btn"><i class="fa fa-flask"></i> <span class="text-vfr3-ceramic">Mẫu ceramic thạch cao</span></a>
                 </div>
-
-                <!-- Form tìm item -->
-                <form method="GET" action="/" class="item-search-form-modern">
-                    <label for="item_search" class="item-search-label text-item-label">🔎 ITEM#</label>
-                    <input type="text" id="item_search" name="item_search" maxlength="32" placeholder="ITEM#" value="{{ request.args.get('item_search', '') }}">
-                    <button type="submit"><i class="fa fa-search" style="margin-right:4px;"></i> <span class="text-search-btn">Tìm</span></button>
-                </form>
 
                 {% if request.args.get('item_search') %}
                     {% if report_list %}
@@ -1059,7 +1100,7 @@
         function applyLang(lang) {
             const LANG = {
                 vi: {
-                    "text-title": "VFR",
+                    "text-title": "V.F.R",
                     "text-create-rq": "Tạo Request",
                     "text-rq-status": "Trạng thái đã gửi",
                     "text-trf": "Lưu trữ",
@@ -1083,7 +1124,7 @@
                     "text-vfr3-ceramic": "Mẫu ceramic thạch cao",
                 },
                 en: {
-                    "text-title": "VFR",
+                    "text-title": "V.F.R",
                     "text-create-rq": "Create Request",
                     "text-rq-status": "RQ Submitted",
                     "text-trf": "TRF",
@@ -1277,6 +1318,160 @@
                 });
             }
         });
+        (function(){
+        let qrLoaded = false;
+        let html5qr = null;
+        const $ = (id)=>document.getElementById(id);
+
+        function ensureLib(){
+            return new Promise((res, rej)=>{
+            if (qrLoaded || window.Html5Qrcode){ qrLoaded = true; return res(); }
+            const s = document.createElement('script');
+            s.src = "https://unpkg.com/html5-qrcode";
+            s.onload = ()=>{ qrLoaded = true; res(); };
+            s.onerror = ()=>rej(new Error("Không tải được thư viện html5-qrcode"));
+            document.head.appendChild(s);
+            });
+        }
+
+        // === PHÁT HIỆN HỖ TRỢ CAMERA LIVE ===
+        function cameraLiveSupported(){
+            // Cần secure context (HTTPS hoặc localhost) + getUserMedia
+            const secureOK = (window.isSecureContext === true) || /^https?:\/\/(localhost|127\.0\.0\.1)/.test(location.href);
+            const gumOK = !!(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function');
+            // Tránh 1 số in-app browser phổ biến
+            const ua = navigator.userAgent || '';
+            const inApp = /(FBAN|FBAV|Instagram|Line\/|Zalo|ZaloPC|TikTok|KAKAOTALK|WeChat)/i.test(ua);
+            return secureOK && gumOK && !inApp;
+        }
+
+        function parseAndGo(text){
+            const resultEl = $('qr-result');
+            if (resultEl) resultEl.textContent = "✅ Đã quét: " + text;
+
+            if (/report=/.test(text)) { window.location.href = text; return; }
+            const m = String(text || '').trim();
+            if (/^([A-Z]{1,4}-?\d{3,8})$/.test(m) || /^TL-\d{4,8}$/i.test(m)) {
+            window.location.href = "/update?report=" + encodeURIComponent(m);
+            } else {
+            alert("Mã QR không hợp lệ: " + text);
+            }
+        }
+
+        async function startScan(){
+            const overlay = $('qr-overlay');
+            const reader  = $('qr-reader');
+            const fileBtn = $('qr-file'); // input file
+            const resultEl= $('qr-result');
+
+            if (!overlay || !reader){ alert("Thiếu phần tử overlay/reader trong DOM."); return; }
+
+            // Nếu KHÔNG hỗ trợ camera live -> fallback sang file capture (ảnh QR)
+            if (!cameraLiveSupported()){
+            overlay.style.display = 'flex';
+            document.body.classList.add('modal-open');
+            // Ẩn khung camera, hiện hướng dẫn
+            reader.style.display = 'none';
+            if (resultEl) resultEl.textContent = "Trình duyệt không hỗ trợ camera trực tiếp. Vui lòng bấm 'Ảnh QR' để chụp/tải ảnh mã QR.";
+            if (fileBtn) fileBtn.click(); // tự bật lựa chọn ảnh/camera
+            return;
+            }
+
+            // Hỗ trợ camera live
+            overlay.style.display = 'flex';
+            document.body.classList.add('modal-open');
+
+            try{
+            await stopScan();
+            await ensureLib();
+            html5qr = new Html5Qrcode('qr-reader');
+            reader.style.display = ''; // đảm bảo hiện khung
+            await html5qr.start(
+                { facingMode: "environment" },
+                {
+                fps: 10,
+                qrbox: (vw, vh)=>{
+                    const min = Math.min(vw, vh);
+                    const box = Math.min(320, Math.floor(min * 0.7));
+                    return { width: box, height: box };
+                }
+                },
+                (decodedText)=>{ stopScan().then(()=>parseAndGo(decodedText)); },
+                ()=>{} // ignore frame errors
+            );
+            }catch(err){
+            await stopScan();
+            overlay.style.display = 'flex'; // vẫn giữ overlay để dùng ảnh QR
+            document.body.classList.add('modal-open');
+            reader.style.display = 'none';
+            if (resultEl) resultEl.textContent = "Không mở được camera. Vui lòng dùng 'Ảnh QR' để quét.";
+            // tự bật file capture cho nhanh
+            if (fileBtn) fileBtn.click();
+            }
+        }
+
+        async function stopScan(){
+            if (html5qr){
+            try{ await html5qr.stop(); }catch(_){}
+            try{ await html5qr.clear(); }catch(_){}
+            html5qr = null;
+            }
+        }
+
+        async function decodeImageFile(file){
+            await ensureLib();
+            const tmpId = "qr-file-reader-tmp";
+            let tmp = $(tmpId);
+            if (!tmp){ tmp = document.createElement('div'); tmp.id = tmpId; tmp.style.display = "none"; document.body.appendChild(tmp); }
+            const qr = new Html5Qrcode(tmpId);
+            const result = await qr.scanFile(file, true);
+            await qr.clear();
+            return result;
+        }
+
+        window.addEventListener('DOMContentLoaded', ()=>{
+            const btnOpen = $('qr-btn');
+            const btnClose= $('qr-close');
+            const fileInp = $('qr-file');
+            const overlay = $('qr-overlay');
+
+            if (btnOpen){
+            btnOpen.addEventListener('click', ()=>{ startScan(); });
+            }
+            if (btnClose){
+            btnClose.addEventListener('click', async ()=>{
+                await stopScan();
+                if (overlay) overlay.style.display = 'none';
+                document.body.classList.remove('modal-open');
+            });
+            }
+            if (overlay){
+            overlay.addEventListener('click', async (e)=>{
+                if (e.target === overlay){
+                await stopScan();
+                overlay.style.display = 'none';
+                document.body.classList.remove('modal-open');
+                }
+            });
+            }
+            if (fileInp){
+            fileInp.addEventListener('change', async function(){
+                const f = this.files && this.files[0];
+                if (!f) return;
+                const resultEl = $('qr-result');
+                if (resultEl) resultEl.textContent = "Đang đọc ảnh QR...";
+                try{
+                const text = await decodeImageFile(f);
+                parseAndGo(text);
+                }catch(_){
+                if (resultEl) resultEl.textContent = "Không đọc được mã từ ảnh. Hãy chụp rõ, đủ sáng.";
+                }finally{
+                this.value = "";
+                }
+            });
+            }
+        });
+        })();
     </script>
 
     <div id="loading-overlay" style="display:none;position:fixed;z-index:20005;top:0;left:0;width:100vw;height:100vh;background:rgba(60,60,60,0.34);backdrop-filter:blur(1px);display:flex;align-items:center;justify-content:center;">
@@ -1286,6 +1481,26 @@
         </div>
         <div style="font-size:19px; font-weight:600; color:#b78e24; text-align:center;">
           Đang xuất dữ liệu Excel...<br>Vui lòng chờ 1-2 phút!
+        </div>
+      </div>
+    </div>
+    <!-- Overlay quét QR -->
+    <div id="qr-overlay" role="dialog" aria-modal="true">
+      <div id="qr-card">
+        <div id="qr-head">
+          <div id="qr-title">📷 Quét mã QR Report</div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <label for="qr-file" style="background:#ffe082;color:#232;padding:6px 10px;border-radius:10px; font-weight:700; cursor:pointer;">
+              Ảnh QR
+            </label>
+            <input id="qr-file" type="file" accept="image/*" capture="environment" style="display:none;">
+            <button id="qr-close" type="button">Đóng</button>
+          </div>
+        </div>
+        <div id="qr-reader"></div>
+        <div id="qr-result"></div>
+        <div style="font-size:12px;color:#8b6b1e; margin-top:8px; text-align:center">
+          Hướng camera hoặc tải ảnh QR. Nếu QR chứa URL /update?report=..., sẽ tự mở; nếu chỉ có REPORT#, sẽ tự chuyển sang /update.
         </div>
       </div>
     </div>

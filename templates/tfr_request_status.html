@@ -166,11 +166,19 @@
         .approve-all-btn { background: var(--color-green); color: var(--main-th-bright); border-radius: 100px; font-size: 13px; font-weight: 600; padding: 5px 15px; box-shadow: 0 2px 8px #bca96b18; margin-top: 4px; min-width: 0; }
         .approve-all-btn[disabled] { opacity: 0.56; cursor: not-allowed; background: #b1bab6 !important; color: #fff; border: none; }
 
+        /* Legend mini (bên trái toolbar) */
+        .legend-mini{ margin-right:auto; display:flex; align-items:center; gap:10px; font-size:12.6px; color:#35523A;}
+        .legend-item{ display:flex; align-items:center; gap:6px;}
+        .dot{ width:10px; height:10px; border-radius:50%; display:inline-block;}
+        .dot-mint{ background:#2db39a;}
+        .dot-hot{ background:#d81b60;}
+
         @media (max-width: 1200px) {
             .box { max-width: 98vw; width: 98vw; }
             .table-wrap { max-width: 100vw; }
             table { max-width: 98vw; min-width: 680px; }
             th, td { font-size: 11.8px; padding: 7px 3px; }
+            .legend-mini{ font-size:12px; }
         }
         @media (max-width: 900px) {
             .box { width: 100vw; max-width: 100vw; min-width: 0; }
@@ -197,6 +205,7 @@
             table { min-width: 470px; font-size: 10px;}
             th, td { padding: 5px 1.5px;}
             h2 { margin-top: 19px; font-size: 0.99rem;}
+            .legend-mini{ font-size:11px; gap:8px; }
         }
 
         /* Dark mode */
@@ -257,6 +266,43 @@
         .badge-done { display:inline-flex; align-items:center; gap:6px; font-weight:700; color:#2e7d32; }
         .fade-in { animation: fadeIn .25s ease; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(6px);} to { opacity:1; transform:translateY(0);} }
+        tr.rank-mint td:nth-child(-n+6)  { color: #2db39a !important; font-weight: 700; }   /* mint */
+        tr.rank-hot  td:nth-child(-n+6)  { color: #d81b60 !important; font-weight: 800; }   /* hồng đậm */
+
+        /* Legend mini (2 dòng riêng) */
+        .legend-mini{
+        position:absolute;   /* cố định trong box */
+        top:70px;            /* ngay dưới tiêu đề */
+        left:26px;
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+        z-index:5;
+        }
+        .legend-card{
+        min-width:110px;           /* cho 2 box ngang nhau */
+        display:flex; align-items:center; gap:8px;
+        background:#fffef6;
+        border:1px solid #eadca6;
+        border-radius:12px;
+        padding:6px 12px;
+        box-shadow:0 2px 8px rgba(188,169,107,.15);
+        }
+        .legend-card .dot{
+        width:12px; height:12px; border-radius:50%;
+        display:inline-block;
+        }
+        .dot-mint{ background:#2db39a; }
+        .dot-hot{  background:#d81b60; }
+        .legend-text{ font-weight:700; color:#35523A; font-size:13px; }
+
+        /* Dark mode */
+        body.dark .legend-card{
+        background:#3f5250;
+        border-color:#91b8a2;
+        box-shadow:0 2px 8px rgba(0,0,0,.25);
+        }
+        body.dark .legend-text{ color:#fffbe6; }
     </style>
 </head>
 <body>
@@ -278,6 +324,18 @@
         </div>
 
         <h2>Submitted Test Requests</h2>
+        {% if is_admin or is_stl %}
+        <div class="legend-mini">
+        <div class="legend-card">
+            <span class="dot dot-mint"></span>
+            <div class="legend-text">+1, 2 days</div>
+        </div>
+        <div class="legend-card">
+            <span class="dot dot-hot"></span>
+            <div class="legend-text">+2, 4 days</div>
+        </div>
+        </div>
+        {% endif %}
 
         {% with messages = get_flashed_messages() %}
           {% if messages %}
@@ -288,6 +346,7 @@
         {% endwith %}
 
         <div class="table-toolbar">
+
             <button id="sort-toggle" class="btn-details">
                 <i class="fa fa-sort"></i> Sort: {{ 'Type' if request.args.get('sort')=='type' else 'Date' }}
             </button>
@@ -319,7 +378,7 @@
         <div class="table-wrap">
         <table id="req-table">
             <tr>
-                <th>STT</th>
+                <th>No.</th>
                 <th>TRQ-ID</th>
                 <th>Type of Test</th>
                 <th>Requestor</th>
@@ -331,7 +390,22 @@
                 <th></th>
             </tr>
             {% for r in requests %}
-            <tr data-type="{{ (r.type_of_test or r.test_group or '') | replace(' TEST', '') }}"
+            {# === Xác định lớp màu theo rank & nhóm, CHỈ hiển thị khi admin hoặc STL === #}
+            {% set rk = r._rank_in_day_group or 0 %}
+            {% set grp = (r._group_norm or '') %}
+            {% set row_class = '' %}
+            {% if (is_admin or is_stl) %}
+            {% if grp in ['CONSTRUCTION','TRANSIT'] %}
+                {% if 6 <= rk and rk <= 10 %}{% set row_class = 'rank-mint' %}
+                {% elif 11 <= rk and rk <= 15 %}{% set row_class = 'rank-hot' %}{% endif %}
+            {% elif grp in ['FINISHING','MATERIAL'] %}
+                {% if 16 <= rk and rk <= 30 %}{% set row_class = 'rank-mint' %}
+                {% elif 31 <= rk and rk <= 45 %}{% set row_class = 'rank-hot' %}{% endif %}
+            {% endif %}
+            {% endif %}
+
+            <tr class="{{ row_class }}"
+                data-type="{{ (r.type_of_test or r.test_group or '') | replace(' TEST', '') }}"
                 data-date="{{ r.request_date or '' }}"
                 data-idx="{{ real_indices[loop.index0] }}">
                 <td>{{ loop.index }}</td>
@@ -383,12 +457,19 @@
                     {% else %}
                         <button class="btn-details" onclick="showDetail({{ loop.index0 }})"><i class="fa fa-eye"></i></button>
                     {% endif %}
-                    {% if is_admin %}
+                    {% if is_admin
+                    or (viewer_name and (viewer_name|trim|lower == (r.requestor|trim|lower)))
+                    or (viewer_emp_id and ((r.employee_id|string)|trim|lower == (viewer_emp_id|trim|lower))) %}
                     <form method="post" action="/tfr_request_status" class="js-remember" style="display:inline;">
                         <input type="hidden" name="trq_id" value="{{ r.trq_id }}">
                         <input type="hidden" name="edit_idx" value="{{ real_indices[loop.index0] }}">
                         <input type="hidden" name="return_url" value="{{ request.full_path }}">
-                        <button type="submit" name="action" value="duplicate" class="btn-details" style="background:#e3f7fa; color:#289abf; border-color:#8be4fc; margin-left:3px;">
+                        {% if not is_admin %}
+                        <input type="hidden" name="staff_id" value="{{ request.args.get('staff_id','') or session.get('staff_id','') }}">
+                        {% endif %}
+                        <button type="submit" name="action" value="duplicate" class="btn-details"
+                                style="background:#e3f7fa; color:#289abf; border-color:#8be4fc; margin-left:3px;"
+                                title="{% if is_admin %}Duplicate giữ nguyên TRQ{% else %}Duplicate tạo TRQ mới{% endif %}">
                             <i class="fa fa-copy"></i> Dup
                         </button>
                     </form>
@@ -585,9 +666,9 @@
                 return new Date(s);
             }
             items.sort((a,b)=>{
-                const t = a.type.localeCompare(b.type);
-                if (t !== 0) return t;
-                return parseDate(a.date) - parseDate(b.date);
+                const d = parseDate(a.date) - parseDate(b.date);
+                if (d !== 0) return d;
+                return a.type.localeCompare(b.type);
             });
 
             // show confirm nhỏ, gọn

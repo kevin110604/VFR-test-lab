@@ -11,35 +11,25 @@
             --main-bg: #fffdfc;
             --main-card: #fffdfccf;
             --main-text: #25312b;
-            --main-th: #ffe082;
-            --main-th-bright: #fff9d1;
+            --main-th: #ffe082;            /* vàng */
             --main-border: #d8d8cc;
-            --color-green: #4e8573;
+            --color-green: #2e7d32;        /* xanh PASS/DONE */
             --color-bronze: #8B6B1E;
-            --color-brown: #6B4F1A;
-            --color-red-metallic: #A32121;
-            --color-pass: #38b430;
+            --color-pass: #2e7d32;
             --color-fail: #df2323;
-            --color-na: #666;
-            --shadow-light: rgba(0,0,0,0.10);
-            --shadow-dark: rgba(255,255,255,0.15);
+            --color-yellow: #d4a90a;       /* vàng cho ON PROGRESS */
         }
         body.dark, .dark {
             --main-bg: #2b3938;
             --main-card: #374B4A;
             --main-text: #f6f6ef;
             --main-th: #ffe082;
-            --main-th-bright: #fffbe6;
             --main-border: #263d3a;
-            --color-green: #91b8a2;
+            --color-green: #93e5a0;
             --color-bronze: #ffc970;
-            --color-brown: #bfa87b;
-            --color-red-metallic: #ef7373;
             --color-pass: #93e5a0;
             --color-fail: #e68282;
-            --color-na: #aaa;
-            --shadow-light: rgba(255,255,255,0.07);
-            --shadow-dark: rgba(0,0,0,0.13);
+            --color-yellow: #ffd54f;
         }
         body {
             min-height: 100vh;
@@ -49,150 +39,63 @@
             display: flex; align-items: center; justify-content: center;
             transition: background 0.22s, color 0.18s;
         }
-        .center-wrapper {
-            min-height: 100vh;
-            width: 100vw;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+        .center-wrapper { min-height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; }
         .box {
-            background: var(--main-card);
-            color: var(--main-text);
-            border-radius: 22px;
+            background: var(--main-card); color: var(--main-text); border-radius: 22px;
             box-shadow: 0 8px 40px #bca96b30, 0 1.5px 13px #c49c4850;
-            max-width: 1200px;
-            width: 97vw;
-            margin: 36px auto 0 auto;
-            padding: 35px 0px 20px 0px;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            animation: fadeGrow 0.7s;
+            max-width: 1200px; width: 97vw; margin: 36px auto 0 auto; padding: 35px 0 20px; position: relative;
+            display: flex; flex-direction: column; align-items: center; animation: fadeGrow .7s;
         }
-        @keyframes fadeGrow {0% {opacity:0; transform:scale(0.97);} 100%{opacity:1; transform:scale(1);}}
+        @keyframes fadeGrow {0%{opacity:0; transform:scale(.97);}100%{opacity:1; transform:scale(1);}}
         .back-home-btn {
-            position: absolute;
-            left: 16px; top: 13px;
-            background: #c49c48; color: #fff; border: none; border-radius: 100px;
-            font-size: 13.5px; font-family: 'Inter', Arial, sans-serif; padding: 4px 12px 4px 9px;
-            font-weight: 600; box-shadow: 0 1.5px 6px #bca96b18; cursor: pointer;
-            display: flex; align-items: center; gap: 4px; letter-spacing: 0.01em;
-            text-decoration: none; z-index: 10; min-width: 0;
-            height: 28px; line-height: 1.2; width: auto;
-            transition: background 0.18s, color 0.16s, font-size 0.13s, padding 0.13s;
-        }
-        .back-home-btn i {
-            font-size: 13px;
-            margin-right: 2px;
+            position: absolute; left: 16px; top: 13px; background: #c49c48; color: #fff;
+            border: none; border-radius: 100px; font-size: 13.5px; padding: 4px 12px 4px 9px; font-weight: 600;
+            box-shadow: 0 1.5px 6px #bca96b18; cursor: pointer; display: flex; align-items: center; gap: 4px;
+            letter-spacing: .01em; text-decoration: none; z-index: 10; min-width: 0; height: 28px; line-height: 1.2;
         }
         .back-home-btn:hover { background: #35523A; color: #ffe082; }
         h2 {
-            color: var(--color-green);
-            font-family: 'Merriweather', serif;
-            font-size: 1.38rem;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 18px;
-            letter-spacing: 0.04em;
-            text-shadow: 0 3px 18px #c49c4827;
-            margin-top: 40px;
+            color: var(--color-green); font-family: 'Merriweather', serif; font-size: 1.38rem; font-weight: bold;
+            text-align: center; margin: 40px 0 18px; letter-spacing: 0.04em; text-shadow: 0 3px 18px #c49c4827;
         }
-        .table-wrap {
-            width: 100%;
-            overflow-x: auto;
-            padding-bottom: 8px;
-            display: flex;
-            justify-content: center;
-        }
+        .table-wrap { width: 100%; overflow-x: auto; padding-bottom: 8px; display: flex; justify-content: center; }
         table {
-            width: 100%;
-            min-width: 820px;
-            max-width: 1100px;
-            margin: 0 auto;
-            border-collapse: collapse;
-            background: #fffbe8e5;
-            border-radius: 14px;
-            font-size: 0.97rem;
-            box-shadow: 0 2px 12px #bca96b18;
-            table-layout: fixed;
+            width: 100%; min-width: 820px; max-width: 1100px; margin: 0 auto; border-collapse: collapse;
+            background: #fffbe8e5; border-radius: 14px; font-size: .97rem; box-shadow: 0 2px 12px #bca96b18; table-layout: fixed;
         }
-        th, td {
-            padding: 9px 7px;
-            text-align: center;
-            vertical-align: middle;
-            white-space: nowrap;
-            word-break: break-word;
-        }
-        th, td {
-            width: calc(100% / 7); /* 7 cột, chia đều */
-        }
-        th {
-            background: var(--main-th);
-            color: #25312b;
-            font-weight: 700;
-            font-size: 1rem;
-            letter-spacing: 0.04em;
-            border: none;
-        }
+        th, td { padding: 9px 7px; text-align: center; vertical-align: middle; white-space: nowrap; word-break: break-word; }
+        th, td { width: calc(100% / 9); } /* 9 cột */
+        th { background: var(--main-th); color: #25312b; font-weight: 700; font-size: 1rem; letter-spacing: 0.04em; border: none; }
         tr:first-child th:first-child { border-radius: 12px 0 0 0; }
-        tr:first-child th:last-child { border-radius: 0 12px 0 0; }
-        tr:last-child td:first-child { border-radius: 0 0 0 12px; }
-        tr:last-child td:last-child { border-radius: 0 0 12px 0; }
+        tr:first-child th:last-child  { border-radius: 0 12px 0 0; }
+        tr:last-child td:first-child   { border-radius: 0 0 0 12px; }
+        tr:last-child td:last-child    { border-radius: 0 0 12px 0; }
         tr:nth-child(even) { background: #faf6ea;}
-        tr:nth-child(odd) { background: #fffdfc;}
-        td.status.Submitted { color: var(--color-bronze); font-weight: bold; }
-        td.status.Approved  { color: var(--color-green); font-weight: bold;}
-        td.status.Declined  { color: var(--color-fail); font-weight: bold;}
-        td.reason { color: var(--color-fail); font-style: italic; }
+        tr:nth-child(odd)  { background: #fffdfc;}
+
+        /* Rating */
+        td.rating.PASS { color: var(--color-pass); font-weight: bold; }
+        td.rating.FAIL { color: var(--color-fail); font-weight: bold; }
+        td.rating.DATA { color: #666; font-weight: bold; }
+        td.rating.PENDING, td.rating[''] { color: var(--color-bronze); font-weight: bold; }
+
+        /* Status colors */
+        td.status.DONE        { color: var(--color-green); font-weight: 800; }    /* xanh */
+        td.status.ON_PROGRESS { color: var(--color-yellow); font-weight: 800; }   /* vàng */
+        td.status.PENDING     { color: var(--color-bronze); font-weight: 800; }   /* mặc định chờ */
+
         .btn-details, .btn-pdf {
-            background: #fff;
-            color: var(--color-bronze);
-            border: 1.1px solid var(--main-th);
-            border-radius: 100px;
-            padding: 3px 9px;
-            font-size: 13px;
-            font-weight: 600;
-            margin-left: 1px;
-            margin-top: 2px;
-            cursor: pointer;
-            transition: background 0.14s, color 0.13s, border 0.13s;
-            display: inline-block;
+            background: #fff; color: var(--color-bronze); border: 1.1px solid var(--main-th);
+            border-radius: 100px; padding: 3px 9px; font-size: 13px; font-weight: 600; margin-left: 1px; margin-top: 2px;
+            cursor: pointer; transition: background .14s, color .13s, border .13s; display: inline-block;
         }
-        .btn-details:hover, .btn-pdf:hover {
-            background: var(--main-th);
-            color: #25312b;
-            border-color: var(--main-th);
-        }
-        .btn-pdf {
-            color: #43a047;
-            border-color: #43a047;
-        }
-        .btn-pdf:hover {
-            background: #e8fff3;
-            color: #35523A;
-            border-color: #35523A;
-        }
-        .table-toolbar {
-            width: 100%;
-            background: transparent;
-            position: sticky;
-            top: 0;
-            z-index: 3;
-            padding-bottom: 8px;
-            display: flex;
-            justify-content: flex-end;
-            padding-right: 14px;
-        }
-        .table-toolbar input {
-            padding: 7px 13px;
-            font-size: 14px;
-            border-radius: 8px;
-            border:1.2px solid #ccc;
-            width: 185px;
-            background: #fff;
-        }
+        .btn-details:hover, .btn-pdf:hover { background: var(--main-th); color: #25312b; border-color: var(--main-th); }
+        .btn-pdf { color: #43a047; border-color: #43a047; }
+        .btn-pdf:hover { background: #e8fff3; color: #35523A; border-color: #35523A; }
+
+        .table-toolbar { width: 100%; position: sticky; top: 0; z-index: 3; padding-bottom: 8px; display: flex; justify-content: flex-end; padding-right: 14px; }
+        .table-toolbar input { padding: 7px 13px; font-size: 14px; border-radius: 8px; border:1.2px solid #ccc; width: 200px; background: #fff; }
+
         @media (max-width: 1200px) {
             .box { width: 99vw; max-width: 99vw; min-width: 0; }
             .table-wrap { max-width: 99vw; }
@@ -201,13 +104,7 @@
         }
         @media (max-width: 900px) {
             .box { width: 99vw; max-width: 99vw; min-width: 0; }
-            .back-home-btn {
-                font-size: 12.2px;
-                padding: 3px 8px 3px 6px;
-                top: 7px;
-                border-radius: 100px;
-            }
-            .back-home-btn i { font-size: 11.5px; }
+            .back-home-btn { font-size: 12.2px; padding: 3px 8px 3px 6px; top: 7px; border-radius: 100px; }
             .table-wrap { max-width: 99vw; }
             table { min-width: 580px; font-size: 11.3px; }
             th, td { font-size: 10.9px; padding: 6px 2.5px; }
@@ -215,91 +112,70 @@
         }
         @media (max-width: 600px) {
             .box { max-width: 99vw; width: 99vw; min-width: 0; }
-            .back-home-btn {
-                font-size: 11.2px;
-                padding: 2px 5px 2px 4px;
-                min-width: 0;
-                height: 18px;
-                gap: 2px;
-                top: 4px;
-                border-radius: 100px;
-            }
-            .back-home-btn i { font-size: 10px; }
+            .back-home-btn { font-size: 11.2px; padding: 2px 5px 2px 4px; min-width: 0; height: 18px; gap: 2px; top: 4px; border-radius: 100px; }
             .table-wrap { max-width: 99vw; }
             table { min-width: 470px; font-size: 10.2px;}
             th, td { font-size: 9.8px; padding: 5px 1.5px;}
             h2 { margin-top: 19px; font-size: 0.99rem;}
         }
+
+        /* Dark mode */
         body.dark .box { background: var(--main-card) !important; color: var(--main-text) !important; }
         body.dark h2, body.dark th { color: var(--main-th) !important; background: none !important;}
         body.dark th { color: #25312b !important; background: var(--main-th) !important; }
-        body.dark table { background: #344833 !important; }
-        body.dark tr:nth-child(even), body.dark tr:nth-child(odd) { background: #344833 !important; }
-        body.dark td {
-            color: #ffe082 !important;
-        }
+        body.dark table, body.dark tr:nth-child(even), body.dark tr:nth-child(odd) { background: #344833 !important; }
+        body.dark td { color: #ffe082 !important; }
         body.dark .back-home-btn { background: var(--main-th) !important; color: #344833 !important;}
         body.dark .back-home-btn:hover { background: #c49c48 !important; color: #fff !important;}
         body.dark .btn-details, body.dark .btn-pdf { background: #344833 !important;  color: #ffe082 !important; border-color: #ffe082 ;}
         body.dark .btn-details:hover, body.dark .btn-pdf:hover { background: var(--main-th) !important; color: #25312b !important; border-color: var(--main-th);}
-        body.dark ::selection {background: #c49c48; color: #25312b;}
         #theme-btn {
             position:fixed; right:24px; bottom:26px; z-index:11001;
-            background: var(--main-th);
-            color: #344833;
-            border-radius: 100px; font-size: 19px;
-            padding: 6px 12px; border:none; box-shadow: 0 2px 10px #4d665c35;
-            cursor:pointer; height: 42px; width: 42px; min-width:38px;
-            display:flex;align-items:center;justify-content:center;opacity:0.96;
+            background: var(--main-th); color: #344833;
+            border-radius: 100px; font-size: 19px; padding: 6px 12px; border:none; box-shadow: 0 2px 10px #4d665c35;
+            cursor:pointer; height: 42px; width: 42px; min-width:38px; display:flex;align-items:center;justify-content:center;opacity:0.96;
             transition: background 0.16s, color 0.16s;
         }
         #theme-btn:hover { background: var(--color-green); color: #fff; }
-        body.dark #theme-btn {
-            background: #6c837f;
-            color: #ffe082;
-        }
-        .table-toolbar input {
-            background: #fff;
-            color: var(--main-text);
-            border:1.2px solid var(--main-border);
-        }
-        body.dark .table-toolbar input {
-            background: #3f5250 !important;
-            color: #f6f6ef !important;
-            border-color: #91b8a2 !important;
-        }
+        body.dark #theme-btn { background: #6c837f; color: #ffe082; }
+        .table-toolbar input { background: #fff; color: var(--main-text); border:1.2px solid var(--main-border); }
+        body.dark .table-toolbar input { background: #3f5250 !important; color: #f6f6ef !important; border-color: #91b8a2 !important; }
     </style>
 </head>
 <body>
     <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
     <div class="center-wrapper">
     <div class="box">
-        <a href="/" class="back-home-btn">
-            <i class="fa fa-chevron-left"></i> Home
-        </a>
+        <a href="/" class="back-home-btn"><i class="fa fa-chevron-left"></i> Home</a>
         <h2>Test Request (TRF)</h2>
+
         <div class="table-toolbar">
-            <input type="text" id="search-id" placeholder="TRQ-ID or Report No..." oninput="searchID()">
+            <input type="text" id="search-id" placeholder="TRQ-ID, R.No, ID, Requestor" oninput="searchID()">
         </div>
+
         <div class="table-wrap">
         <table id="archive-table">
             <tr>
                 <th>TRQ-ID</th>
                 <th>Report No</th>
+                <th>Employee ID</th>
                 <th>Requestor</th>
                 <th>Dept.</th>
                 <th>Date</th>
                 <th>Status</th>
+                <th>Result</th>
                 <th>File</th>
             </tr>
             {% for r in requests %}
             <tr>
                 <td>{{ r.trq_id }}</td>
                 <td>{{ r.report_no }}</td>
+                <td class="col-emp">{{ r.employee_id or "N/A" }}</td>
                 <td>{{ r.requestor }}</td>
                 <td>{{ r.department }}</td>
                 <td>{{ r.request_date }}</td>
-                <td class="status {{ r.status }}">{{ r.status }}</td>
+                <td class="status {{ (r.status_display or '').replace(' ', '_') }}">{{ r.status_display or "" }}</td>
+                <td class="rating {{ (r.rating or '').upper() }}">{{ r.rating or "-" }}</td>
                 <td>
                     {% if r.pdf_path %}
                         <a class="btn-pdf" href="{{ url_for('static', filename=r.pdf_path) }}" target="_blank">
@@ -317,25 +193,26 @@
         </div>
     </div>
     </div>
+
     <script>
+        // Dark mode toggle
         let dark = localStorage.getItem("vfr-darkmode") === "1";
-        function applyDark(b) {
-            document.body.classList.toggle("dark", b);
-            localStorage.setItem("vfr-darkmode", b ? "1" : "0");
-        }
+        function applyDark(b){ document.body.classList.toggle("dark", b); localStorage.setItem("vfr-darkmode", b ? "1":"0"); }
         applyDark(dark);
-        document.getElementById('theme-btn').onclick = () => {
-            dark = !dark;
-            applyDark(dark);
-        };
+        document.getElementById('theme-btn').onclick = () => { dark = !dark; applyDark(dark); };
+
+        // Tìm theo 4 cột đầu: TRQ-ID, Report No, Employee ID, Requestor
         function searchID() {
             const val = document.getElementById("search-id").value.toUpperCase();
             const rows = document.querySelectorAll("#archive-table tr");
             for (let i = 1; i < rows.length; i++) {
                 const tds = rows[i].querySelectorAll("td");
-                // Search TRQ-ID và Report No
-                const match = tds && (tds[0].textContent.toUpperCase().includes(val) || tds[1].textContent.toUpperCase().includes(val));
-                rows[i].style.display = match ? "" : "none";
+                const ok =
+                    (tds[0]?.textContent || "").toUpperCase().includes(val) || // TRQ-ID
+                    (tds[1]?.textContent || "").toUpperCase().includes(val) || // Report No
+                    (tds[2]?.textContent || "").toUpperCase().includes(val) || // Employee ID
+                    (tds[3]?.textContent || "").toUpperCase().includes(val);   // Requestor
+                rows[i].style.display = ok ? "" : "none";
             }
         }
     </script>

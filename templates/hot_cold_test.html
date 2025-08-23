@@ -98,381 +98,189 @@
             padding: 3px 10px;
             display: inline-block;
         }
-        body.dark .test-desc {
-            color: #ffe082;
-            background: rgba(44,47,20,0.32);
-        }
-        .section {
-            margin-bottom:15px;
-            text-align:center;
-        }
+        body.dark .test-desc { color: #ffe082; background: rgba(44,47,20,0.32); }
+        .section { margin-bottom:15px; text-align:center; }
         .section b { color: var(--color-green); font-size: 15px; }
         .section img.sample-img {
-            max-width:210px;
-            margin:8px;
-            border-radius:10px;
-            border:2px solid #b8bbcf;
-            box-shadow:0 2px 9px #8884;
-            cursor: zoom-in;
-            transition:box-shadow 0.16s, transform 0.15s, border 0.18s;
+            max-width:210px; margin:8px; border-radius:10px; border:2px solid #b8bbcf;
+            box-shadow:0 2px 9px #8884; cursor: zoom-in; transition:box-shadow .16s, transform .15s, border .18s;
         }
         .section img.sample-img:hover {
-            box-shadow:0 7px 23px #ffe08266;
-            transform: scale(1.10) rotate(-1.5deg);
-            border:2.4px solid #ffe082;
-            z-index:9;
+            box-shadow:0 7px 23px #ffe08266; transform: scale(1.10) rotate(-1.5deg); border:2.4px solid #ffe082; z-index:9;
         }
-        .section small { color:#666;font-size:13px;display:block;margin-top:3px;}
         .state-btn-group {
-            display: flex;
-            gap: 17px;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 13px;
-            margin-top: 0;
+            display:flex; gap:17px; justify-content:center; align-items:center; margin-bottom:13px; margin-top:0;
         }
         .state-btn {
-            font-size: 16px;
-            padding: 6px 20px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            background: #e8e5da;
-            color: #25312b;
-            cursor: pointer;
-            box-shadow: 0 1px 6px #b5a67323;
-            transition: background 0.18s, color 0.17s, box-shadow 0.18s;
-            font-family: 'Inter', 'Open Sans', Arial, sans-serif;
-            display: inline-flex;
-            align-items: center;
-            gap: 9px;
-            letter-spacing: 0.07em;
+            font-size:16px; padding:6px 20px; border:none; border-radius:8px; font-weight:bold;
+            background:#e8e5da; color:#25312b; cursor:pointer; box-shadow:0 1px 6px #b5a67323;
+            transition:background .18s, color .17s, box-shadow .18s; font-family:'Inter','Open Sans',Arial,sans-serif;
+            display:inline-flex; align-items:center; gap:9px; letter-spacing:.07em;
         }
-        .state-btn.pass {background: #43a047; color:white;}
-        .state-btn.fail {background: #df2323; color:white;}
-        .state-btn.data {background: #c49c48; color:white;}
-        .state-btn.pass.selected { box-shadow: 0 0 0 3px #93e5a0; background: #35733a; color: #fff;}
-        .state-btn.fail.selected {
-            background: #df2323 !important;
-            color: #fff !important;
-            box-shadow: 0 0 0 3px #ffc3c3;
+        .state-btn.pass {background:#43a047; color:#fff;}
+        .state-btn.fail {background:#df2323; color:#fff;}
+        .state-btn.data {background:#c49c48; color:#fff;}
+        .state-btn.pass.selected { box-shadow:0 0 0 3px #93e5a0; background:#35733a; color:#fff;}
+        .state-btn.fail.selected { background:#df2323!important; color:#fff!important; box-shadow:0 0 0 3px #ffc3c3;}
+        .state-btn:hover, .state-btn:focus { filter:brightness(1.11); }
+
+        /* Comment view (hiển thị ngay dưới status) */
+        .cmt-view { text-align:center; margin-top:10px; }
+        .cmt-view span {
+            border-radius:8px; background:#f2f6f6; padding:6px 12px; font-size:15px;
+            color:#215d37; display:inline-block;
         }
-        .state-btn:hover, .state-btn:focus { filter: brightness(1.11); }
+        body.dark .cmt-view span { background:#314844; color:#ffe082; }
+
         .section-label {
-            font-size: 15px; font-weight: 600; color: #c49c48;
-            margin: 14px 0 7px 0; letter-spacing:0.03em;
-            font-family: 'Inter', 'Open Sans', Arial, sans-serif;
-            text-align:center;
+            font-size:15px; font-weight:600; color:#c49c48; margin:14px 0 7px 0; letter-spacing:.03em;
+            font-family:'Inter','Open Sans',Arial,sans-serif; text-align:center;
         }
         .img-grid {display:flex;flex-wrap:wrap;gap:10px;justify-content:center;}
         .img-thumb-wrap {position:relative;}
         .img-thumb {
-            max-width: 95px; max-height: 95px; border-radius: 8px; border: 2px solid var(--color-green);
-            box-shadow: 0 2px 10px #c49c4840; background: #fff; cursor: zoom-in;
-            margin: 0 auto; display: block; transition: box-shadow 0.16s, transform 0.14s, border-color 0.21s;
+            max-width:95px; max-height:95px; border-radius:8px; border:2px solid var(--color-green);
+            box-shadow:0 2px 10px #c49c4840; background:#fff; cursor:zoom-in; margin:0 auto; display:block;
+            transition: box-shadow .16s, transform .14s, border-color .21s;
         }
-        .img-thumb:hover {box-shadow:0 8px 24px #ffe08266;transform: scale(1.09) rotate(-1.7deg);border-color:#ffe082;z-index:9;}
+        .img-thumb:hover {box-shadow:0 8px 24px #ffe08266; transform:scale(1.09) rotate(-1.7deg); border-color:#ffe082; z-index:9;}
         .del-btn {
-            position:absolute;top:4px;right:6px;
-            background:#df2323;color:#fff;border:none;border-radius:100px;
-            width:23px;height:23px;font-size:13px;
-            display:flex;align-items:center;justify-content:center;box-shadow:0 1px 6px #2224;
-            opacity:0.93;z-index:2;transition:opacity 0.16s,background 0.16s;
-            outline:none;cursor:pointer;padding:0;
+            position:absolute; top:4px; right:6px; background:#df2323; color:#fff; border:none; border-radius:100px;
+            width:23px; height:23px; font-size:13px; display:flex; align-items:center; justify-content:center;
+            box-shadow:0 1px 6px #2224; opacity:.93; z-index:2; transition:opacity .16s, background .16s; outline:none; cursor:pointer; padding:0;
         }
-        .del-btn:hover {opacity:1;background:#760212;}
+        .del-btn:hover {opacity:1; background:#760212;}
         .main-btn {
-            background: var(--main-th);
-            color: #fff;
-            font-size: 15px;
-            padding: 9px 0;
-            border-radius: 9px;
-            border: none;
-            width: 100%;
-            font-weight: bold;
-            font-family: 'Inter', 'Open Sans', Arial, sans-serif;
-            box-shadow: 0 2px 7px #c49c4822;
-            cursor: pointer;
-            transition: background 0.14s, color 0.13s;
-            margin: 0 auto 0 auto;
-            max-width: 180px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 7px;
-            letter-spacing: 0.06em;
+            background:var(--main-th); color:#fff; font-size:15px; padding:9px 0; border-radius:9px; border:none; width:100%;
+            font-weight:bold; font-family:'Inter','Open Sans',Arial,sans-serif; box-shadow:0 2px 7px #c49c4822; cursor:pointer;
+            transition:background .14s, color .13s; margin:0 auto; max-width:180px; display:flex; align-items:center; justify-content:center; gap:7px; letter-spacing:.06em;
         }
-        .main-btn:hover {background: var(--color-green);color:#fff;}
-        .main-btn.save-cmt {margin-top:10px;background: var(--color-green);}
-        .main-btn.save-cmt:hover {background: var(--main-th);color:#fff;}
-        .comment-block {margin: 23px 0 6px 0; text-align:center;}
-        .cmt-label {font-size:14px;color:#c49c48;font-weight:600;}
+        .main-btn:hover {background:var(--color-green); color:#fff;}
+        .main-btn.save-cmt {margin-top:10px; background:var(--color-green);}
+        .main-btn.save-cmt:hover {background:var(--main-th); color:#fff;}
+        .comment-block {margin:23px 0 6px 0; text-align:center;}
+        .cmt-label {font-size:14px; color:#c49c48; font-weight:600;}
         textarea {
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-            margin-top: 7px;
-            margin-bottom: 8px;
-            border-radius: 8px;
-            padding: 5px 12px;
-            font-size: 15px;
-            border: 1.2px solid #c49c48;
-            width: 100%;
-            min-height: 28px;
-            max-width: 230px;
-            height: 34px;
-            box-sizing: border-box;
-            transition: background 0.18s, color 0.18s, border-color 0.17s;
-            font-family: 'Open Sans', 'Inter', Arial, sans-serif;
-            background: #fffbe5;
-            color: #25312b;
-            resize: vertical;
-            text-align: left;
+            display:block; margin:7px auto 8px auto; border-radius:8px; padding:5px 12px; font-size:15px;
+            border:1.2px solid #c49c48; width:100%; min-height:28px; max-width:230px; height:34px; box-sizing:border-box;
+            transition:background .18s, color .18s, border-color .17s; font-family:'Open Sans','Inter',Arial,sans-serif;
+            background:#fffbe5; color:#25312b; resize:vertical; text-align:left;
         }
-        textarea:focus {
-            border-color: #ffe082;
-            background: #fffbe5;
-            outline: none;
-        }
+        textarea:focus { border-color:#ffe082; background:#fffbe5; outline:none; }
         .img-time-label {
-            text-align: center;
-            font-size: 13.3px;
-            color: #705e27;
-            background: #fff9e0;
-            padding: 4px 17px 4px 11px;
-            border-radius: 17px;
-            font-style: italic;
-            margin-bottom: 5px;
-            margin-top: 3px;
-            display: block;
-            box-shadow: 0 1px 5px #dec89317;
-            width: fit-content;
-            margin-left: auto;
-            margin-right: auto;
+            text-align:center; font-size:13.3px; color:#705e27; background:#fff9e0; padding:4px 17px 4px 11px;
+            border-radius:17px; font-style:italic; margin:5px auto 5px auto; display:block; box-shadow:0 1px 5px #dec89317; width:fit-content;
         }
-        .img-time-label:before {
-            content: '\f017  ';
-            font-family: "Font Awesome 6 Free";
-            font-weight: 900;
-            margin-right: 3px;
-        }
-        @media (max-width:650px) {.box{max-width:99vw;padding:3vw 1vw 5vw 1vw;} #img-popup-inner{max-width:97vw;max-height:46vh;}}
-        body.dark, .dark {color: #f7f7ee !important;}
-        body.dark .box { background: var(--main-card) !important;color: var(--main-text) !important;box-shadow: 0 4px 32px #000a;}
-        body.dark h2, body.dark .section-label, body.dark .cmt-label {color: #ffe082 !important;}
-        body.dark .state-btn {background: #3c3c2b; color: #ffe082;}
-        body.dark .state-btn.selected {background: #ffe082; color: #25312b;}
-        body.dark .state-btn.pass {background: #458859; color: #fff;}
-        body.dark .state-btn.fail {background: #d33c36; color: #fff;}
-        body.dark .state-btn.data {background: #b7a457; color: #25312b;}
-        body.dark .main-btn, body.dark .back-btn {background:#ffe082;color:#344833;border-color:#ffe082;}
-        body.dark .main-btn:hover, body.dark .back-btn:hover {background:#c49c48;color:#fff;border-color:#c49c48;}
-        textarea,
-        input,
-        select {
-            background: #fffdfc;
-            color: var(--main-text);
-            border-color: var(--main-border);
-        }
-        body.dark input[readonly] { background: #223323 !important; color: #d2cfa0;}
-        body.dark textarea {
-            background: #3f5250;
-            color: #f6f6ef;
-            border-color: #91b8a2;
-        }
-        body.dark .img-thumb {background: #222e23 !important; border-color: #ffe082;}
-        ::selection {background: #ffe082; color: #222;}
-        body.dark ::selection {background: #c49c48; color: #25312b;}
+        .img-time-label:before { content:'\f017  '; font-family:"Font Awesome 6 Free"; font-weight:900; margin-right:3px; }
+        @media (max-width:650px){ .box{max-width:99vw;padding:3vw 1vw 5vw 1vw;} #img-popup-inner{max-width:97vw;max-height:46vh;} }
+        body.dark, .dark {color:#f7f7ee!important;}
+        body.dark .box {background:var(--main-card)!important; color:var(--main-text)!important; box-shadow:0 4px 32px #000a;}
+        body.dark h2, body.dark .section-label, body.dark .cmt-label {color:#ffe082!important;}
+        body.dark .state-btn {background:#3c3c2b; color:#ffe082;}
+        body.dark .state-btn.selected {background:#ffe082; color:#25312b;}
+        body.dark .state-btn.pass {background:#458859; color:#fff;}
+        body.dark .state-btn.fail {background:#d33c36; color:#fff;}
+        body.dark .state-btn.data {background:#b7a457; color:#25312b;}
+        body.dark .main-btn, body.dark .back-btn {background:#ffe082; color:#344833; border-color:#ffe082;}
+        body.dark .main-btn:hover, body.dark .back-btn:hover {background:#c49c48; color:#fff; border-color:#c49c48;}
+        textarea, input, select {background:#fffdfc; color:var(--main-text); border-color:var(--main-border);}
+        body.dark input[readonly] { background:#223323!important; color:#d2cfa0;}
+        body.dark textarea {background:#3f5250; color:#f6f6ef; border-color:#91b8a2;}
+        body.dark .img-thumb {background:#222e23!important; border-color:#ffe082;}
+        ::selection {background:#ffe082; color:#222;}
+        body.dark ::selection {background:#c49c48; color:#25312b;}
         #theme-btn {
-            position:fixed; right:19px; bottom:22px; z-index:1001;
-            background: #ece3cc; color: #b78e24;
-            border-radius: 50%; font-size: 21px; width: 39px; height: 39px;
-            display:flex; align-items:center; justify-content:center; border: none;
-            box-shadow:0 1px 7px #4d665c33; cursor:pointer;
-            transition: background 0.13s, color 0.15s;
+            position:fixed; right:19px; bottom:22px; z-index:1001; background:#ece3cc; color:#b78e24;
+            border-radius:50%; font-size:21px; width:39px; height:39px; display:flex; align-items:center; justify-content:center; border:none;
+            box-shadow:0 1px 7px #4d665c33; cursor:pointer; transition:background .13s, color .15s;
         }
         #theme-btn:hover {background:#ffe082; color:#35523A;}
-        body.dark #theme-btn {background: #6c837f; color:#ffe082;}
+        body.dark #theme-btn {background:#6c837f; color:#ffe082;}
         body.dark #theme-btn:hover {background:#b78e24; color:#fff;}
         #img-popup {
-            display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100vw; height: 100vh;
-            background: rgba(15,20,25,0.83); align-items: center; justify-content: center;
+            display:none; position:fixed; z-index:3000; left:0; top:0; width:100vw; height:100vh; background:rgba(15,20,25,0.83);
+            align-items:center; justify-content:center;
         }
-        #img-popup.show { display: flex; }
+        #img-popup.show { display:flex; }
         #img-popup-inner {
-            max-width: 96vw;
-            max-height: 70vh;
-            object-fit: contain;
-            border-radius: 13px;
-            border: 3px solid #ffe082;
-            background: #fff;
-            box-shadow: 0 6px 38px #000b;
-            margin: auto;
-            display: block;
+            max-width:96vw; max-height:70vh; object-fit:contain; border-radius:13px; border:3px solid #ffe082; background:#fff;
+            box-shadow:0 6px 38px #000b; margin:auto; display:block;
         }
         #img-popup-close {
-            position: absolute; top: 17px; right: 25px; color: #fff; font-size: 27px;
-            font-weight: bold; background: rgba(0,0,0,0.22); border: none; border-radius: 100px;
-            width: 38px; height:38px; line-height: 32px; text-align: center; cursor:pointer; z-index: 3200;
-            box-shadow: 0 2px 12px #2226; transition: background 0.13s;
+            position:absolute; top:17px; right:25px; color:#fff; font-size:27px; font-weight:bold; background:rgba(0,0,0,0.22);
+            border:none; border-radius:100px; width:38px; height:38px; line-height:32px; text-align:center; cursor:pointer; z-index:3200;
+            box-shadow:0 2px 12px #2226; transition:background .13s;
         }
         #img-popup-close:hover {background:rgba(220,40,40,0.22);}
         #counter-hotcold {
-            color: #b68b22;
-            font-size: 15px;
-            font-weight: 600;
-            margin-top: 8px;
-            background: #fff9e0;
-            border-radius: 17px;
-            box-shadow: 0 1px 5px #dec89317;
-            display: block;
-            text-align: center;
-            width: fit-content;
-            margin-left: auto;
-            margin-right: auto;
-            padding: 4px 18px 4px 13px;
-            font-family: 'Inter', 'Open Sans', Arial, sans-serif;
-            letter-spacing: 0.01em;
+            color:#b68b22; font-size:15px; font-weight:600; margin-top:8px; background:#fff9e0; border-radius:17px;
+            box-shadow:0 1px 5px #dec89317; display:block; text-align:center; width:fit-content; margin-left:auto; margin-right:auto;
+            padding:4px 18px 4px 13px; font-family:'Inter','Open Sans',Arial,sans-serif; letter-spacing:.01em;
         }
-        body.dark #counter-hotcold {
-            background: #28321b;
-            color: #ffe082;
-        }
+        body.dark #counter-hotcold { background:#28321b; color:#ffe082; }
         .report-banner {
-            color: #d6c49d;
-            font-size: 21px;
-            font-weight: bold;
-            text-align: center;
-            margin-top: 6px;
-            margin-bottom: 14px;
-            letter-spacing: 1px;
-            text-shadow: 0 2px 14px #c49c484a;
-            font-family: 'Merriweather', serif;
+            color:#d6c49d; font-size:21px; font-weight:bold; text-align:center; margin-top:6px; margin-bottom:14px;
+            letter-spacing:1px; text-shadow:0 2px 14px #c49c484a; font-family:'Merriweather', serif;
         }
         .duration-form {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
-            margin: 8px 0 14px;
+            display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:8px; margin:8px 0 14px;
         }
-        .duration-form label {
-            font-weight: 700;
-            color: #c49c48;
-            margin-right: 6px;
-            white-space: nowrap;
-        }
-        .duration-form input[type="number"] {
-            width: 90px;
-            padding: 6px 8px;
-            border: 1.2px solid #c49c48;
-            border-radius: 7px;
-            text-align: center;
-        }
-        .duration-form .main-btn {
-            max-width: none;
-            padding: 8px 14px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+        .duration-form label { font-weight:700; color:#c49c48; margin-right:6px; white-space:nowrap; }
+        .duration-form input[type="number"] { width:90px; padding:6px 8px; border:1.2px solid #c49c48; border-radius:7px; text-align:center; }
+        .duration-form .main-btn { max-width:none; padding:8px 14px; display:flex; align-items:center; gap:6px; }
         @media (max-width: 600px) {
-            .duration-form {
-              flex-wrap: wrap;
-            }
-            .duration-form label,
-            .duration-form input[type="number"] {
-              order: 1; /* giữ label + input cùng hàng */
-            }
-            .duration-form .main-btn {
-              order: 2; /* đưa button xuống hàng */
-              width: 100%;
-              max-width: 200px;
-              justify-content: center;
-            }
-            .box{ padding-top: 42px; }               /* chừa chỗ cho nút back */
-            .back-btn{
-                position: absolute;
-                left: 8px; top: 8px; z-index: 2;
-                width: 34px; height: 34px;
-                padding: 0;
-                border-radius: 50%;
-                border: 1px solid #d5c69d;
-                background: #faf7ec;
-                color: #73592c;
-                display: flex; align-items: center; justify-content: center;
-                font-size: 16px;                       /* cỡ icon */
-                min-width: 0;                          /* tránh giãn */
-            }
-            .back-btn span{ display: none; }         /* ẩn chữ, chỉ giữ icon */
+            .duration-form { flex-wrap: wrap; }
+            .duration-form label, .duration-form input[type="number"] { order: 1; }
+            .duration-form .main-btn { order: 2; width: 100%; max-width: 200px; justify-content: center; }
+            .box{ padding-top: 42px; }
+            .back-btn{ left: 8px; top: 8px; width: 34px; height: 34px; padding: 0; border-radius: 50%; border: 1px solid #d5c69d;
+                       background: #faf7ec; color: #73592c; display: flex; align-items: center; justify-content: center; font-size: 16px; min-width: 0; }
+            .back-btn span{ display: none; }
             .back-btn i{ margin: 0; }
         }
-        /* tuỳ chọn: rất nhỏ thì tăng size touch một chút */
-        @media (max-width: 380px){
-            .back-btn{ width: 36px; height: 36px; font-size: 17px; }
-        }
-        /* Dark mode style cho input number trong form thời gian test */
-        body.dark .duration-form input[type="number"] {
-            background: #3f5250;   /* nền tối */
-            color: #f6f6ef;        /* chữ sáng */
-            border-color: #91b8a2; /* viền xanh nhạt */
-        }
-
-        body.dark .duration-form input[type="number"]::placeholder {
-            color: #d2cfa0; /* màu placeholder */
-        }
+        @media (max-width: 380px){ .back-btn{ width:36px; height:36px; font-size:17px; } }
+        body.dark .duration-form input[type="number"] { background:#3f5250; color:#f6f6ef; border-color:#91b8a2; }
+        body.dark .duration-form input[type="number"]::placeholder { color:#d2cfa0; }
     </style>
 </head>
 <body>
     <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
-    
+
     <!-- MÃ REPORT rõ ràng ở đầu trang -->
-    <div class="report-banner">
-        📝 MÃ REPORT: {{ report }}
-    </div>
-    
+    <div class="report-banner">📝 MÃ REPORT: {{ report }}</div>
+
     <div class="box animate__animated animate__fadeInDown centered-block">
-        <a href="{% if from_line %}{{ url_for('update', report=report) }}{% else %}{{ url_for('test_group_page', report=report, group=group) }}{% endif %}"
-          class="back-btn"
-          tabindex="0"
-          aria-label="Quay lại">
-            <i class="fa fa-arrow-left"></i> 
-            <span>
-                {% if from_line %}
-                    Quay lại trang thông tin
-                {% else %}
-                    Quay lại mục kiểm tra
-                {% endif %}
-            </span>
+        <a href="{% if from_line %}{{ url_for('update', report=report) }}{% else %}{{ url_for('test_group_page', report=report, group=group) }}{% endif %}" class="back-btn" tabindex="0" aria-label="Quay lại">
+            <i class="fa fa-arrow-left"></i>
+            <span>{% if from_line %}Quay lại trang thông tin{% else %}Quay lại mục kiểm tra{% endif %}</span>
         </a>
+
         <h2>{{ (title.short if title else (test_key|replace('_',' ')|title)) }}</h2>
         <div class="header-sub">Group: <b>{{ group.upper() }}</b></div>
+
         <form method="POST" class="duration-form">
           <label for="duration">Thời gian test (giờ):</label>
-          <input type="number" name="duration" id="duration"
-                min="1" step="1" value="{{ so_gio_test or 4 }}">
-          <button type="submit" name="set_duration" class="main-btn">
-            <i class="fa fa-clock"></i> Cập nhật
-          </button>
+          <input type="number" name="duration" id="duration" min="1" step="1" value="{{ so_gio_test or 4 }}">
+          <button type="submit" name="set_duration" class="main-btn"><i class="fa fa-clock"></i> Cập nhật</button>
         </form>
+
         {% if imgs_mo_ta %}
         <div class="section">
             <div class="test-desc">Mô tả kiểm thử (nhấp vào ảnh mẫu để phóng to xem chi tiết)</div>
             {% for img in imgs_mo_ta %}
-                <img src="{{ img }}"
-                     alt="Ảnh mẫu kiểm thử"
-                     class="sample-img"
-                     onclick="showPopup(this)">
+                <img src="{{ img }}" alt="Ảnh mẫu kiểm thử" class="sample-img" onclick="showPopup(this)">
             {% endfor %}
         </div>
         {% endif %}
+
+        <!-- PASS/FAIL/DATA -->
         <form method="POST" class="state-btn-group" style="justify-content:center;margin-bottom:14px;">
             <input type="hidden" name="group" value="{{ group }}">
             <button name="status" value="PASS" type="submit" class="state-btn pass {% if status == 'PASS' %}selected{% endif %}"><i class="fa fa-check"></i><span>PASS</span></button>
             <button name="status" value="FAIL" type="submit" class="state-btn fail {% if status == 'FAIL' %}selected{% endif %}"><i class="fa fa-times"></i><span>FAIL</span></button>
             <button name="status" value="DATA" type="submit" class="state-btn data {% if status == 'DATA' %}selected{% endif %}"><i class="fa fa-database"></i><span>DATA</span></button>
         </form>
+
         {% if status %}
         <div class="status-block" style="margin-top:8px;text-align:center;">
             {% if status == "PASS" %}
@@ -489,8 +297,12 @@
                 </span>
             {% endif %}
         </div>
+        {% if comment %}
+        <div class="cmt-view"><span><i class="fa fa-comment"></i> {{ comment }}</span></div>
         {% endif %}
-        <!-- PHẦN UP ẢNH BEFORE -->
+        {% endif %}
+
+        <!-- Ảnh BEFORE -->
         <div style="width:100%;">
             <div class="section-label"><i class="fa fa-arrow-up"></i> Ảnh Before</div>
             {% if before_upload_time %}
@@ -498,8 +310,7 @@
                 <div id="counter-hotcold"></div>
             {% endif %}
             <form method="POST" enctype="multipart/form-data" style="margin-bottom:9px;text-align:center;">
-                <input type="file" name="{{ before_tag }}_imgs" multiple accept="image/*" style="display:none;" id="before-upload"
-                       onchange="submitTestImgs(this, 'before-fake-btn')">
+                <input type="file" name="{{ before_tag }}_imgs" multiple accept="image/*" style="display:none;" id="before-upload" onchange="submitTestImgs(this, 'before-fake-btn')">
                 <button type="button" class="main-btn" onclick="triggerUpload('before-upload')">
                     <i class="fa fa-upload"></i><span>Tải ảnh Before</span>
                     <span id="before-fake-btn" style="display:block;font-size:12px;font-weight:400;color:#eee;margin-left:3px;"></span>
@@ -517,15 +328,15 @@
             {% endfor %}
             </div>
         </div>
-        <!-- PHẦN UP ẢNH AFTER -->
+
+        <!-- Ảnh AFTER -->
         <div style="width:100%;margin-top:16px;">
             <div class="section-label"><i class="fa fa-arrow-down"></i> Ảnh After</div>
             {% if after_upload_time %}
                 <div class="img-time-label">Thời gian kết thúc: {{ after_upload_time }}</div>
             {% endif %}
             <form method="POST" enctype="multipart/form-data" style="margin-bottom:8px;text-align:center;">
-                <input type="file" name="{{ after_tag }}_imgs" multiple accept="image/*" style="display:none;" id="after-upload"
-                       onchange="submitTestImgs(this, 'after-fake-btn')">
+                <input type="file" name="{{ after_tag }}_imgs" multiple accept="image/*" style="display:none;" id="after-upload" onchange="submitTestImgs(this, 'after-fake-btn')">
                 <button type="button" class="main-btn" onclick="triggerUpload('after-upload')">
                     <i class="fa fa-upload"></i><span>Tải ảnh After</span>
                     <span id="after-fake-btn" style="display:block;font-size:12px;font-weight:400;color:#eee;margin-left:3px;"></span>
@@ -543,11 +354,11 @@
             {% endfor %}
             </div>
         </div>
-        <!-- COMMENT -->
+
+        <!-- FORM COMMENT -->
         <form method="POST" class="comment-block">
             <input type="hidden" name="group" value="{{ group }}">
-            <label class="cmt-label" for="comment_input"
-                style="display:block;text-align:center;font-size:15px;font-weight:600;margin-bottom:10px;">
+            <label class="cmt-label" for="comment_input" style="display:block;text-align:center;font-size:15px;font-weight:600;margin-bottom:10px;">
                 Ghi chú/Comment:
             </label>
             <textarea name="comment_input" id="comment_input" rows="2">{{comment or ''}}</textarea>
@@ -556,11 +367,13 @@
             </button>
         </form>
     </div>
+
     <!-- Popup Ảnh lớn -->
     <div id="img-popup">
         <button id="img-popup-close" title="Đóng">&times;</button>
         <img id="img-popup-inner" src="" />
     </div>
+
     <script>
     document.addEventListener("DOMContentLoaded", function() {
         var themeBtn = document.getElementById('theme-btn');
@@ -580,7 +393,7 @@
         }
         syncDarkModeBtn();
 
-        // --- Countdown hot & cold (nếu có before_upload_time) ---
+        // Countdown Hot & Cold
         {% if before_upload_time %}
             var parts = "{{ before_upload_time }}".match(/(\d{1,2})\/(\d{1,2})\/(\d{4}) (\d{1,2}):(\d{1,2})/);
             if (parts) {
@@ -588,7 +401,7 @@
                 var soGio = {{ so_gio_test|default(4) }};
                 function updateCounter() {
                   var now = new Date();
-                  var elapsed = (now - uploadTime) / (1000 * 60 * 60); // giờ
+                  var elapsed = (now - uploadTime) / (1000 * 60 * 60);
                   var remain = soGio - elapsed;
                   var el = document.getElementById('counter-hotcold');
                   if (!el) return;
@@ -608,18 +421,14 @@
         {% endif %}
     });
 
-    function triggerUpload(inputId) {
-        document.getElementById(inputId).click();
-    }
+    function triggerUpload(inputId) { document.getElementById(inputId).click(); }
     function submitTestImgs(input, spanId) {
         var btn = document.getElementById(spanId);
         if(input.files && input.files.length > 0) {
             btn.innerText = Array.from(input.files).map(f=>f.name).join(', ');
             var form = input.closest('form');
             if(form) setTimeout(()=>form.submit(), 200);
-        } else {
-            btn.innerText = "";
-        }
+        } else { btn.innerText = ""; }
     }
     function showPopup(img) {
         var popup = document.getElementById('img-popup');

@@ -160,6 +160,20 @@ def _build_headers_map(ws):
             headers[clean] = col
     return headers
 
+def _set_by_keywords(ws, row_idx, headers, keywords, value):
+    """
+    Ghi value vào cột có header thỏa mãn tất cả từ khóa (match mềm, lowercase, bỏ dấu câu).
+    keywords: list[str], ví dụ ["estimated", "completion", "date"]
+    """
+    if value is None or value == "":
+        return False
+    kws = [w.lower() for w in keywords]
+    for h_clean, col_idx in headers.items():
+        if all(word in h_clean for word in kws):
+            ws.cell(row=row_idx, column=col_idx).value = value
+            return True
+    return False
+
 # =========================
 # GHI DỮ LIỆU VÀO ĐÚNG HÀNG
 # =========================
@@ -170,6 +184,9 @@ def write_tfr_to_excel(excel_path, report_no, request):
     - KHÔNG tự +1.
     - Tìm cột bằng header 'report' & 'no' (fallback B).
     - Ghi theo 'match mềm' header (từ khoá).
+    - ĐẶC BIỆT:
+        * "Log in date" = request["log_in_date"] hoặc request["request_date"]
+        * ETD điền vào cột "ETD"/"Estimated Completion Date"/"Estimated Completed Date" (tùy header)
     """
     wb = load_workbook(excel_path, data_only=True)
     ws = wb.active
@@ -194,16 +211,6 @@ def write_tfr_to_excel(excel_path, report_no, request):
     else:
         type_of_val = test_group_val
 
-    fields_map = [
-        (["item"], to_upper(request.get("item_code", ""))),
-        (["type of"], to_upper(type_of_val)),
-        (["item name", "description"], to_upper(request.get("sample_description", ""))),
-        (["furniture testing"], to_upper(request.get("furniture_testing", ""))),
-        (["submitter in", "submitter in charge"], to_upper(request.get("requestor", ""))),
-        (["submitted dept"], to_upper(request.get("department", ""))),
-        (["remark"], to_upper(request.get("test_status", ""))),
-    ]
-
     # 3) Ghi TRQ-ID nếu có cột tương ứng
     trq_col = (
         get_col_idx(ws, "trq-id")
@@ -214,27 +221,39 @@ def write_tfr_to_excel(excel_path, report_no, request):
     if trq_col:
         ws.cell(row=row_idx, column=trq_col).value = request.get("trq_id", "")
 
-    # 4) Ghi các trường theo header match mềm
+    # 4) Ghi các trường mô tả chính theo match mềm
+    fields_map = [
+        (["item"], to_upper(request.get("item_code", ""))),
+        (["type of"], to_upper(type_of_val)),
+        (["item name", "description"], to_upper(request.get("sample_description", ""))),
+        (["furniture testing"], to_upper(request.get("furniture_testing", ""))),
+        (["submitter in", "submitter in charge"], to_upper(request.get("requestor", ""))),
+        (["submitted dept"], to_upper(request.get("department", ""))),
+        (["remark"], to_upper(request.get("test_status", ""))),
+    ]
     for keys, val in fields_map:
-        kws = [w.lower() for w in keys]
-        for h_clean, col_idx in headers.items():
-            if all(word in h_clean for word in kws):
-                ws.cell(row=row_idx, column=col_idx).value = val
-                break
+        _set_by_keywords(ws, row_idx, headers, keys, val)
 
-    # 5) Các cột tuỳ chọn: priority, ETD, QR link (Y=25) nếu có
-    for keys, key_in_req in (
-        (["priority"], "priority"),
-        (["estimated completed date"], "estimated_completion_date"),
-    ):
-        if key_in_req in request:
-            val = to_upper(request.get(key_in_req))
-            kws = [w.lower() for w in keys]
-            for h_clean, col_idx in headers.items():
-                if all(word in h_clean for word in kws):
-                    ws.cell(row=row_idx, column=col_idx).value = val
-                    break
+    # 5) Các cột tuỳ chọn: priority, ETD/Estimated, QR link (Y=25) nếu có
+    # 5.1 Priority (nếu có trong request)
+    if "priority" in request:
+        _set_by_keywords(ws, row_idx, headers, ["priority"], to_upper(request.get("priority")))
 
+    # 5.2 ETD / Estimated Completion/Completed Date
+    etd_val = request.get("etd") or request.get("estimated_completion_date")
+    # thử các header khả dĩ
+    wrote_etd = (
+        _set_by_keywords(ws, row_idx, headers, ["etd"], etd_val) or
+        _set_by_keywords(ws, row_idx, headers, ["estimated", "completion", "date"], etd_val) or
+        _set_by_keywords(ws, row_idx, headers, ["estimated", "completed", "date"], etd_val)
+    )
+
+    # 5.3 Log in date = request["log_in_date"] hoặc request["request_date"]
+    login_date_val = request.get("log_in_date") or request.get("request_date")
+    _set_by_keywords(ws, row_idx, headers, ["log", "in", "date"], login_date_val) or \
+        _set_by_keywords(ws, row_idx, headers, ["login", "date"], login_date_val)
+
+    # 5.4 QR link (cột Y=25) nếu backend có set
     if "qr_link" in request:
         ws.cell(row=row_idx, column=25).value = str(request["qr_link"])
 

@@ -54,8 +54,8 @@ def compare_products_ignore_light(
     return comment, ab_dist, ab1, ab2
 
 # Ví dụ sử dụng
-file1 = "IMG_7184.jpg"
-file2 = "IMG_7182.jpg"
+file1 = "IMG_7182.jpg"
+file2 = "IMG_7183.jpg"
 label1 = "Mẫu 1"
 label2 = "Mẫu 2"
 
