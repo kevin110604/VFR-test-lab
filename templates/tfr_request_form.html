@@ -493,9 +493,52 @@
         {% if error %}
         <div class="error">{{ error }}</div>
         {% endif %}
-        <form method="POST" action="">
+        <form method="POST" action="" enctype="multipart/form-data">
             <input type="hidden" name="trq_id" value="{{ form_data.get('trq_id', '') }}">
             <input type="hidden" name="edit_idx" value="{{ form_data.get('edit_idx', '') }}">
+            <!-- ẢNH SẢN PHẨM BAN ĐẦU -->
+            <div class="form-card" style="margin-top:12px;">
+            <div class="form-card-title">
+                <i class="fa fa-image" style="margin-right:6px;"></i>
+                <span>Initial Images</span>
+            </div>
+
+            <!-- Nút upload + xem trước -->
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <label class="btn" for="initial_img_input" style="background:#c49c48;color:#fff;padding:7px 14px;border-radius:9px;cursor:pointer;box-shadow:0 2px 8px #c49c4822;">
+                <i class="fa fa-upload"></i> <span style="margin-left:6px;">Upload Image</span>
+                </label>
+                <input id="initial_img_input" type="file" name="initial_img" accept="image/*" style="display:none;">
+            </div>
+
+            <!-- Preview + nút xoá -->
+            <div id="initial_img_preview_wrap" style="margin-top:10px;display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
+                {% if form_data.get('initial_img') %}
+                <div class="img-thumb-wrap" style="position:relative;">
+                    <img src="{{ url_for('static', filename=form_data.get('initial_img')) }}"
+                        alt="initial" style="max-height:120px;border-radius:10px;border:2px solid #4d665c;cursor:zoom-in;"
+                        onclick="openInitPopup(this.src)">
+                    <button type="button" class="btn"
+                            onclick="markDeleteInitialImg()"
+                            style="position:absolute;top:6px;right:6px;border:none;background:#df2323;color:#fff;border-radius:50%;width:28px;height:28px;cursor:pointer;">
+                    <i class="fa fa-trash"></i>
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- hidden để báo xóa khi submit -->
+            <input type="hidden" name="delete_initial_img" id="delete_initial_img" value="0">
+            </div>
+
+            <!-- Popup xem ảnh initial -->
+            <div id="init-popup" style="display:none;position:fixed;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center;">
+            <img id="init-popup-img" src="" style="max-width:92vw;max-height:80vh;border:3px solid #ffe082;border-radius:12px;background:#fff;box-shadow:0 10px 40px #000a;">
+            <button type="button" onclick="closeInitPopup()"
+                    style="position:absolute;top:16px;right:24px;background:rgba(0,0,0,.25);color:#fff;border:none;width:42px;height:42px;border-radius:50%;font-size:22px;cursor:pointer;">
+                &times;
+            </button>
+            </div>
             <div class="modern-form-grid">
                 <!-- Card 1: Người gửi -->
                 <div class="form-card">
@@ -612,6 +655,11 @@
                                 <input type="radio" name="test_group" value="ENVIRONMENTAL TEST"
                                     {% if form_data.get('test_group') == 'ENVIRONMENTAL TEST' %}checked{% endif %}>
                                 ENVIRONMENTAL TEST
+                            </label>
+                            <label>
+                                <input type="radio" name="test_group" value="OUTSOURCE TEST"
+                                        {% if form_data.get('test_group') == 'OUTSOURCE TEST' %}checked{% endif %}>
+                                OUTSOURCE TEST
                             </label>
                         </div>
                         {% if 'test_group' in missing_fields %}<div class="error-msg text-required-msg">Bắt buộc chọn</div>{% endif %}
@@ -1005,6 +1053,36 @@
                 }
             }
         });
+        const initInput = document.getElementById('initial_img_input');
+        const initWrap  = document.getElementById('initial_img_preview_wrap');
+        const delFlag   = document.getElementById('delete_initial_img');
+
+        function openInitPopup(src){ document.getElementById('init-popup-img').src = src; document.getElementById('init-popup').style.display='flex'; }
+        function closeInitPopup(){ document.getElementById('init-popup').style.display='none'; }
+
+        function markDeleteInitialImg(){
+            delFlag.value = "1";
+            // Ẩn preview hiện tại
+            if (initWrap) initWrap.innerHTML = "<i style='color:#b61e1e'>Ảnh sẽ bị xóa sau khi Submit</i>";
+        }
+
+        // Xem trước client-side ngay khi chọn
+        if (initInput){
+            initInput.addEventListener('change', function(){
+            delFlag.value = "0";
+            const files = this.files;
+            if (!files || !files[0]) return;
+            const url = URL.createObjectURL(files[0]);
+            initWrap.innerHTML = `
+                <div class="img-thumb-wrap" style="position:relative;">
+                <img src="${url}" style="max-height:120px;border-radius:10px;border:2px solid #4d665c;cursor:zoom-in;" onclick="openInitPopup('${url}')">
+                <button type="button" onclick="(function(){initInput.value='';initWrap.innerHTML='';delFlag.value='0';})()"
+                    style="position:absolute;top:6px;right:6px;border:none;background:#df2323;color:#fff;border-radius:50%;width:28px;height:28px;cursor:pointer;">
+                    <i class="fa fa-trash"></i>
+                </button>
+                </div>`;
+            });
+        }
     </script>
 </body>
 </html>

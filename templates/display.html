@@ -15,55 +15,49 @@
     :root { --bg:#fffdfc; --fg:#25312b; --card:#fffdfc; --line:#d8d8cc; --muted:#6b6b6b; }
     {% endif %}
 
-    html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font:500 18px/1.45 "Segoe UI",Inter,system-ui,-apple-system,Arial}
-    *{cursor:none!important}
-    .wrap{display:flex;flex-direction:column;height:100%}
+    html,body { height:100%; margin:0; background:var(--bg); color:var(--fg); font:500 18px/1.45 "Segoe UI", Inter, system-ui, -apple-system, Arial; }
+    * { cursor: none !important; }
+    .wrap { display:flex; flex-direction:column; height:100%; }
 
-    .header{
-      display:flex;align-items:center;justify-content:space-between;
-      padding:10px 18px;border-bottom:1px solid var(--line);background:var(--card);
-      position:sticky;top:0;z-index:3
+    .header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px 18px; border-bottom:1px solid var(--line); background:var(--card);
+      position:sticky; top:0; z-index:2;
     }
-    .header .title{font-weight:800;letter-spacing:.02em}
-    .header .ts{font-size:14px;color:var(--muted)}
+    .header .title { font-weight:800; letter-spacing:.02em; }
+    .header .ts { font-size:14px; color:var(--muted); }
 
-    .summary{
-      padding:10px 18px;background:var(--card);border-bottom:1px solid var(--line);
-      position:sticky;top:48px;z-index:3
+    .summary {
+      padding:10px 18px; background:var(--card); border-bottom:1px solid var(--line);
     }
-    .summary table{width:100%;border-collapse:separate;border-spacing:0}
-    .summary th,.summary td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--line)}
-    .summary th{color:#b78e24;background:#fffbe80f;font-size:14px;letter-spacing:.04em}
-    .summary .late{color:var(--late);font-weight:800}
-    .summary .due{color:var(--due);font-weight:800}
-    .summary .must{color:var(--must);font-weight:800}
-    .summary .active{color:var(--active);font-weight:800}
+    .summary table { width:100%; border-collapse:separate; border-spacing:0; }
+    .summary th, .summary td { padding:8px 10px; text-align:center; border-bottom:1px solid var(--line); }
+    .summary th { color:#b78e24; background:#fffbe80f; font-size:14px; letter-spacing:.04em; }
+    .summary .late { color:var(--late); font-weight:800; }
+    .summary .due { color:var(--due); font-weight:800; }
+    .summary .must { color:var(--must); font-weight:800; }
+    .summary .active { color:var(--active); font-weight:800; }
 
-    .done-box{
-      display:flex;gap:16px;padding:8px 18px 12px;background:var(--card);
-      border-bottom:1px solid var(--line);position:sticky;top:calc(48px + 56px);z-index:2
-    }
-    .done-chip{padding:8px 12px;border-radius:12px;font-weight:700;background:#fffbe80f;border:1px solid var(--line)}
-    .done-chip.hc b{color:#4ade80}
-    .done-chip.ot b{color:#f87171}
+    .table-box { flex:1; overflow:hidden; padding:10px 18px 14px; }
+    table#board { width:100%; border-collapse:collapse; table-layout:fixed; }
+    #board th, #board td { border-bottom:1px solid var(--line); padding:10px 8px; text-align:center; }
+    #board th { position:sticky; top:0; background:var(--card); font-size:15px; z-index:1; }
+    #board td { font-size:18px; }
+    #board .status { font-weight:800; -webkit-text-stroke:0.5px #0003; text-shadow:0 1px 2px #0006; letter-spacing:.03em; }
+    #board .LATE { color:var(--late); }
+    #board .DUE { color:var(--due); }
+    #board .MUST { color:var(--must); }
+    #board .ACTIVE { color:var(--active); }
 
-    .table-box{flex:1;overflow:hidden;padding:10px 18px 14px}
-    table#board{width:100%;border-collapse:collapse;table-layout:fixed}
-    #board th,#board td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:center}
-    #board th{position:sticky;top:calc(48px + 56px + 54px);background:var(--card);font-size:15px;z-index:1}
-    #board td{font-size:18px}
-    #board .status{font-weight:800;-webkit-text-stroke:.5px #0003;text-shadow:0 1px 2px #0006;letter-spacing:.03em}
-    #board .LATE{color:var(--late)}
-    #board .DUE{color:var(--due)}
-    #board .MUST{color:var(--must)}
-    #board .ACTIVE{color:var(--active)}
-
-    .footer{
-      display:flex;align-items:center;justify-content:center;gap:18px;
-      padding:8px 12px;border-top:1px solid var(--line);background:var(--card);font-size:14px;color:var(--muted)
+    .footer {
+      display:flex; align-items:center; justify-content:center; gap:18px;
+      padding:8px 12px; border-top:1px solid var(--line); background:var(--card); font-size:14px; color:var(--muted);
     }
 
-    @media (min-width:1400px){ #board td{font-size:20px} }
+    /* chữ to hơn cho xa (có thể chỉnh) */
+    @media (min-width:1400px){
+      #board td { font-size:20px; }
+    }
   </style>
 </head>
 <body>
@@ -73,7 +67,7 @@
     <div class="ts" id="ts">—</div>
   </div>
 
-  <!-- BẢNG TRẠNG THÁI TỔNG -->
+  <!-- Bảng tổng trạng thái -->
   <div class="summary">
     <div style="overflow-x:auto;">
       <table id="sum">
@@ -84,25 +78,19 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td class="late"><b>LATE</b></td><td id="sum-late"></td></tr>
-          <tr><td class="due"><b>DUE</b></td><td id="sum-due"></td></tr>
-          <tr><td class="must"><b>MUST</b></td><td id="sum-must"></td></tr>
-          <tr><td class="active"><b>ACTIVE</b></td><td id="sum-active"></td></tr>
+          <tr><td class="late">LATE</td><td id="sum-late"></td></tr>
+          <tr><td class="due">DUE</td><td id="sum-due"></td></tr>
+          <tr><td class="must">MUST</td><td id="sum-must"></td></tr>
+          <tr><td class="active">ACTIVE</td><td id="sum-active"></td></tr>
           <tr><td><b>TOTAL</b></td><td id="sum-total" style="font-weight:800;"></td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- ĐƠN HOÀN THÀNH HC / OT (CỐ ĐỊNH) -->
-  <div class="done-box">
-    <div class="done-chip hc">Đơn hoàn thành giờ HC (8:00–16:45): <b id="done-hc">0</b></div>
-    <div class="done-chip ot">Đơn hoàn thành giờ OT (16:45–23:59): <b id="done-ot">0</b></div>
-  </div>
-
-  <!-- BẢNG CHI TIẾT (AUTO PHÂN TRANG) -->
+  <!-- Bảng report (auto phân trang) -->
   <div class="table-box">
-    <div style="overflow:auto;height:100%;">
+    <div style="overflow:auto; height:100%;">
       <table id="board">
         <thead>
           <tr>
@@ -121,18 +109,17 @@
 
   <div class="footer">
     <div>Trang <span id="page">1</span>/<span id="pages">1</span></div>
-    <div>Cập nhật mỗi {{ refresh_sec }}s – lật trang mỗi {{ rotate_sec }}s</div>
+    <div>Auto refresh mỗi {{ refresh_sec }}s – lật trang mỗi {{ rotate_sec }}s</div>
   </div>
 </div>
 
 <script>
-  // ==== THAM SỐ TỪ BACKEND ====
   const TOKEN = "{{ token }}";
-  const PAGE_LEN   = {{ page_len|default(15) }};
-  const ROTATE_SEC = {{ rotate_sec|default(60) }};
-  const REFRESH_SEC= {{ refresh_sec|default(30) }};
+  const PAGE_LEN = {{ page_len }};
+  const ROTATE_SEC = {{ rotate_sec }};
+  const REFRESH_SEC = {{ refresh_sec }};
 
-  let data = { summary:[], reports:[], generated_at:"", counter:{office:0, ot:0} };
+  let data = { summary:[], reports:[], generated_at:"" };
   let page = 0, pages = 1;
 
   function fmt(x){ return (x==null||x==="") ? "" : x; }
@@ -146,6 +133,7 @@
     const act  = document.getElementById('sum-active');
     const tot  = document.getElementById('sum-total');
 
+    // Tạo dãy tiêu đề theo short code: TR | TT | ...
     head.textContent = s.map(x => x.short).join(' | ');
     late.textContent = s.map(x => x.late).join(' | ');
     due.textContent  = s.map(x => x.due).join(' | ');
@@ -153,14 +141,8 @@
     act.textContent  = s.map(x => x.active).join(' | ');
     tot.textContent  = s.map(x => x.total).join(' | ');
 
+    // thời gian
     document.getElementById('ts').textContent = "Cập nhật: " + (data.generated_at || "");
-
-    // Counter HC/OT
-    const c = data.counter || {};
-    const hc = document.getElementById('done-hc');
-    const ot = document.getElementById('done-ot');
-    if (hc) hc.textContent = (c.office != null ? c.office : 0);
-    if (ot) ot.textContent = (c.ot != null ? c.ot : 0);
   }
 
   function renderPage() {
@@ -192,7 +174,7 @@
       const res = await fetch(`/api/display_data?t=${encodeURIComponent(TOKEN)}`, {cache:"no-store"});
       if(!res.ok) throw new Error("HTTP " + res.status);
       const json = await res.json();
-      data = json || {summary:[], reports:[], generated_at:"", counter:{office:0,ot:0}};
+      data = json || {summary:[], reports:[], generated_at:""};
       renderSummary();
       renderPage();
     }catch(e){
@@ -200,7 +182,8 @@
     }
   }
 
-  (async function init(){
+  // Khởi chạy
+  (async function(){
     await refreshData();
     setInterval(refreshData, REFRESH_SEC*1000);
     setInterval(()=>{ page = (page+1)%pages; renderPage(); }, ROTATE_SEC*1000);

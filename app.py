@@ -1,5 +1,5 @@
-from flask import Flask, request, render_template, session, redirect, url_for, jsonify, flash, send_from_directory, Response, stream_with_context, abort
-from config import SECRET_KEY, local_main, SAMPLE_STORAGE, UPLOAD_FOLDER, TEST_GROUPS, local_complete, qr_folder, SO_GIO_TEST, ALL_SLOTS, TEAMS_WEBHOOK_URL_TRF, TEAMS_WEBHOOK_URL_RATE, TEAMS_WEBHOOK_URL_COUNT
+from flask import Flask, request, render_template, session, redirect, url_for, jsonify, flash, send_from_directory, Response, stream_with_context, abort, template_rendered
+from config import SECRET_KEY, local_main, SAMPLE_STORAGE, UPLOAD_FOLDER, TEST_GROUPS, local_complete, SO_GIO_TEST, ALL_SLOTS, TEAMS_WEBHOOK_URL_TRF, TEAMS_WEBHOOK_URL_RATE, TEAMS_WEBHOOK_URL_COUNT
 from excel_utils import get_item_code, get_col_idx, copy_row_with_style, write_tfr_to_excel, append_row_to_trf
 from image_utils import allowed_file, get_img_urls
 from auth import login, get_user_type
@@ -8,8 +8,11 @@ from test_logic import IMPACT_ZONES, IMPACT_LABELS, ROT_LABELS, ROT_ZONES, RH_IM
 from notify_utils import send_teams_message, notify_when_enough_time
 from counter_utils import update_counter, check_and_reset_counter, log_report_complete
 from docx_utils import approve_request_fill_docx_pdf
-from file_utils import safe_write_json, safe_read_json, safe_save_excel, safe_load_excel, safe_write_text, safe_read_text
-import re, os, pytz, json, openpyxl, random, subprocess, regex, traceback, calendar, time, tempfile, uuid, secrets
+from file_utils import (
+    safe_write_json, safe_read_json, safe_save_excel, safe_load_excel,
+    safe_write_text, safe_read_text, safe_append_backup_json   # <— thêm hàm này
+)
+import re, os, pytz, json, openpyxl, random, subprocess, regex, traceback, calendar, time, tempfile, uuid, secrets, copy
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from waitress import serve
@@ -20,13 +23,14 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from threading import Lock
 from contextlib import contextmanager
 from vfr3 import vfr3_bp
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 app.register_blueprint(vfr3_bp)
 
 # Những test dùng giao diện Hot & Cold
-HOTCOLD_LIKE = {"hot_cold", "standing_water", "stain","corrosion"}
+HOTCOLD_LIKE = set(["hot_cold", "standing_water", "stain", "corrosion"])
 INDOOR_GROUPS = {"indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal","outdoor_finishing"}
 REPORT_NO_LOCK = Lock()
 BLANK_TOKENS = {"", "-", "—"}
@@ -60,10 +64,6 @@ def row_is_filled_for_report(excel_path, report_no):
             return True   # ĐÃ có dữ liệu
     wb.close()
     return False          # C..X đều trống => CHƯA dùng
-def _require_staff():
-    # Yêu cầu đã nhập Staff ID để vào VFR3
-    if not session.get('staff_id'):
-        abort(403)
 
 def format_excel_date_short(dt):
     """Convert Python datetime/date -> format 'd-mmm' (e.g., 7-Aug) cho Excel."""
@@ -298,6 +298,7 @@ def archive_request(short_data):
     archive = [r for r in archive if (now - get_dt(r["request_date"])).days < 14]
     archive.append(short_data)
     safe_write_json(ARCHIVE_LOG, archive)
+    safe_append_backup_json(ARCHIVE_LOG, short_data) 
 
 # --- ADD NEW: cleanup archive file (>14 ngày) ---
 def cleanup_archive_json(days=14):
@@ -533,8 +534,6 @@ def home():
         slang=session.get('lang', 'vi'),
     )
 
-TFR_LOG_FILE = "tfr_requests.json"  # Dùng file json cho đơn giản
-
 def get_category_component_position(finishing_type, material_type):
     # material_type: chỉ nhận WOOD hoặc METAL (nên xử lý hoa thường hóa)
     if not finishing_type or not material_type:
@@ -715,6 +714,23 @@ def calculate_default_etd(request_date: str, test_group: str, *, all_reqs=None) 
     d0 = datetime.strptime(request_date, "%Y-%m-%d").date()
     etd = d0 + timedelta(days=base + extra)
     return etd.strftime("%Y-%m-%d")
+
+TFR_INIT_DIR = os.path.join('static', 'TFR_INIT')
+os.makedirs(TFR_INIT_DIR, exist_ok=True)
+
+def _save_initial_img(file_storage, trq_id):
+    """Lưu ảnh initial theo TRQ-ID, trả về đường dẫn tương đối dưới /static (ví dụ: 'TFR_INIT/TRQ123_20250101_120102.jpg')."""
+    if not file_storage or not getattr(file_storage, 'filename', ''):
+        return None
+    fname = secure_filename(file_storage.filename)
+    ext = (fname.rsplit('.', 1)[-1] if '.' in fname else 'jpg').lower()
+    if not allowed_file(fname):
+        return None
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_name = f"{trq_id}_{stamp}.{ext}"
+    abs_path = os.path.join(TFR_INIT_DIR, out_name)
+    file_storage.save(abs_path)
+    return f"TFR_INIT/{out_name}"
 
 @app.route("/tfr_request_form", methods=["GET", "POST"])
 def tfr_request_form():
@@ -906,7 +922,32 @@ def tfr_request_form():
                 new_request["trq_id"] = generate_unique_trq_id(existing_ids)
             tfr_requests.append(new_request)
 
+        # ẢNH BAN ĐẦU (INITIAL PRODUCT IMAGE)
+        init_file = request.files.get("initial_img")
+        if init_file:
+            saved = _save_initial_img(init_file, new_request["trq_id"])
+            if saved:
+                new_request["initial_img"] = saved
+            else:
+                # nếu không hợp lệ thì bỏ qua, không lỗi form
+                new_request["initial_img"] = None
+        else:
+            # nếu đang edit và form không upload ảnh mới, giữ ảnh cũ nếu có
+            if editing:
+                old_list = safe_read_json(TFR_LOG_FILE) or []
+                try:
+                    idx_keep = int(form.get("edit_idx", "-1"))
+                    if 0 <= idx_keep < len(old_list):
+                        new_request["initial_img"] = old_list[idx_keep].get("initial_img")
+                except Exception:
+                    pass
+
+        # Cho phép xóa ảnh initial khi đang edit
+        if form.get("delete_initial_img") == "1":
+            new_request["initial_img"] = None
+
         safe_write_json(TFR_LOG_FILE, tfr_requests)
+        safe_append_backup_json(TFR_LOG_FILE, new_request)
 
         message = (
             f"📝 [TRF] Có yêu cầu Test Request mới!\n"
@@ -2119,68 +2160,94 @@ def update():
         so_gio_test=SO_GIO_TEST,
     )
 
-@app.route("/test_group/<report>/<group>", methods=["GET", "POST"])
-def test_group_page(report, group): # Import trong hàm để tránh circular import nếu cần
+def _has_images(report_folder: str, group: str, key: str, is_hotcold_like: bool) -> bool:
+    if not os.path.exists(report_folder):
+        return False
+    try:
+        files = os.listdir(report_folder)
+    except Exception:
+        return False
 
+    if is_hotcold_like:
+        # chấp nhận tên có/không kèm group sau before/after
+        prefixes = (
+            f"{key}_before_{group}",
+            f"{key}_after_{group}",
+            f"{key}_before_",
+            f"{key}_after_",
+        )
+        return any(allowed_file(fn) and fn.startswith(prefixes) for fn in files)
+    else:
+        pref = f"test_{group}_{key}_"
+        return any(allowed_file(fn) and fn.startswith(pref) for fn in files)
+
+# --- THAY THẾ HẲN hàm test_group_page ---
+@app.route("/test_group/<report>/<group>", methods=["GET", "POST"])
+def test_group_page(report, group):
+    # Lưu context gần nhất
     session[f"last_test_type_{report}"] = get_group_title(group)
     session[f"last_test_code_{report}"] = group
+
     group_titles = TEST_GROUP_TITLES.get(group)
     if not group_titles:
         return "Nhóm kiểm tra không tồn tại!", 404
 
     report_folder = os.path.join(UPLOAD_FOLDER, str(report))
-    status_file = os.path.join(report_folder, f"status_{group}.txt")
+    os.makedirs(report_folder, exist_ok=True)
+
+    # Nơi các trang hot/cold ghi vào:
+    status_file  = os.path.join(report_folder, f"status_{group}.txt")
     comment_file = os.path.join(report_folder, f"comment_{group}.txt")
+    all_status   = load_group_notes(status_file)    # {key -> PASS/FAIL/N/A/DATA...}
+    all_comment  = load_group_notes(comment_file)   # {key -> comment string}
 
-    # Đọc toàn bộ status/comment cho group đó (file lưu dạng "Mục xx: PASS/FAIL/N/A")
-    all_status = load_group_notes(status_file)
-    all_comment = load_group_notes(comment_file)
-
-    # Duyệt từng test_key để lấy trạng thái, comment và có ảnh hay không
     test_status = {}
+
     for key in group_titles:
-        # Mặc định: đọc từ file tổng (status_{group}.txt / comment_{group}.txt)
+        # 1) Lấy từ file tổng (status_{group}.txt / comment_{group}.txt)
         st = all_status.get(key)
         cm = all_comment.get(key)
 
-        # Với các test hot_cold-like: đọc từ file riêng per-test
-        if key in HOTCOLD_LIKE:
-            status_path  = os.path.join(report_folder, f"{key}_{group}_status.txt")
-            comment_path = os.path.join(report_folder, f"{key}_{group}_comment.txt")
-            st = (safe_read_text(status_path) or "").strip() or None
-            cm = (safe_read_text(comment_path) or "").strip() or None
+        # 2) Nếu chưa có, đọc fallback theo cả 2 pattern file riêng:
+        #    - Mới:  status_{group}_{key}.txt / comment_{group}_{key}.txt
+        #    - Cũ:   {key}_{group}_status.txt / {key}_{group}_comment.txt
+        if not st:
+            for st_path in [
+                os.path.join(report_folder, f"status_{group}_{key}.txt"),
+                os.path.join(report_folder, f"{key}_{group}_status.txt"),
+            ]:
+                if os.path.exists(st_path):
+                    try:
+                        v = (safe_read_text(st_path) or "").strip()
+                        if v:
+                            st = v
+                            break
+                    except Exception:
+                        pass
 
-        # Kiểm tra đã có ảnh hay chưa
-        has_img = False
-        if os.path.exists(report_folder):
-            if key in HOTCOLD_LIKE:
-                # Ảnh của hot_cold_test lưu theo tag: {key}_before_*, {key}_after_*
-                has_img = any(
-                    allowed_file(f) and (
-                        f.startswith(f"{key}_before_") or f.startswith(f"{key}_after_")
-                    )
-                    for f in os.listdir(report_folder)
-                )
-            else:
-                # Ảnh của test_group_item lưu dạng test_{group}_{key}_*
-                has_img = any(
-                    allowed_file(f) and f.startswith(f"test_{group}_{key}_")
-                    for f in os.listdir(report_folder)
-                )
+        if not cm:
+            for cm_path in [
+                os.path.join(report_folder, f"comment_{group}_{key}.txt"),
+                os.path.join(report_folder, f"{key}_{group}_comment.txt"),
+            ]:
+                if os.path.exists(cm_path):
+                    try:
+                        v = (safe_read_text(cm_path) or "").strip()
+                        if v:
+                            cm = v
+                            break
+                    except Exception:
+                        pass
 
-        test_status[key] = {
-            "status": st,
-            "comment": cm,
-            "has_img": has_img
-        }
+        # 3) Kiểm tra ảnh (đã ok cho cả hot_cold & thường)
+        has_img = _has_images(report_folder, group, key, key in HOTCOLD_LIKE)
 
-    # Nếu là tủ US thì cần status cho từng step f2057
+        test_status[key] = {"status": st, "comment": cm, "has_img": has_img}
+    # Riêng tủ US (nếu có)
     f2057_status = {}
-    if group == 'tu_us':
+    if group == "tu_us":
         for fkey in F2057_TEST_TITLES:
-            # Đọc status/comment/ảnh từng step con như bình thường
-            s = get_group_test_status(report, group, fkey)
-            f2057_status[fkey] = s
+            f2057_status[fkey] = get_group_test_status(report, group, fkey)
 
     return render_template(
         "test_group_menu.html",

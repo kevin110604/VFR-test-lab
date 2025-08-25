@@ -1,6 +1,7 @@
 import pandas as pd
 import re
 import os
+import datetime
 from config import local_main
 from openpyxl import load_workbook, Workbook
 from copy import copy
@@ -113,14 +114,28 @@ def get_item_code(report):
 # ==============================
 
 def _find_report_col(ws):
-    """Ưu tiên header có cả 'report' và 'no' (không phân biệt hoa thường).
-    Fallback: 2 (cột B)."""
+    """
+    Ưu tiên nhận các biến thể tiêu đề: 'Report #', 'Report#', 'Report No', 'Report Number', 'Report'
+    Fallback: 2 (cột B).
+    """
+    import re
+    def norm(s):
+        return re.sub(r'[^a-z0-9#]+', '', str(s).strip().lower())
+
+    candidates = {"report#", "reportno", "reportnumber", "report"}
     for col in range(1, ws.max_column + 1):
         name = ws.cell(row=1, column=col).value
-        n = _norm_str(name)
-        if "REPORT" in n and "NO" in n:
+        if not name:
+            continue
+        n = norm(name)
+        # match chặt cho các biến thể phổ biến hoặc match mềm: có 'report' và ('no' hoặc '#')
+        if (
+            n in candidates
+            or n.startswith("report")
+            or ("report" in n and ("no" in n or "#" in n))
+        ):
             return col
-    return 1
+    return 2  # fallback đúng cột B
 
 def _find_row_by_report(ws, report_no, report_col=None):
     """Tìm row có giá trị cột REPORT NO == report_no (so khớp mạnh)."""
@@ -174,6 +189,47 @@ def _set_by_keywords(ws, row_idx, headers, keywords, value):
             return True
     return False
 
+# ===== Helpers ghi NGÀY với number_format dd-mmm (thêm mới) =====
+
+def _to_excel_date(value):
+    """Chuẩn hoá giá trị ngày -> datetime (openpyxl) để Excel nhận dạng ngày.
+    Hỗ trợ: datetime/date, 'YYYY-MM-DD', 'DD/MM/YYYY', 'DD-MM-YYYY', ..."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, (datetime.datetime, datetime.date)):
+        if isinstance(value, datetime.date) and not isinstance(value, datetime.datetime):
+            return datetime.datetime(value.year, value.month, value.day)
+        return value.replace(hour=0, minute=0, second=0, microsecond=0)
+    s = str(value).strip()
+    try:
+        dt = pd.to_datetime(s, dayfirst=True, errors='raise')
+        if pd.isna(dt):
+            return None
+        if hasattr(dt, 'to_pydatetime'):
+            dt = dt.to_pydatetime()
+        return dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    except Exception:
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%m/%d/%Y", "%d.%m.%Y"):
+            try:
+                return datetime.datetime.strptime(s, fmt)
+            except Exception:
+                pass
+    return None
+
+def _set_date_by_keywords(ws, row_idx, headers, keywords, value, fmt='dd-mmm'):
+    """Ghi ngày vào cột match keywords và set number_format theo fmt (mặc định dd-mmm)."""
+    dt = _to_excel_date(value)
+    if dt is None:
+        return _set_by_keywords(ws, row_idx, headers, keywords, value)
+    kws = [w.lower() for w in keywords]
+    for h_clean, col_idx in headers.items():
+        if all(word in h_clean for word in kws):
+            cell = ws.cell(row=row_idx, column=col_idx)
+            cell.value = dt
+            cell.number_format = fmt
+            return True
+    return False
+
 # =========================
 # GHI DỮ LIỆU VÀO ĐÚNG HÀNG
 # =========================
@@ -185,7 +241,7 @@ def write_tfr_to_excel(excel_path, report_no, request):
     - Tìm cột bằng header 'report' & 'no' (fallback B).
     - Ghi theo 'match mềm' header (từ khoá).
     - ĐẶC BIỆT:
-        * "Log in date" = request["log_in_date"] hoặc request["request_date"]
+        * "Log in date" = request["log_in_date"] hoặc request["request_date"] (định dạng dd-mmm)
         * ETD điền vào cột "ETD"/"Estimated Completion Date"/"Estimated Completed Date" (tùy header)
     """
     wb = load_workbook(excel_path, data_only=True)
@@ -241,17 +297,16 @@ def write_tfr_to_excel(excel_path, report_no, request):
 
     # 5.2 ETD / Estimated Completion/Completed Date
     etd_val = request.get("etd") or request.get("estimated_completion_date")
-    # thử các header khả dĩ
     wrote_etd = (
         _set_by_keywords(ws, row_idx, headers, ["etd"], etd_val) or
         _set_by_keywords(ws, row_idx, headers, ["estimated", "completion", "date"], etd_val) or
         _set_by_keywords(ws, row_idx, headers, ["estimated", "completed", "date"], etd_val)
     )
 
-    # 5.3 Log in date = request["log_in_date"] hoặc request["request_date"]
+    # 5.3 Log in date = request["log_in_date"] hoặc request["request_date"] => ghi với number_format dd-mmm
     login_date_val = request.get("log_in_date") or request.get("request_date")
-    _set_by_keywords(ws, row_idx, headers, ["log", "in", "date"], login_date_val) or \
-        _set_by_keywords(ws, row_idx, headers, ["login", "date"], login_date_val)
+    _set_date_by_keywords(ws, row_idx, headers, ["log", "in", "date"], login_date_val, fmt='dd-mmm') or \
+        _set_date_by_keywords(ws, row_idx, headers, ["login", "date"], login_date_val, fmt='dd-mmm')
 
     # 5.4 QR link (cột Y=25) nếu backend có set
     if "qr_link" in request:

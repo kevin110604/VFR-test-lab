@@ -7,6 +7,7 @@ import tempfile
 from openpyxl import load_workbook
 from docx import Document
 from config import local_main
+from excel_utils import _find_report_col
 
 # === CONFIG ===
 WORD_TEMPLATE = "FORM-QAD-011-TEST REQUEST FORM (TRF).docx"
@@ -36,6 +37,8 @@ def get_first_empty_report_all_blank(excel_path):
     """Tìm mã report đầu tiên có toàn bộ cột C..X đều trống."""
     wb = load_workbook(excel_path, data_only=True)
     ws = wb.active
+    report_col = _find_report_col(ws)  # <- TÌM CỘT ĐỘNG
+
     for row in range(2, ws.max_row + 1):
         all_mid_empty = True
         for col in range(3, 25):  # C..X
@@ -44,8 +47,8 @@ def get_first_empty_report_all_blank(excel_path):
                 all_mid_empty = False
                 break
         if all_mid_empty:
-            report_no = ws.cell(row=row, column=2).value  # cột B
-            if report_no is not None and str(report_no).strip() != "":
+            report_no = ws.cell(row=row, column=report_col).value
+            if report_no is not None and str(report_no).strip():
                 wb.close()
                 return str(report_no).strip()
     wb.close()

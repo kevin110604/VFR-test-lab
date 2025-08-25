@@ -9,16 +9,34 @@ import re
 from datetime import datetime, date
 from collections import Counter
 from PIL import Image, ImageOps, ExifTags
-from office365.sharepoint.client_context import ClientContext
-from office365.runtime.auth.authentication_context import AuthenticationContext
 
-# ==== CONFIG ====
+# Office365 SharePoint CSOM
+from office365.sharepoint.client_context import ClientContext
+
+# MSAL for OAuth (Delegated + cache), same pattern as "excel export.py"
+import msal
+
+# ================== OAUTH CONFIG (DELEGATED + CACHE) ==================
+TENANT_ID = "064944f6-1e04-4050-b3e1-e361758625ec"       # Directory (tenant) ID
+CLIENT_ID = "9abf6ee2-50c8-47c8-a9f2-8cf18587c6ea"       # Application (client) ID
+AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
+
+SP_HOST = "https://jonathancharles.sharepoint.com"
+
+# SharePoint delegated scopes (match "excel export.py")
+SPO_SCOPES = [
+    f"{SP_HOST}/AllSites.Read",
+    f"{SP_HOST}/AllSites.Write",
+]
+
+TOKEN_CACHE_FILE = "token_cache.bin"
+
+# ==== SITE & PATH CONFIG ====
 site_url = "https://jonathancharles.sharepoint.com/sites/TESTLAB-VFR9"
-username = "tan_qa@vfr.net.vn"
-password = "qaz@Tat@123"
 upload_folder_sharepoint = "/sites/TESTLAB-VFR9/Shared Documents/DATA DAILY/IMAGES_ZIP/"
 local_images = "images"
 
+# (legacy leftover; kept harmless)
 tmp_download_folder = "__tmp_sharepoint__"
 os.makedirs(tmp_download_folder, exist_ok=True)
 
@@ -104,7 +122,7 @@ def compress_folder_inplace_smart(folder, quality=80, max_side=2000):
             files_info[key] = [mtime, size]
             old = old_meta.get(key)
             if (old is None) or (old[0] != mtime or old[1] != size):
-                compress_image_inplace(path, quality=quality, max_side=max_side)
+                compress_image_inplace(path, quality=80, max_side=2000)
                 changed = True
                 try:
                     mtime2 = os.path.getmtime(path)
@@ -148,12 +166,42 @@ def download_file_from_sharepoint(ctx, folder_url, filename, local_path):
             return True
     return False
 
-def upload_file_to_sharepoint(ctx, folder_url, local_file, remote_name=None):
-    if remote_name is None:
-        remote_name = os.path.basename(local_file)
-    with open(local_file, "rb") as fz:
-        ctx.web.get_folder_by_server_relative_url(folder_url) \
-            .upload_file(remote_name, fz.read()).execute_query()
+def upload_file_to_sharepoint(ctx, folder_url, local_file, remote_name=None, chunk_size=10 * 1024 * 1024):
+    """
+    Upload file lên SharePoint:
+      - < 50MB: upload thẳng (Files.add)
+      - >= 50MB: dùng create_upload_session (chunked)
+    """
+    folder = ctx.web.get_folder_by_server_relative_url(folder_url)
+
+    src_path = local_file
+    desired_name = remote_name or os.path.basename(local_file)
+    file_size = os.path.getsize(local_file)
+
+    # Nhỏ hơn 50MB: giữ cách cũ
+    if file_size < 50 * 1024 * 1024:
+        with open(local_file, "rb") as fz:
+            folder.upload_file(desired_name, fz.read()).execute_query()
+        return
+
+    # Lớn: dùng upload session (chunked)
+    # Nếu muốn đổi tên file trên SharePoint, tạo bản tạm để giữ đúng basename
+    temp_to_upload = None
+    try:
+        if desired_name != os.path.basename(local_file):
+            temp_dir = tempfile.mkdtemp(prefix="sp_upload_")
+            temp_to_upload = os.path.join(temp_dir, desired_name)
+            shutil.copy2(local_file, temp_to_upload)
+            src_path = temp_to_upload
+
+        # create_upload_session sẽ tự chia chunk và upload
+        # chunk_size mặc định 10MB; có thể tăng 20–60MB nếu băng thông ổn
+        uploaded_file = folder.files.create_upload_session(src_path, chunk_size=chunk_size).execute_query()
+        # uploaded_file sau khi execute_query() là đối tượng File trên SharePoint
+        # Không cần làm gì thêm
+    finally:
+        if temp_to_upload and os.path.exists(os.path.dirname(temp_to_upload)):
+            shutil.rmtree(os.path.dirname(temp_to_upload), ignore_errors=True)
 
 def unzip_to_dir(zip_path, dest_dir):
     with zipfile.ZipFile(zip_path, "r") as zf:
@@ -287,15 +335,78 @@ def copy_merge_folder(src_folder, dst_folder):
                 except FileNotFoundError:
                     shutil.copy2(src_path, dst_path)
 
-# =============== AUTH ===============
-ctx_auth = AuthenticationContext(site_url)
-if not ctx_auth.acquire_token_for_user(username, password):
-    raise Exception("Không kết nối được SharePoint!")
-ctx = ClientContext(site_url, ctx_auth)
+# ================== MSAL TOKEN CACHE HELPERS ==================
+def _load_token_cache():
+    cache = msal.SerializableTokenCache()
+    if os.path.exists(TOKEN_CACHE_FILE):
+        with open(TOKEN_CACHE_FILE, "r") as f:
+            cache.deserialize(f.read())
+    return cache
+
+def _save_token_cache(cache: msal.SerializableTokenCache):
+    if cache.has_state_changed:
+        with open(TOKEN_CACHE_FILE, "w") as f:
+            f.write(cache.serialize())
+
+def acquire_spo_access_token() -> str:
+    """
+    Lấy access token cho SharePoint Online (Delegated).
+    - Ưu tiên: acquire_token_silent() từ cache
+    - Nếu chưa có/expired: Device Code Flow (in mã ra console), login 1 lần
+    - Cache tự lưu để lần sau silent
+    """
+    cache = _load_token_cache()
+    app = msal.PublicClientApplication(
+        client_id=CLIENT_ID,
+        authority=AUTHORITY,
+        token_cache=cache,
+    )
+
+    result = None
+    accounts = app.get_accounts()
+    if accounts:
+        result = app.acquire_token_silent(SPO_SCOPES, account=accounts[0])
+
+    if not result:
+        flow = app.initiate_device_flow(scopes=SPO_SCOPES)
+        if "user_code" not in flow:
+            raise RuntimeError(f"Không khởi tạo được device flow: {json.dumps(flow, indent=2)}")
+        # Hướng dẫn login 1 lần (copy link + code ra trình duyệt)
+        print(flow["message"])
+        result = app.acquire_token_by_device_flow(flow)
+
+    _save_token_cache(cache)
+
+    if "access_token" not in result:
+        raise RuntimeError(f"Không lấy được access token: {result.get('error_description', str(result))}")
+
+    return result["access_token"]
+
+def get_ctx(site_url: str) -> ClientContext:
+    """
+    ClientContext sử dụng custom authenticate_request:
+    - Mỗi request tự gắn 'Authorization: Bearer <token>' lấy từ MSAL cache
+    """
+    ctx = ClientContext(site_url)
+
+    def _auth(request):
+        token = acquire_spo_access_token()  # lấy từ cache, tự refresh khi cần
+        request.ensure_header("Authorization", "Bearer " + token)
+
+    # Ghi đè cơ chế auth mặc định
+    ctx.authentication_context.authenticate_request = _auth
+    print("AUTH MODE:", "Delegated (Device Code + Token Cache) [custom auth]")
+    return ctx
 
 # =============== MAIN PIPELINE ===============
 def process():
+    ctx = get_ctx(site_url)
+
     # Liệt kê các folder 25-xxxx
+    if not os.path.isdir(local_images):
+        print(f"[WARN] Không tìm thấy thư mục local_images: {local_images}")
+        return
+
     folders = [os.path.join(local_images, f) for f in os.listdir(local_images)
                if os.path.isdir(os.path.join(local_images, f))]
     folders.sort()
@@ -328,7 +439,7 @@ def process():
                 unzip_to_dir(sp_local_copy, staging_parent)
 
                 # Tìm tất cả thư mục ngày đã unzip, copy vào staging_root
-                # (chúng ta không giả định exact root trong zip; copy mọi dir con vào staging_root)
+                # (không giả định exact root trong zip; copy mọi dir con vào staging_root)
                 for item in os.listdir(staging_parent):
                     p = os.path.join(staging_parent, item)
                     if os.path.isdir(p) and item != os.path.basename(staging_root):

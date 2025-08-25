@@ -1,5 +1,5 @@
 # test_logic.py
-import os
+import os, re
 from image_utils import allowed_file
 from config import UPLOAD_FOLDER
 
@@ -13,19 +13,29 @@ def is_impact_test(title):
 def is_rotational_test(title):
     return "rotational" in title.get('full', '').lower() or "rotational" in title.get('short', '').lower()
 
-def load_group_notes(file_path):
-    notes = {}
-    if os.path.exists(file_path):
-        with open(file_path, 'r', encoding='utf-8') as f:
+def load_group_notes(path: str) -> dict:
+    """
+    Đọc file dạng 'key: value' cho từng dòng -> dict {key: value}.
+    Hỗ trợ cả định dạng cũ 'Mục key: value'.
+    """
+    data = {}
+    if not os.path.exists(path):
+        return data
+    try:
+        with open(path, "r", encoding="utf-8") as f:
             for line in f:
-                if line.strip().startswith("Mục "):
-                    try:
-                        muc, val = line.strip().split(":", 1)
-                        key = muc.strip().replace("Mục ", "")
-                        notes[key] = val.strip()
-                    except:
-                        pass
-    return notes
+                line = line.strip()
+                if not line or ":" not in line:
+                    continue
+                k, v = line.split(":", 1)
+                k = k.strip()
+                # Hỗ trợ format cũ 'Mục key: ...'
+                if k.lower().startswith("mục "):
+                    k = k[4:].strip()
+                data[k] = v.strip()
+    except Exception:
+        pass
+    return data
 
 def get_group_test_status(report, group, test_key):
     report_folder = os.path.join(UPLOAD_FOLDER, str(report))
@@ -48,30 +58,47 @@ def get_group_test_status(report, group, test_key):
             comment = f.read().strip()
     return {'status': status, 'comment': comment, 'has_img': has_img, 'first_img': first_img}
 
+# --- thay hàm update_group_note_file ---
 def update_group_note_file(file_path, key, value):
+    """
+    Upsert 1 dòng 'key: value' theo khóa 'key'.
+    Nếu file đang có dòng cũ 'Mục key: ...' thì vẫn update đúng dòng đó.
+    Ghi mới dùng định dạng chuẩn 'key: value'.
+    """
     lines = []
-    found = False
     if os.path.exists(file_path):
         with open(file_path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
-    new_lines = []
+
+    new_lines, found = [], False
+    # Nhận cả 'key:' hoặc 'Mục key:' (không phân biệt hoa/thường khoảng trắng)
+    pattern = re.compile(rf"^\s*(Mục\s+)?{re.escape(key)}\s*:", re.IGNORECASE)
+
     for line in lines:
-        if line.strip().startswith(f"Mục {key}:"):
-            new_lines.append(f"Mục {key}: {value}\n")
+        if pattern.match(line.strip()):
+            new_lines.append(f"{key}: {value}\n")
             found = True
         else:
             new_lines.append(line)
+
     if not found:
-        new_lines.append(f"Mục {key}: {value}\n")
+        new_lines.append(f"{key}: {value}\n")
+
     with open(file_path, 'w', encoding='utf-8') as f:
         f.writelines(new_lines)
 
+
 def get_group_note_value(file_path, key):
+    """
+    Lấy value theo 'key' từ file, hỗ trợ cả 'Mục key:' lẫn 'key:'.
+    """
     if os.path.exists(file_path):
+        pattern = re.compile(rf"^\s*(Mục\s+)?{re.escape(key)}\s*:", re.IGNORECASE)
         with open(file_path, 'r', encoding='utf-8') as f:
             for line in f:
-                if line.strip().startswith(f"Mục {key}:"):
-                    return line.strip().split(":", 1)[1].strip()
+                s = line.strip()
+                if pattern.match(s) and ":" in s:
+                    return s.split(":", 1)[1].strip()
     return None
 
 BAN_US_TEST_TITLES = {

@@ -1,0 +1,4 @@
+Mục pencil: FAIL
+Mục adhesion: FAIL
+hot_cold: PASS
+standing_water: FAIL
