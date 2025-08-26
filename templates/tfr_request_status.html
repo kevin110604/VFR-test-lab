@@ -379,17 +379,27 @@
                 <th></th>
             </tr>
             {% for r in requests %}
-            {% set rk = r._rank_in_day_group or 0 %}
-            {% set grp = (r._group_norm or '') %}
+            {# --- GROUP & RANK --- #}
+            {% set grp = (r._group_norm or r.group or r.test_group or r.type_of_test or '')|upper %}
+            {# ưu tiên _rank_color (đếm theo TRQ duy nhất). fallback _rank_in_day_group nếu backend chưa update #}
+            {% set rk  = r._rank_color if r._rank_color is not none else (r._rank_in_day_group or 0) %}
             {% set row_class = '' %}
-            {% if (is_admin or is_stl) %}
-              {% if grp in ['CONSTRUCTION','TRANSIT'] %}
-                {% if 6 <= rk and rk <= 10 %}{% set row_class = 'rank-mint' %}
-                {% elif 11 <= rk and rk <= 15 %}{% set row_class = 'rank-hot' %}{% endif %}
-              {% elif grp in ['FINISHING','MATERIAL'] %}
-                {% if 16 <= rk and rk <= 30 %}{% set row_class = 'rank-mint' %}
-                {% elif 31 <= rk and rk <= 45 %}{% set row_class = 'rank-hot' %}{% endif %}
-              {% endif %}
+
+            {# --- COLORING RULES BY GROUP --- #}
+            {% if is_admin or is_stl %}
+            {% if grp in ['CONSTRUCTION', 'TRANSIT'] %}
+                {% if 6 <= rk and rk <= 10 %}
+                {% set row_class = 'rank-mint' %}
+                {% elif 11 <= rk and rk <= 15 %}
+                {% set row_class = 'rank-hot' %}
+                {% endif %}
+            {% elif grp in ['FINISHING', 'MATERIAL'] %}
+                {% if 16 <= rk and rk <= 30 %}
+                {% set row_class = 'rank-mint' %}
+                {% elif 31 <= rk and rk <= 45 %}
+                {% set row_class = 'rank-hot' %}
+                {% endif %}
+            {% endif %}
             {% endif %}
 
             <tr class="{{ row_class }}"
@@ -549,8 +559,9 @@
             };
             // Ưu tiên key chuẩn nếu backend đã normalize
             push(obj.initial_images);
-            // fallback các key khác nếu chưa normalize
-            ['initial_image','initial_image_url','form_image','form_images','uploaded_images','product_images','images'].forEach(k=>push(obj[k]));
+            // Fallback các key khác (ĐÃ THÊM initial_img)
+            ['initial_img','initial_image','initial_image_url','form_image','form_images','uploaded_images','product_images','images']
+            .forEach(k=>push(obj[k]));
             // loại trùng
             const uniq = Array.from(new Set(imgs.map(s=>s.trim()).filter(Boolean)));
             // map về URL có thể hiển thị
@@ -568,11 +579,17 @@
                 html += '</div>';
             }
 
-            // Thông tin (bỏ status/decline_reason sẽ thêm riêng)
+            // Thông tin (bỏ status/decline_reason và TẤT CẢ key ảnh)
             html += '<div class="detail-info">';
             for (let k in data) {
                 if (!Object.prototype.hasOwnProperty.call(data,k)) continue;
-                if (['status','decline_reason','initial_images','initial_image','initial_image_url','form_image','form_images','uploaded_images','product_images','images'].includes(k)) continue;
+                if ([
+                    'status','decline_reason',
+                    // Bỏ qua các key ảnh (ĐÃ THÊM initial_img)
+                    'initial_images','initial_img','initial_image','initial_image_url',
+                    'form_image','form_images','uploaded_images','product_images','images'
+                ].includes(k)) continue;
+
                 const label = k.replace(/_/g, " ").replace(/\b\w/g, l=>l.toUpperCase());
                 const val = (data[k] == null || data[k] === '') ? "<span style='color:#999;'>N/A</span>" : data[k];
                 html += `<b class="detail-key">${label}:</b> ${val}<br/>`;

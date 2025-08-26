@@ -12,7 +12,7 @@ from file_utils import (
     safe_write_json, safe_read_json, safe_save_excel, safe_load_excel,
     safe_write_text, safe_read_text, safe_append_backup_json   # <— thêm hàm này
 )
-import re, os, pytz, json, openpyxl, random, subprocess, regex, traceback, calendar, time, tempfile, uuid, secrets, copy
+import re, os, pytz, json, openpyxl, random, subprocess, regex, traceback, calendar, time, tempfile, uuid, secrets, copy, glob
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from waitress import serve
@@ -94,31 +94,114 @@ def try_parse_excel_date(dt):
                 continue
     return None
 
-def calculate_default_etd(request_date_str, test_group):
-    from datetime import datetime, timedelta
-    if not request_date_str:
+def calculate_default_etd(request_date: str, test_group: str, *, all_reqs=None) -> str:
+    if not request_date:
         return ""
-    try:
-        dt = datetime.strptime(request_date_str, "%Y-%m-%d")
-    except:
-        try:
-            dt = datetime.strptime(request_date_str, "%d/%m/%Y")
-        except:
-            return ""
-    test_group_code = ""
-    if test_group:
-        test_group_code = test_group.upper()[:3]
-    days_to_add = 0
-    if test_group_code in ["CON", "TRA"]:
-        days_to_add = 3
-    elif test_group_code in ["MAT", "FIN"]:
-        days_to_add = 5
+
+    # Chuẩn hoá group
+    g = _group_of(test_group)
+    if g in ("CONSTRUCTION", "TRANSIT"):
+        base = 2   # 3 ngày tính cả ngày request => +2
+    elif g in ("FINISHING", "MATERIAL"):
+        base = 4   # 5 ngày tính cả ngày request => +4
     else:
-        days_to_add = 0
-    if days_to_add > 0:
-        etd_date = dt + timedelta(days=days_to_add)
-        return etd_date.strftime("%Y-%m-%d")
-    return ""
+        base = 2
+
+    # --- Chuẩn bị dữ liệu Pending + Archive ---
+    # Pending: chỉ lấy Submitted
+    pending_submitted = []
+    if isinstance(all_reqs, list):
+        for r in all_reqs:
+            try:
+                if (r.get("status") or "").strip() == "Submitted":
+                    pending_submitted.append(r)
+            except Exception:
+                continue
+
+    # Archive: dùng trực tiếp test_group nếu có, fallback map từ report_no
+    try:
+        archive_list = safe_read_json(ARCHIVE_LOG) or []
+    except Exception:
+        archive_list = []
+
+    rep2grp = _build_reportno_to_group_map()
+
+    archive_mapped = []
+    for a in archive_list:
+        try:
+            req_date = (a.get("request_date") or "").strip()
+            trq     = (a.get("trq_id") or "").strip()
+            rep_no  = (a.get("report_no") or "").strip()
+            grp0    = (a.get("test_group") or "").strip()  # ưu tiên group đã lưu
+            grp     = grp0 if grp0 else rep2grp.get(rep_no, "")
+            if not req_date or not grp:
+                continue
+            archive_mapped.append({
+                "request_date": req_date,
+                "test_group": grp,       # để _group_of dùng
+                "trq_id": trq or rep_no, # fallback report_no nếu thiếu trq_id
+                "status": "Approved",
+            })
+        except Exception:
+            continue
+
+    # --- Đếm TRQ duy nhất cho (request_date, group) ---
+    target_date = (request_date or "").strip()
+    target_grp  = g
+    uniq_trq = set()
+
+    # Pending Submitted
+    for r in pending_submitted:
+        try:
+            r_date = (r.get("request_date") or "").strip()
+            r_grp  = _group_of(r.get("test_group") or r.get("type_of_test"))
+            if r_date == target_date and r_grp == target_grp:
+                tid = (r.get("trq_id") or "").strip()
+                if not tid:
+                    # để không crash, coi 1 dòng là 1 "TRQ"
+                    tid = f"__row_{id(r)}"
+                uniq_trq.add(tid)
+        except Exception:
+            continue
+
+    # Archive Approved (đã map group & trq)
+    for a in archive_mapped:
+        try:
+            if a["request_date"] == target_date and _group_of(a["test_group"]) == target_grp:
+                tid = (a.get("trq_id") or "").strip()
+                if not tid:
+                    tid = a.get("report_no", "")
+                if tid:
+                    uniq_trq.add(tid)
+        except Exception:
+            continue
+
+    cnt = len(uniq_trq)  # số TRQ duy nhất đã có TRƯỚC request mới
+
+    # --- Extra theo ngưỡng từng nhóm ---
+    extra = 0
+    if g in ("CONSTRUCTION", "TRANSIT"):
+        # đang là # (cnt + 1); nếu đã có ≥5 thì request mới rơi vào #6..#10
+        if cnt >= 10:      # đang là #11..#15
+            extra = 2
+        elif cnt >= 5:     # đang là #6..#10
+            extra = 1
+    elif g in ("FINISHING", "MATERIAL"):
+        if cnt >= 30:      # đang là #31..#45
+            extra = 4
+        elif cnt >= 15:    # đang là #16..#30
+            extra = 2
+
+    try:
+        d0 = datetime.strptime(request_date, "%Y-%m-%d").date()
+    except Exception:
+        try:
+            d0 = datetime.strptime(request_date, "%d/%m/%Y").date()
+        except Exception:
+            return ""
+
+    etd = d0 + timedelta(days=base + extra)
+    return etd.strftime("%Y-%m-%d")
 
 # ---- các hàm helper không đổi (giữ nguyên) ----
 def get_group_title(group):
@@ -822,6 +905,16 @@ def tfr_request_form():
             missing_fields.append("finishing_type")
             error = "Phải chọn QA TEST hoặc LINE TEST!"
 
+        # --- Rule riêng: Nếu Department = VFR5 thì Subcon bắt buộc và không được N/A ---
+        department = form.get("department", "").strip()
+        subcon_val = form.get("subcon", "").strip()
+        subcon_na  = form.get("subcon_na")
+
+        if department.upper() == "VFR5":
+            if not subcon_val or subcon_na:
+                missing_fields.append("subcon")
+                error = "If Department is VFR5, you need to fill Subcon."
+
         # Nếu có thiếu, trả về form kèm lỗi
         if missing_fields:
             if not error:
@@ -923,29 +1016,62 @@ def tfr_request_form():
             tfr_requests.append(new_request)
 
         # ẢNH BAN ĐẦU (INITIAL PRODUCT IMAGE)
-        init_file = request.files.get("initial_img")
-        if init_file:
-            saved = _save_initial_img(init_file, new_request["trq_id"])
-            if saved:
-                new_request["initial_img"] = saved
-            else:
-                # nếu không hợp lệ thì bỏ qua, không lỗi form
-                new_request["initial_img"] = None
-        else:
-            # nếu đang edit và form không upload ảnh mới, giữ ảnh cũ nếu có
-            if editing:
-                old_list = safe_read_json(TFR_LOG_FILE) or []
-                try:
-                    idx_keep = int(form.get("edit_idx", "-1"))
-                    if 0 <= idx_keep < len(old_list):
-                        new_request["initial_img"] = old_list[idx_keep].get("initial_img")
-                except Exception:
-                    pass
+        init_files = request.files.getlist("initial_img")  # input name="initial_img" + multiple
+        delete_flag = (form.get("delete_initial_img") == "1")
 
-        # Cho phép xóa ảnh initial khi đang edit
-        if form.get("delete_initial_img") == "1":
+        # Lấy ảnh cũ nếu đang edit (để giữ nguyên khi không upload mới)
+        old_initial_img = None
+        old_initial_images = []
+        if editing:
+            old_list = safe_read_json(TFR_LOG_FILE) or []
+            try:
+                idx_keep = int(form.get("edit_idx", "-1"))
+                if 0 <= idx_keep < len(old_list):
+                    old_initial_img = old_list[idx_keep].get("initial_img")
+                    old_initial_images = old_list[idx_keep].get("initial_images") or []
+                    # nếu bản cũ chỉ có initial_img (chuỗi), convert thành list cho đồng bộ
+                    if (not old_initial_images) and isinstance(old_initial_img, str) and old_initial_img:
+                        old_initial_images = [old_initial_img]
+            except Exception:
+                pass
+
+        new_initial_images = []
+
+        if delete_flag:
+            # Người dùng yêu cầu xóa ảnh initial khi edit
             new_request["initial_img"] = None
+            new_request["initial_images"] = []
+        else:
+            if init_files:
+                # Có upload mới: lưu tối đa 2 ảnh hợp lệ
+                for f in init_files[:2]:
+                    if not f or not f.filename:
+                        continue
+                    saved = _save_initial_img(f, new_request["trq_id"])  # trả về "TFR_INIT/xxx.ext"
+                    if saved:
+                        new_initial_images.append(saved)
 
+                if new_initial_images:
+                    new_request["initial_images"] = new_initial_images
+                    new_request["initial_img"] = new_initial_images[0]  # giữ key cũ cho UI cũ
+                else:
+                    # Không có file hợp lệ -> nếu đang edit thì giữ ảnh cũ, ngược lại None
+                    if editing and old_initial_images:
+                        new_request["initial_images"] = old_initial_images
+                        new_request["initial_img"] = old_initial_images[0]
+                    else:
+                        new_request["initial_images"] = []
+                        new_request["initial_img"] = None
+            else:
+                # Không upload mới -> nếu edit thì giữ ảnh cũ, nếu tạo mới thì None
+                if editing and old_initial_images:
+                    new_request["initial_images"] = old_initial_images
+                    new_request["initial_img"] = old_initial_images[0]
+                else:
+                    new_request["initial_images"] = []
+                    new_request["initial_img"] = None
+
+        # Ghi log như cũ
         safe_write_json(TFR_LOG_FILE, tfr_requests)
         safe_append_backup_json(TFR_LOG_FILE, new_request)
 
@@ -1134,7 +1260,7 @@ def approve_all_one(req):
                         dt_val = try_parse_excel_date(value)
                         if dt_val:
                             cell.value = dt_val
-                            cell.number_format = 'd-mmm'
+                            cell.number_format = 'dd-mmm'   # <- đổi d-mmm -> dd-mmm
                         else:
                             cell.value = value
                     else:
@@ -1152,10 +1278,8 @@ def approve_all_one(req):
             set_val("qa comment", req.get("remark", ""))
 
             etd_val = req.get("etd", "")
-            if etd_val:
-                set_val("etd", format_excel_date_short(etd_val), is_date_col=True)
-            else:
-                set_val("etd", "")
+            set_val("etd", etd_val, is_date_col=True)  # <-- bỏ format_excel_date_short
+
 
             vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
             req_login = (req.get("request_date") or "").strip()
@@ -1555,50 +1679,84 @@ def tfr_request_status():
 
     # ===== Tính thứ tự trong ngày theo nhóm (để tô màu) =====
     if is_admin:
-    # 1) Seed bộ đếm từ archive theo (date, group) -> count (đếm THEO REQUEST Approved)
+        # 1) Seed bộ đếm từ archive theo (date, group) -> count TRQ DUY NHẤT
         try:
             archive_all = safe_read_json(ARCHIVE_LOG) or []
         except Exception:
             archive_all = []
 
         rep2grp = _build_reportno_to_group_map()
-        base_counts = {}  # (date, group) -> int
+
+        # 1) Seed theo TRQ duy nhất đã có trong archive (Approved) theo (ngày, nhóm)
+        base_seen = {}   # (date, group) -> set(TRQ)
         for a in archive_all:
             try:
-                d0 = (a.get("request_date") or "").strip()
+                d0  = (a.get("request_date") or "").strip()
                 rep = (a.get("report_no") or "").strip()
-                g0 = rep2grp.get(rep, "")
-                if d0 and g0:
-                    key = (d0, _group_of(g0))
-                    base_counts[key] = base_counts.get(key, 0) + 1
+                g0  = rep2grp.get(rep, "")
+                tid = (a.get("trq_id") or "").strip() or rep  # fallback report_no
+                if not (d0 and g0 and tid):
+                    continue
+                key = (d0, _group_of(g0))
+                s = base_seen.get(key)
+                if s is None:
+                    s = set()
+                    base_seen[key] = s
+                s.add(tid)
             except Exception:
                 continue
 
-        # 2) Duyệt các request đang hiển thị rồi đánh số tiếp
-        running = {}  # (date, group) -> current_count
+        base_count = {k: len(v) for k, v in base_seen.items()}  # (date, group) -> số TRQ duy nhất đã có
+
+        # 2) Duyệt các request đang hiển thị và đánh số tiếp THEO TRQ DUY NHẤT
+        running_seen = {}   # (date, group) -> set(TRQ) đã gặp trong batch hiện tại
+        running_rank = {}   # (date, group) -> {trq: rank}
+        running_count = {}  # (date, group) -> next rank (khởi từ base_count)
+
         for r in show_requests:
-            d = (r.get("request_date") or "").strip()
-            g = _group_of(r.get("test_group") or r.get("type_of_test"))
+            d  = (r.get("request_date") or "").strip()
+            g  = _group_of(r.get("test_group") or r.get("type_of_test"))
             st = (r.get("status") or "").strip()
             key = (d, g)
 
-            # current = seed (Approved) hoặc giá trị đang chạy
-            cur = running.get(key, base_counts.get(key, 0))
+            # chuẩn bị cấu trúc
+            if key not in running_seen:
+                running_seen[key] = set()
+                running_rank[key] = {}
+                running_count[key] = base_count.get(key, 0)
 
-            if st == "Submitted":
-                cur += 1
-                running[key] = cur
-                r["_rank_in_day_group"] = cur
-            else:
-                # Declined: không cộng dồn, không rank
-                r["_rank_in_day_group"] = None
-
+            # mặc định
+            r["_rank_color"] = None
             r["_group_norm"] = g
-    else:
-        # Người thường: KHÔNG gán rank/màu
-        for r in show_requests:
-            r.pop("_rank_in_day_group", None)
-            r.pop("_group_norm", None)
+
+            if st != "Submitted":
+                # chỉ tô màu cho Submitted theo yêu cầu
+                continue
+
+            trq = (r.get("trq_id") or "").strip()
+            if not trq:
+                # tránh vỡ: nếu thiếu TRQ thì coi mỗi dòng 1 "TRQ"
+                trq = f"__row_{id(r)}"
+
+            if trq in running_rank[key]:
+                # dòng thứ 2, thứ 3... của cùng TRQ -> dùng lại cùng rank
+                r["_rank_color"] = running_rank[key][trq]
+            else:
+                # lần đầu gặp TRQ này trong batch
+                # Nếu TRQ đã nằm trong seed (Approved cùng ngày, nhóm), rank lịch sử của nó <= base_count
+                if trq in base_seen.get(key, set()):
+                    # set rank = base_count hiện tại (đủ để xác định qua/vượt mốc 5 hay chưa)
+                    rank = base_count.get(key, 0)
+                    running_rank[key][trq] = rank
+                    running_seen[key].add(trq)
+                    r["_rank_color"] = rank
+                else:
+                    # TRQ mới trong ngày+nhóm -> +1 theo TRQ (không theo số dòng)
+                    running_count[key] += 1
+                    rank = running_count[key]
+                    running_rank[key][trq] = rank
+                    running_seen[key].add(trq)
+                    r["_rank_color"] = rank
 
     return render_template(
         "tfr_request_status.html",
@@ -1611,25 +1769,102 @@ def tfr_request_status():
 
 @app.route("/tfr_request_archive")
 def tfr_request_archive():
-    """
-    Archive:
-    - Join Rating/Status từ Excel theo Report # ↔ report_no
-    - Map Status hiển thị:
-        ACTIVE/MUST/DUE/LATE -> ON PROGRESS
-        COMPLETE/DONE        -> DONE
-        (khác)               -> giữ nguyên như Excel
-    - Sắp xếp: Report No mới (số ở cuối lớn hơn) nằm trên
-    - Cột hiển thị: TRQ-ID | Report No | Employee ID | Requestor | Dept. | Date | Status | Rating | File
-    """
-    import re
-
     # 1) Đọc archive
     archive = safe_read_json(ARCHIVE_LOG) or []
 
-    # 2) Đọc Excel -> tạo rating_map và status_map
+    # 2) Gom ảnh từ toàn bộ requests (giống Status)
+    try:
+        tfr_all = safe_read_json(TFR_LOG_FILE) or []
+    except Exception:
+        tfr_all = []
+
+    by_trq = {}
+    for r in tfr_all:
+        trq = (r.get("trq_id") or "").strip()
+        if not trq:
+            continue
+
+        # Gom các key ảnh giống Status
+        merged = {
+            "initial_img": r.get("initial_img") or r.get("initial_image") or r.get("initial_image_url") or "",
+            "initial_images": list(r.get("initial_images") or []),
+            "form_image": r.get("form_image") or "",
+            "form_images": list(r.get("form_images") or []),
+            "uploaded_images": list(r.get("uploaded_images") or []),
+            "product_images": list(r.get("product_images") or []),
+            "images": list(r.get("images") or []),
+        }
+
+        # Nếu 'images' rỗng thì gộp tất cả mảng còn lại vào 'images'
+        if not merged["images"]:
+            tmp = []
+            for k in ("initial_images", "form_images", "uploaded_images", "product_images"):
+                vs = merged.get(k) or []
+                if isinstance(vs, list):
+                    tmp.extend(vs)
+            # single-value
+            for k in ("initial_img", "form_image"):
+                v = merged.get(k)
+                if isinstance(v, str) and v:
+                    tmp.append(v)
+            # khử trùng
+            seen, out = set(), []
+            for x in tmp:
+                x = (x or "").strip()
+                if x and x not in seen:
+                    seen.add(x); out.append(x)
+            merged["images"] = out
+
+        by_trq[trq.upper()] = merged
+
+    # Nhét ảnh vào từng record archive (không phá dữ liệu sẵn có)
+    for rec in archive:
+        trq = (rec.get("trq_id") or "").strip().upper()
+        if not trq:
+            continue
+        imgpack = by_trq.get(trq)
+        if imgpack:
+            rec.setdefault("initial_img", imgpack.get("initial_img", ""))
+            rec.setdefault("initial_images", imgpack.get("initial_images", []))
+            rec.setdefault("form_image", imgpack.get("form_image", ""))
+            rec.setdefault("form_images", imgpack.get("form_images", []))
+            rec.setdefault("uploaded_images", imgpack.get("uploaded_images", []))
+            rec.setdefault("product_images", imgpack.get("product_images", []))
+            if not rec.get("images"):
+                rec["images"] = imgpack.get("images", [])
+
+    # 3) Fallback: nếu vẫn chưa có ảnh, quét static/TFR_INIT theo TRQ
+    TFR_INIT_DIR = os.path.join('static', 'TFR_INIT')
+    exts = ('.jpg', '.jpeg', '.png', '.webp', '.gif')
+
+    def _find_init_by_trq(trq_id: str):
+        if not trq_id:
+            return []
+        pattern = os.path.join(TFR_INIT_DIR, f"{trq_id}_*")
+        out = []
+        for p in glob.glob(pattern):
+            if os.path.isfile(p) and os.path.splitext(p)[1].lower() in exts:
+                # trả về đường dẫn tương đối dưới /static
+                rel = os.path.relpath(p, start='static').replace('\\', '/')
+                out.append(rel)
+        out.sort()
+        return out
+
+    for rec in archive:
+        if rec.get("initial_images") or rec.get("images") or rec.get("initial_img"):
+            continue  # đã có ảnh từ JSON
+        trq = (rec.get("trq_id") or "").strip()
+        if not trq:
+            continue
+        picks = _find_init_by_trq(trq)
+        if picks:
+            rec["initial_images"] = picks
+            rec["images"] = list(picks)
+
+    # 4) Đọc Excel -> tạo rating_map và status_map
     rating_map, status_map = {}, {}
     try:
-        wb = safe_load_excel(local_main)
+        wb = safe_load_excel(local_main)  # CHÚ Ý: dùng biến đường dẫn Excel bạn đang có
         ws = wb.active
 
         def find_col(*aliases):
@@ -1649,7 +1884,7 @@ def tfr_request_archive():
             }[want]
             for col in range(1, ws.max_column + 1):
                 h = ws.cell(row=1, column=col).value
-                if h is None: 
+                if h is None:
                     continue
                 h_norm = norm(h)
                 if h_norm in targets or any(t in h_norm for t in targets):
@@ -1671,7 +1906,7 @@ def tfr_request_archive():
                     vr = ws.cell(row=r, column=col_rating).value
                     vr_str = "" if vr is None else str(vr).strip()
                     if key and vr_str:
-                        rating_map[key] = vr_str  # giữ nguyên text Excel
+                        rating_map[key] = vr_str
 
                 if col_status:
                     vs = ws.cell(row=r, column=col_status).value
@@ -1682,21 +1917,20 @@ def tfr_request_archive():
                     elif vs_upper in {"COMPLETE", "DONE"}:
                         disp = "DONE"
                     else:
-                        disp = vs_str_orig  # giữ nguyên
+                        disp = vs_str_orig
                     if key:
                         status_map[key] = disp
     except Exception:
         rating_map, status_map = {}, {}
 
-    # 3) Gắn rating/status/employee_id vào từng record archive
+    # 5) Gắn rating/status/employee_id vào từng record archive
     for rec in archive:
         rep = str(rec.get("report_no", "") or "").strip()
         rec["rating"] = rating_map.get(rep, rec.get("rating", "") or "")
         rec["status_display"] = status_map.get(rep, rec.get("status_display", "") or "")
         rec.setdefault("employee_id", rec.get("employee_id", "") or "")
 
-    # 4) Sắp xếp: Report No mới nằm trên
-    # - Lấy số cuối trong report_no để sort desc; nếu không có số, dùng chính chuỗi (desc)
+    # 6) Sắp xếp: Report No mới nằm trên
     def report_sort_key(rec):
         s = str(rec.get("report_no", "") or "")
         nums = re.findall(r"\d+", s)
@@ -1705,8 +1939,10 @@ def tfr_request_archive():
 
     archive.sort(key=report_sort_key, reverse=True)
 
+    # 7) Render
     return render_template("tfr_request_archive.html", requests=archive)
 
+@app.post("/save_etd")
 def save_etd():
     if not request.is_json:
         return jsonify(success=False, message="Invalid request"), 400

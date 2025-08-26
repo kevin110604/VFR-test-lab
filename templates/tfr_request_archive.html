@@ -11,13 +11,13 @@
             --main-bg: #fffdfc;
             --main-card: #fffdfccf;
             --main-text: #25312b;
-            --main-th: #ffe082;            /* vàng */
+            --main-th: #ffe082;
             --main-border: #d8d8cc;
-            --color-green: #2e7d32;        /* xanh PASS/DONE */
+            --color-green: #2e7d32;
             --color-bronze: #8B6B1E;
             --color-pass: #2e7d32;
             --color-fail: #df2323;
-            --color-yellow: #d4a90a;       /* vàng cho ON PROGRESS */
+            --color-yellow: #d4a90a;
         }
         body.dark, .dark {
             --main-bg: #2b3938;
@@ -64,7 +64,7 @@
             background: #fffbe8e5; border-radius: 14px; font-size: .97rem; box-shadow: 0 2px 12px #bca96b18; table-layout: fixed;
         }
         th, td { padding: 9px 7px; text-align: center; vertical-align: middle; white-space: nowrap; word-break: break-word; }
-        th, td { width: calc(100% / 10); } /* 9 cột */
+        th, td { width: calc(100% / 10); }
         th { background: var(--main-th); color: #25312b; font-weight: 700; font-size: 1rem; letter-spacing: 0.04em; border: none; }
         tr:first-child th:first-child { border-radius: 12px 0 0 0; }
         tr:first-child th:last-child  { border-radius: 0 12px 0 0; }
@@ -80,18 +80,20 @@
         td.rating.PENDING, td.rating[''] { color: var(--color-bronze); font-weight: bold; }
 
         /* Status colors */
-        td.status.DONE        { color: var(--color-green); font-weight: 800; }    /* xanh */
-        td.status.ON_PROGRESS { color: var(--color-yellow); font-weight: 800; }   /* vàng */
-        td.status.PENDING     { color: var(--color-bronze); font-weight: 800; }   /* mặc định chờ */
+        td.status.DONE        { color: var(--color-green); font-weight: 800; }
+        td.status.ON_PROGRESS { color: var(--color-yellow); font-weight: 800; }
+        td.status.PENDING     { color: var(--color-bronze); font-weight: 800; }
 
-        .btn-details, .btn-pdf {
+        .btn-details, .btn-pdf, .btn-eye {
             background: #fff; color: var(--color-bronze); border: 1.1px solid var(--main-th);
             border-radius: 100px; padding: 3px 9px; font-size: 13px; font-weight: 600; margin-left: 1px; margin-top: 2px;
             cursor: pointer; transition: background .14s, color .13s, border .13s; display: inline-block;
         }
-        .btn-details:hover, .btn-pdf:hover { background: var(--main-th); color: #25312b; border-color: var(--main-th); }
+        .btn-details:hover, .btn-pdf:hover, .btn-eye:hover { background: var(--main-th); color: #25312b; border-color: var(--main-th); }
         .btn-pdf { color: #43a047; border-color: #43a047; }
         .btn-pdf:hover { background: #e8fff3; color: #35523A; border-color: #35523A; }
+        .btn-eye { color: #35523A; border-color: #35523A; }
+        .btn-eye:hover { background: #e8fff3; color: #35523A; border-color: #35523A; }
 
         .table-toolbar { width: 100%; position: sticky; top: 0; z-index: 3; padding-bottom: 8px; display: flex; justify-content: flex-end; padding-right: 14px; }
         .table-toolbar input { padding: 7px 13px; font-size: 14px; border-radius: 8px; border:1.2px solid #ccc; width: 200px; background: #fff; }
@@ -127,8 +129,8 @@
         body.dark td { color: #ffe082 !important; }
         body.dark .back-home-btn { background: var(--main-th) !important; color: #344833 !important;}
         body.dark .back-home-btn:hover { background: #c49c48 !important; color: #fff !important;}
-        body.dark .btn-details, body.dark .btn-pdf { background: #344833 !important;  color: #ffe082 !important; border-color: #ffe082 ;}
-        body.dark .btn-details:hover, body.dark .btn-pdf:hover { background: var(--main-th) !important; color: #25312b !important; border-color: var(--main-th);}
+        body.dark .btn-details, body.dark .btn-pdf, body.dark .btn-eye { background: #344833 !important;  color: #ffe082 !important; border-color: #ffe082 ;}
+        body.dark .btn-details:hover, body.dark .btn-pdf:hover, body.dark .btn-eye:hover { background: var(--main-th) !important; color: #25312b !important; border-color: var(--main-th);}
         #theme-btn {
             position:fixed; right:24px; bottom:26px; z-index:11001;
             background: var(--main-th); color: #344833;
@@ -138,8 +140,57 @@
         }
         #theme-btn:hover { background: var(--color-green); color: #fff; }
         body.dark #theme-btn { background: #6c837f; color: #ffe082; }
-        .table-toolbar input { background: #fff; color: var(--main-text); border:1.2px solid var(--main-border); }
-        body.dark .table-toolbar input { background: #3f5250 !important; color: #f6f6ef !important; border-color: #91b8a2 !important; }
+
+        /* ===== Modal ảnh (lưới) ===== */
+        .img-backdrop{
+            position: fixed; inset: 0; background: rgba(0,0,0,.6);
+            display:none; align-items: center; justify-content: center; z-index: 11000;
+        }
+        .img-modal{
+            background: #0b0f14; color: #e6edf3; max-width: 96vw; max-height: 92vh; width: 980px;
+            border-radius: 16px; padding: 12px 12px 16px; box-shadow: 0 8px 32px rgba(0,0,0,.35); overflow: hidden;
+        }
+        .img-modal header{ display:flex; align-items:center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+        .img-modal h3{ font-size: 15px; margin:0; color:#ffe082; }
+        .img-modal .close-btn{ background: transparent; border:1px solid #ffe082; color:#ffe082; border-radius: 10px; padding:4px 8px; cursor:pointer; font-weight:700; }
+        .img-grid{
+            display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px; max-height: 78vh; overflow:auto; padding-right: 4px;
+        }
+        .img-grid figure{ margin:0; background:#0f141a; border-radius: 12px; overflow:hidden; border:1px solid #22313d; }
+        .img-grid img{ width:100%; height:160px; object-fit:cover; display:block; cursor: zoom-in; }
+        @media (max-width: 600px){
+            .img-modal{ width: 96vw; }
+            .img-grid{ grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+            .img-grid img{ height: 120px; }
+        }
+
+        /* ===== Modal xem ảnh đơn (zoom) ===== */
+        .img-zoom-backdrop{
+            position: fixed; inset: 0; background: rgba(0,0,0,.78);
+            display: none; align-items: center; justify-content: center; z-index: 12000;
+        }
+        .img-zoom-modal{
+            background: #0b0f14; color: #e6edf3;
+            max-width: 98vw; max-height: 94vh; border-radius: 12px;
+            padding: 10px; box-shadow: 0 12px 44px rgba(0,0,0,.5);
+            display: flex; flex-direction: column; gap: 8px; overflow: hidden;
+        }
+        .img-zoom-modal header{
+            display: flex; align-items: center; justify-content: space-between; gap: 8px;
+        }
+        .img-zoom-modal h4{ font-size: 14px; margin:0; color:#ffe082; }
+        .img-zoom-modal .btn-close{
+            background: transparent; border:1px solid #ffe082; color:#ffe082;
+            border-radius: 10px; padding:4px 8px; cursor:pointer; font-weight:700;
+        }
+        .img-zoom-body{
+            display:flex; align-items:center; justify-content:center;
+            max-height: calc(94vh - 48px); overflow: auto;
+        }
+        .img-zoom-body img{
+            max-width: 96vw; max-height: 90vh; height: auto; width: auto; display:block; cursor: zoom-out;
+        }
     </style>
 </head>
 <body>
@@ -179,6 +230,25 @@
                 <td class="status {{ (r.status_display or '').replace(' ', '_') }}">{{ r.status_display or "" }}</td>
                 <td class="rating {{ (r.rating or '').upper() }}">{{ r.rating or "-" }}</td>
                 <td>
+                    <!-- 👁 Nút xem ảnh: CHÚ Ý thêm type="button" -->
+                    <button class="btn-eye" type="button" title="Xem ảnh"
+                        data-trq="{{ (r.trq_id or '') }}"
+                        data-initial='{{ (r.initial_images or []) | tojson | safe }}'
+                        data-form='{{ (r.form_images or []) | tojson | safe }}'
+                        data-uploaded='{{ (r.uploaded_images or []) | tojson | safe }}'
+                        data-all='{{ (
+                            (r.initial_images or []) +
+                            (r.form_images or []) +
+                            (r.uploaded_images or []) +
+                            (r.images or []) +
+                            ((r.initial_img and [r.initial_img]) or []) +
+                            ((r.initial_image and [r.initial_image]) or []) +
+                            ((r.initial_image_url and [r.initial_image_url]) or []) +
+                            ((r.form_image and [r.form_image]) or [])
+                        ) | tojson | safe }}'>
+                        <i class="fa fa-eye"></i>
+                    </button>
+
                     {% if r.pdf_path %}
                         <a class="btn-pdf" href="{{ url_for('static', filename=r.pdf_path) }}" target="_blank">
                             <i class="fa fa-file-pdf"></i> PDF
@@ -189,19 +259,6 @@
                         </a>
                     {% endif %}
                 </td>
-                <div id="img-only-modal"
-                    style="display:none; position:fixed; inset:0; background:rgba(15,20,25,0.83);
-                            align-items:center; justify-content:center; z-index:100000;">
-                    <button onclick="closeImgOnly()"
-                            style="position:absolute; top:16px; right:22px; color:#fff; font-size:26px; font-weight:700;
-                                background:rgba(0,0,0,0.22); border:none; border-radius:999px; width:40px; height:40px;
-                                line-height:36px; cursor:pointer;">
-                        <i class="fa fa-times"></i>
-                    </button>
-                    <img id="img-only" src="" alt="Image"
-                        style="max-width:96vw; max-height:88vh; border-radius:14px; border:3px solid #ffe082; background:#fff;
-                                box-shadow:0 8px 38px rgba(0,0,0,.55)">
-                </div>
             </tr>
             {% endfor %}
         </table>
@@ -209,27 +266,187 @@
     </div>
     </div>
 
+    <!-- ===== Modal hiển thị ảnh (lưới) ===== -->
+    <div class="img-backdrop" id="img-only-backdrop">
+        <div class="img-modal">
+            <header>
+                <h3 id="img-only-title">Hình ảnh</h3>
+                <button class="close-btn" type="button" id="img-close-btn">Đóng</button>
+            </header>
+            <div class="img-grid" id="img-only-grid"></div>
+        </div>
+    </div>
+
+    <!-- ===== Modal xem 1 ảnh lớn (zoom) ===== -->
+    <div class="img-zoom-backdrop" id="img-zoom-backdrop" aria-hidden="true">
+        <div class="img-zoom-modal" role="dialog" aria-modal="true">
+            <header>
+                <h4 id="img-zoom-caption">Ảnh</h4>
+                <button class="btn-close" type="button" id="img-zoom-close">Đóng</button>
+            </header>
+            <div class="img-zoom-body">
+                <img id="img-zoom-img" src="" alt="">
+            </div>
+        </div>
+    </div>
+
     <script>
+        // Dữ liệu cho fallback
+        const requests = {{ requests | tojson | safe }};
+
         // Dark mode toggle
         let dark = localStorage.getItem("vfr-darkmode") === "1";
         function applyDark(b){ document.body.classList.toggle("dark", b); localStorage.setItem("vfr-darkmode", b ? "1":"0"); }
         applyDark(dark);
         document.getElementById('theme-btn').onclick = () => { dark = !dark; applyDark(dark); };
 
-        // Tìm theo 4 cột đầu: TRQ-ID, Report No, Employee ID, Requestor
+        // Filter
         function searchID() {
             const val = document.getElementById("search-id").value.toUpperCase();
             const rows = document.querySelectorAll("#archive-table tr");
             for (let i = 1; i < rows.length; i++) {
                 const tds = rows[i].querySelectorAll("td");
                 const ok =
-                    (tds[0]?.textContent || "").toUpperCase().includes(val) || // TRQ-ID
-                    (tds[1]?.textContent || "").toUpperCase().includes(val) || // Report No
-                    (tds[2]?.textContent || "").toUpperCase().includes(val) || // Employee ID
-                    (tds[3]?.textContent || "").toUpperCase().includes(val);   // Requestor
+                    (tds[0]?.textContent || "").toUpperCase().includes(val) ||
+                    (tds[1]?.textContent || "").toUpperCase().includes(val) ||
+                    (tds[2]?.textContent || "").toUpperCase().includes(val) ||
+                    (tds[3]?.textContent || "").toUpperCase().includes(val);
                 rows[i].style.display = ok ? "" : "none";
             }
         }
+
+        /* ===== Helpers ảnh ===== */
+        const STATIC_PREFIX = "{{ url_for('static', filename='') }}";
+        function toStaticURL(p){
+            if(!p) return null;
+            if(typeof p !== 'string') return null;
+            if(p.startsWith('http://') || p.startsWith('https://') || p.startsWith('data:')) return p;
+            if(p.startsWith('/static/')) return p;
+            if(p.startsWith('static/')) return '/' + p;
+            return (STATIC_PREFIX + p.replace(/^\/+/, ''));
+        }
+        function extractFilename(u){
+            try { return (u||'').split('?')[0].split('#')[0].split('/').pop(); } catch(e){ return u||''; }
+        }
+        function parseJSONSafe(s, fb){ try{ return JSON.parse(s); }catch{ return fb; } }
+        function mapToPath(x){ if(!x) return ''; if(typeof x==='string') return x; if(typeof x==='object') return x.url||x.path||''; return ''; }
+        function uniq(arr){ return Array.from(new Set(arr)); }
+
+        function collectImagesFromDataset(ds){
+            const all  = parseJSONSafe(ds.all      || '[]', []);
+            const init = parseJSONSafe(ds.initial  || '[]', []);
+            const form = parseJSONSafe(ds.form     || '[]', []);
+            const upld = parseJSONSafe(ds.uploaded || '[]', []);
+            const raw = (all.length ? all : [].concat(init, form, upld)).map(mapToPath).filter(Boolean);
+            return uniq(raw).map(toStaticURL).filter(Boolean);
+        }
+
+        function collectImages(obj){
+            const imgs = [];
+            const push = (v)=>{
+                if(!v) return;
+                if(Array.isArray(v)) v.forEach(x=>push(x));
+                else if(typeof v === 'string') imgs.push(v);
+            };
+            push(obj.initial_images);
+            ['initial_img','initial_image','initial_image_url','form_image','form_images','uploaded_images','product_images','images']
+                .forEach(k=>push(obj[k]));
+            const raw = uniq(imgs.map(s=>s.trim()).filter(Boolean));
+            return raw.map(toStaticURL).filter(Boolean);
+        }
+
+        function openImgsFromRow(btn){
+            const TRQ = (btn.dataset.trq || '').toUpperCase();
+
+            let all = collectImagesFromDataset(btn.dataset);
+
+            if (!all.length && TRQ){
+                const rec = (requests || []).find(x => (x.trq_id || '').toUpperCase() === TRQ);
+                if (rec) all = collectImages(rec);
+            }
+
+            let list = all;
+            if (TRQ && all.length){
+                const byTRQ = all.filter(u => extractFilename(u).toUpperCase().includes(TRQ));
+                if (byTRQ.length) list = byTRQ;
+            }
+
+            const grid = document.getElementById('img-only-grid');
+            const title = document.getElementById('img-only-title');
+            title.textContent = TRQ ? `Hình ảnh – ${TRQ}` : 'Hình ảnh';
+
+            if(!list.length){
+                grid.innerHTML = `<div style="padding:8px 6px; color:#9fb4bf;">Không tìm thấy ảnh cho ${TRQ || 'mục này'}.</div>`;
+            } else {
+                grid.innerHTML = list.map(u => {
+                    const cap = extractFilename(u);
+                    return `<figure>
+                        <img src="${u}" alt="${cap}" title="${cap}" loading="lazy">
+                    </figure>`;
+                }).join('');
+            }
+            document.getElementById('img-only-backdrop').style.display = 'flex';
+        }
+
+        function closeImgsModal(){
+            document.getElementById('img-only-backdrop').style.display = 'none';
+            document.getElementById('img-only-grid').innerHTML = '';
+        }
+
+        // ==== SỰ KIỆN: mở modal lưới, đóng modal lưới ====
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-eye');
+            if (btn) {
+                e.preventDefault();
+                openImgsFromRow(btn);
+                return;
+            }
+            if (e.target.id === 'img-only-backdrop' || e.target.id === 'img-close-btn'){
+                closeImgsModal();
+                return;
+            }
+        });
+
+        /* ====== CLICK-TO-ZOOM: mở ảnh đơn khi click thumbnail ====== */
+        function openZoom(src, caption){
+            const b = document.getElementById('img-zoom-backdrop');
+            const im = document.getElementById('img-zoom-img');
+            const cap = document.getElementById('img-zoom-caption');
+            im.src = src || '';
+            im.alt = caption || '';
+            cap.textContent = caption || 'Ảnh';
+            b.style.display = 'flex';
+        }
+        function closeZoom(){
+            const b = document.getElementById('img-zoom-backdrop');
+            const im = document.getElementById('img-zoom-img');
+            b.style.display = 'none';
+            im.src = '';
+            im.alt = '';
+        }
+
+        // Click thumbnail để zoom
+        document.addEventListener('click', (e) => {
+            if (e.target && e.target.closest && e.target.closest('.img-grid img')){
+                const img = e.target.closest('.img-grid img');
+                const src = img.getAttribute('src');
+                const caption = img.getAttribute('alt') || img.getAttribute('title') || '';
+                openZoom(src, caption);
+                return;
+            }
+            if (e.target && (e.target.id === 'img-zoom-backdrop' || e.target.id === 'img-zoom-close')){
+                closeZoom();
+                return;
+            }
+        });
+
+        // ESC để đóng viewer
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape'){
+                const shown = document.getElementById('img-zoom-backdrop').style.display === 'flex';
+                if (shown) closeZoom();
+            }
+        });
     </script>
 </body>
 </html>

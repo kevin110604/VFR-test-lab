@@ -505,31 +505,34 @@
 
             <!-- Nút upload + xem trước -->
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                <label class="btn" for="initial_img_input" style="background:#c49c48;color:#fff;padding:7px 14px;border-radius:9px;cursor:pointer;box-shadow:0 2px 8px #c49c4822;">
-                <i class="fa fa-upload"></i> <span style="margin-left:6px;">Upload Image</span>
-                </label>
-                <input id="initial_img_input" type="file" name="initial_img" accept="image/*" style="display:none;">
+            <label class="btn" for="initial_img_input" style="background:#c49c48;color:#fff;padding:7px 14px;border-radius:9px;cursor:pointer;box-shadow:0 2px 8px #c49c4822;">
+                <i class="fa fa-upload"></i> <span style="margin-left:6px;">Upload Image(s)</span>
+            </label>
+            <!-- CHO PHÉP CHỌN NHIỀU ẢNH -->
+            <input id="initial_img_input" type="file" name="initial_img" accept="image/*" multiple style="display:none;">
+            <small style="color:#6b6b6b;">(*) Tối đa 2 ảnh</small>
             </div>
 
             <!-- Preview + nút xoá -->
             <div id="initial_img_preview_wrap" style="margin-top:10px;display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
-                {% if form_data.get('initial_img') %}
+            {# Ưu tiên list nhiều ảnh nếu đã có; fallback ảnh đơn cũ #}
+            {% set _imgs = (form_data.get('initial_images') or ( [form_data.get('initial_img')] if form_data.get('initial_img') else [] )) %}
+            {% for _img in (_imgs or [])[:2] %}
                 <div class="img-thumb-wrap" style="position:relative;">
-                    <img src="{{ url_for('static', filename=form_data.get('initial_img')) }}"
-                        alt="initial" style="max-height:120px;border-radius:10px;border:2px solid #4d665c;cursor:zoom-in;"
-                        onclick="openInitPopup(this.src)">
-                    <button type="button" class="btn"
-                            onclick="markDeleteInitialImg()"
-                            style="position:absolute;top:6px;right:6px;border:none;background:#df2323;color:#fff;border-radius:50%;width:28px;height:28px;cursor:pointer;">
+                <img src="{{ url_for('static', filename=_img) }}"
+                    alt="initial" style="max-height:120px;border-radius:10px;border:2px solid #4d665c;cursor:zoom-in;"
+                    onclick="openInitPopup(this.src)">
+                <button type="button" class="btn"
+                        onclick="markDeleteInitialImg()"
+                        style="position:absolute;top:6px;right:6px;border:none;background:#df2323;color:#fff;border-radius:50%;width:28px;height:28px;cursor:pointer;">
                     <i class="fa fa-trash"></i>
-                    </button>
+                </button>
                 </div>
-                {% endif %}
+            {% endfor %}
             </div>
 
             <!-- hidden để báo xóa khi submit -->
             <input type="hidden" name="delete_initial_img" id="delete_initial_img" value="0">
-            </div>
 
             <!-- Popup xem ảnh initial -->
             <div id="init-popup" style="display:none;position:fixed;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center;">
@@ -1064,25 +1067,69 @@
             delFlag.value = "1";
             // Ẩn preview hiện tại
             if (initWrap) initWrap.innerHTML = "<i style='color:#b61e1e'>Ảnh sẽ bị xóa sau khi Submit</i>";
+            // và clear input để tránh re-upload nhầm
+            if (initInput) initInput.value = '';
         }
 
-        // Xem trước client-side ngay khi chọn
+        // Xem trước client-side ngay khi chọn (tối đa 2 ảnh)
         if (initInput){
             initInput.addEventListener('change', function(){
             delFlag.value = "0";
-            const files = this.files;
-            if (!files || !files[0]) return;
-            const url = URL.createObjectURL(files[0]);
-            initWrap.innerHTML = `
+            const files = Array.from(this.files || []);
+            if (!files.length) { initWrap.innerHTML = ''; return; }
+
+            // Giới hạn 2 ảnh trên input bằng DataTransfer
+            if (files.length > 2) {
+                alert('Chỉ cho phép tối đa 2 ảnh.');
+                const dt = new DataTransfer();
+                files.slice(0,2).forEach(f => dt.items.add(f));
+                initInput.files = dt.files;
+            }
+
+            const show = Array.from(initInput.files || []);
+            const html = show.map((f, idx) => {
+                const url = URL.createObjectURL(f);
+                return `
                 <div class="img-thumb-wrap" style="position:relative;">
-                <img src="${url}" style="max-height:120px;border-radius:10px;border:2px solid #4d665c;cursor:zoom-in;" onclick="openInitPopup('${url}')">
-                <button type="button" onclick="(function(){initInput.value='';initWrap.innerHTML='';delFlag.value='0';})()"
+                    <img src="${url}" style="max-height:120px;border-radius:10px;border:2px solid #4d665c;cursor:zoom-in;" onclick="openInitPopup('${url}')">
+                    <button type="button" onclick="(function(){
+                        // Xoá toàn bộ lựa chọn để tránh sai; người dùng chọn lại 0–2 ảnh
+                        initInput.value=''; initWrap.innerHTML=''; delFlag.value='0';
+                    })()"
                     style="position:absolute;top:6px;right:6px;border:none;background:#df2323;color:#fff;border-radius:50%;width:28px;height:28px;cursor:pointer;">
                     <i class="fa fa-trash"></i>
-                </button>
+                    </button>
                 </div>`;
+            }).join('');
+            initWrap.innerHTML = html;
             });
         }
+        document.addEventListener("DOMContentLoaded", function () {
+            const deptInput   = document.querySelector('input[name="department"]');
+            const subconInput = document.getElementById("subcon_input");
+            const subconNA    = document.getElementById("subcon_na");
+
+            function checkDept() {
+                if (deptInput.value.trim().toUpperCase() === "VFR5") {
+                    // Không cho phép N/A
+                    subconNA.checked = false;
+                    subconNA.disabled = true;
+                    subconInput.disabled = false;
+                    subconInput.required = true;
+                } else {
+                    subconNA.disabled = false;
+                    // Nếu người dùng muốn chọn N/A thì dùng lại logic cũ
+                    if (subconNA.checked) {
+                        subconInput.value = "";
+                        subconInput.disabled = true;
+                        subconInput.required = false;
+                    }
+                }
+            }
+
+            deptInput.addEventListener("input", checkDept);
+            checkDept(); // chạy 1 lần khi load form
+        });
     </script>
 </body>
 </html>
