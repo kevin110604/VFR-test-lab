@@ -1,3 +1,0 @@
-adhesion: a
-standing_water: a
-pencil: a
