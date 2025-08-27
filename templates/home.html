@@ -758,53 +758,6 @@
                     <a href="/vfr3/ceramic-plaster" class="vfr3-btn"><i class="fa fa-flask"></i> <span class="text-vfr3-ceramic">Mẫu ceramic thạch cao</span></a>
                 </div>
 
-                {% if request.args.get('item_search') %}
-                    {% if report_list %}
-                        <div class="table-responsive">
-                            <table class="item-search-table">
-                                <thead>
-                                    <tr>
-                                        <th class="text-th-item">ITEM#</th>
-                                        <th class="text-th-report">REPORT#</th>
-                                        <th class="text-th-type">TYPE OF</th>
-                                        <th class="text-th-status">STATUS</th>
-                                        <th class="text-th-action">Link</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                {% for r in report_list %}
-                                    <tr>
-                                        <td>{{ r.item }}</td>
-                                        <td>{{ r.report or '-' }}</td>
-                                        <td>{{ r.type_of or '-' }}</td>
-                                        <td>
-                                            <span class="
-                                                {% if r.status == 'LATE' %}status-late
-                                                {% elif r.status == 'MUST' %}status-must
-                                                {% elif r.status == 'DUE' %}status-due
-                                                {% elif r.status == 'ACTIVE' %}status-active
-                                                {% endif %}
-                                            ">{{ r.status or '-' }}</span>
-                                        </td>
-                                        <td>
-                                        {% if r.report %}
-                                            <a href="{{ url_for('update', report=r.report) }}">
-                                                <button type="button"><i class="fa fa-edit"></i> <span class="text-view-report">Xem report</span></button>
-                                            </a>
-                                        {% else %}
-                                            <span style="color:#b78e24;">-</span>
-                                        {% endif %}
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <div class="error-message text-notfound">Không tìm thấy mã ITEM này!</div>
-                    {% endif %}
-                {% endif %}
-
                 <!-- Form đăng nhập (chỉ hiện khi chưa VFR3_OK) -->
                 <form method="POST" class="form-pw login-row" style="margin-top:26px;">
                     <div style="position:relative; flex:1; min-width:0;">
@@ -840,6 +793,7 @@
                         <a href="/tfr_request_archive"><i class="fa fa-archive"></i> <span class="text-trf">TRF</span></a>
                         {% if session.get('role') in ['stl', 'superadmin'] %}
                             <a href="javascript:void(0)" onclick="confirmExportExcel()"><i class="fa fa-file-export"></i> <span class="text-update-inf">Update INF</span></a>
+                            <a href="/print_qr"><i class="fa fa-qrcode"></i> <span class="text-print-qr">Print QR</span></a>
                         {% endif %}
                     </div>
                   </div>
@@ -1122,6 +1076,7 @@
                     "text-vfr3-wax": "Mẫu sáp",
                     "text-vfr3-sand": "Mẫu đúc cát",
                     "text-vfr3-ceramic": "Mẫu ceramic thạch cao",
+                    "text-print-qr": "In QR",
                 },
                 en: {
                     "text-title": "V.F.R",
@@ -1146,6 +1101,7 @@
                     "text-vfr3-wax": "Wax Sample",
                     "text-vfr3-sand": "Sand Casting Sample",
                     "text-vfr3-ceramic": "Ceramic Plaster Sample",
+                    "text-print-qr": "Print QR",
                 }
             };
             for (const key in LANG[lang]) {

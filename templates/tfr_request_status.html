@@ -390,13 +390,13 @@
             {% if grp in ['CONSTRUCTION', 'TRANSIT'] %}
                 {% if 6 <= rk and rk <= 10 %}
                 {% set row_class = 'rank-mint' %}
-                {% elif 11 <= rk and rk <= 15 %}
+                {% elif 11 <= rk and rk <= 30 %}
                 {% set row_class = 'rank-hot' %}
                 {% endif %}
             {% elif grp in ['FINISHING', 'MATERIAL'] %}
                 {% if 16 <= rk and rk <= 30 %}
                 {% set row_class = 'rank-mint' %}
-                {% elif 31 <= rk and rk <= 45 %}
+                {% elif 31 <= rk and rk <= 60 %}
                 {% set row_class = 'rank-hot' %}
                 {% endif %}
             {% endif %}

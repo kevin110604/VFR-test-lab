@@ -24,10 +24,12 @@ from threading import Lock
 from contextlib import contextmanager
 from vfr3 import vfr3_bp
 from werkzeug.utils import secure_filename
+from qr_print import qr_bp
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 app.register_blueprint(vfr3_bp)
+app.register_blueprint(qr_bp)
 
 # Những test dùng giao diện Hot & Cold
 HOTCOLD_LIKE = set(["hot_cold", "standing_water", "stain", "corrosion"])
@@ -1861,25 +1863,31 @@ def tfr_request_archive():
             rec["initial_images"] = picks
             rec["images"] = list(picks)
 
-    # 4) Đọc Excel -> tạo rating_map và status_map
-    rating_map, status_map = {}, {}
+    # 4) Đọc Excel -> tạo rating_map, status_map, etd_map
+    rating_map, status_map, etd_map = {}, {}, {}
     try:
-        wb = safe_load_excel(local_main)  # CHÚ Ý: dùng biến đường dẫn Excel bạn đang có
+        wb = safe_load_excel(local_main)  # dùng helper sẵn có
         ws = wb.active
 
         def find_col(*aliases):
-            # thử alias trước
+            # thử alias trực tiếp
             for name in aliases:
                 c = get_col_idx(ws, name)
                 if c:
                     return c
-            # fallback quét header
+            # fallback: quét header gần-đúng
             def norm(s): return re.sub(r"[^a-z0-9#]+", "", str(s).strip().lower())
             alias_norm = {norm(a) for a in aliases}
-            want = "status" if any("status" in a for a in alias_norm) else ("rating" if any("rating" in a for a in alias_norm) else "report")
+            # đoán mục tiêu
+            want = "report"
+            if any("status" in a for a in alias_norm): want = "status"
+            elif any("rating" in a for a in alias_norm): want = "rating"
+            elif any("etd" in a for a in alias_norm) or any("expect" in a for a in alias_norm):
+                want = "etd"
             targets = {
                 "status": {"status"},
-                "rating": {"rating"},
+                "rating": {"rating", "result"},
+                "etd": {"etd", "expecteddate", "deliverydate", "expecteddelivery", "expectedfinish", "completeddate"},
                 "report": {"report#", "reportno", "report", "reportnumber"},
             }[want]
             for col in range(1, ws.max_column + 1):
@@ -1892,22 +1900,34 @@ def tfr_request_archive():
             return None
 
         col_report = find_col("Report #", "Report#", "Report No", "Report", "report #", "report no")
-        col_rating = find_col("Rating", "RATING", "rating")
-        col_status = find_col("Status", "STATUS", "status")
+        col_rating = find_col("Rating", "RATING", "rating", "Result", "RESULT", "result")
+        col_status = find_col("Status", "STATUS", "status", "Current Status", "current status")
+        col_etd    = find_col("ETD", "etd", "Delivery Date", "delivery date",
+                              "Expected Date", "expected date",
+                              "Expected Delivery", "expected delivery",
+                              "Expected Finish", "expected finish",
+                              "Completed Date", "completed date")
 
         if col_report:
+            from datetime import datetime, date
+
             for r in range(2, ws.max_row + 1):
                 key_raw = ws.cell(row=r, column=col_report).value
                 if key_raw is None:
                     continue
                 key = str(key_raw).strip()
+                if not key:
+                    continue
 
+                # Rating / Result
                 if col_rating:
                     vr = ws.cell(row=r, column=col_rating).value
                     vr_str = "" if vr is None else str(vr).strip()
-                    if key and vr_str:
+                    if vr_str:
                         rating_map[key] = vr_str
+                        rating_map[key.lstrip("0")] = vr_str  # fallback không 0 đầu
 
+                # Status -> status_display
                 if col_status:
                     vs = ws.cell(row=r, column=col_status).value
                     vs_str_orig = "" if vs is None else str(vs).strip()
@@ -1918,16 +1938,42 @@ def tfr_request_archive():
                         disp = "DONE"
                     else:
                         disp = vs_str_orig
-                    if key:
-                        status_map[key] = disp
-    except Exception:
-        rating_map, status_map = {}, {}
+                    status_map[key] = disp
+                    status_map[key.lstrip("0")] = disp
 
-    # 5) Gắn rating/status/employee_id vào từng record archive
+                # ETD -> chuẩn hoá text
+                if col_etd:
+                    ev = ws.cell(row=r, column=col_etd).value
+                    if isinstance(ev, (datetime, date)):
+                        etd_text = ev.strftime("%Y-%m-%d")
+                    else:
+                        etd_text = ("" if ev is None else str(ev)).strip()
+                        # thử parse nhanh vài format phổ biến -> 'YYYY-MM-DD'
+                        if etd_text:
+                            parsed = None
+                            for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%d-%m-%Y", "%Y/%m/%d"):
+                                try:
+                                    parsed = datetime.strptime(etd_text, fmt).date()
+                                    break
+                                except Exception:
+                                    pass
+                            if parsed:
+                                etd_text = parsed.strftime("%Y-%m-%d")
+                    if etd_text:
+                        etd_map[key] = etd_text
+                        etd_map[key.lstrip("0")] = etd_text
+    except Exception:
+        rating_map, status_map, etd_map = {}, {}, {}
+
+    # 5) Gắn rating/status/etd/employee_id vào từng record archive
     for rec in archive:
         rep = str(rec.get("report_no", "") or "").strip()
+        if not rep:
+            continue
         rec["rating"] = rating_map.get(rep, rec.get("rating", "") or "")
         rec["status_display"] = status_map.get(rep, rec.get("status_display", "") or "")
+        if etd_map.get(rep):  # ETD ưu tiên lấy từ Excel theo yêu cầu
+            rec["etd"] = etd_map[rep]
         rec.setdefault("employee_id", rec.get("employee_id", "") or "")
 
     # 6) Sắp xếp: Report No mới nằm trên
