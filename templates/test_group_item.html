@@ -390,21 +390,25 @@
         </div>
         <h2>{{ title['short'] }}</h2>
 
+        {# Fallback trạng thái/ghi chú nếu route chưa pass trực tiếp #}
+        {% set _st = (status or (test_status[key]['status'] if test_status and key in test_status else None)) %}
+        {% set _cm = (comment or (test_status[key]['comment'] if test_status and key in test_status else None)) %}
+
         <!-- STATUS + COMMENT (đã sửa cho giống hot_cold) -->
         <div class="status-block" role="status" aria-live="polite" aria-atomic="true">
-            {% if status %}
-                <div class="inline-status {{ 'pass' if status == 'PASS' else ('fail' if status == 'FAIL' else 'na') }}">
-                    {{ status }}
+            {% if _st %}
+                <div class="inline-status {{ 'pass' if _st == 'PASS' else ('fail' if _st == 'FAIL' else 'na') }}">
+                    {{ _st }}
                 </div>
             {% endif %}
 
-            {% if (status == "PASS" or status == "FAIL") and (imgs|length == 0) %}
+            {% if (_st == "PASS" or _st == "FAIL") and (imgs|length == 0) %}
                 <div class="missing-img-warn">Chưa upload ảnh kiểm thử!</div>
             {% endif %}
 
-            {% if comment %}
+            {% if _cm %}
                 <div class="cmt-view">
-                    <span><i class="fa fa-comment"></i> {{ comment }}</span>
+                    <span><i class="fa fa-comment"></i> {{ _cm }}</span>
                 </div>
             {% endif %}
         </div>
@@ -423,11 +427,11 @@
         <form method="POST" class="state-btn-group" aria-label="Chọn trạng thái kiểm thử">
             <input type="hidden" name="group" value="{{ group }}">
             <button name="status" value="PASS" type="submit"
-                class="state-btn pass {% if status == 'PASS' %}selected{% endif %}" aria-pressed="{{ 'true' if status == 'PASS' else 'false' }}">PASS</button>
+                class="state-btn pass {% if _st == 'PASS' %}selected{% endif %}" aria-pressed="{{ 'true' if _st == 'PASS' else 'false' }}">PASS</button>
             <button name="status" value="FAIL" type="submit"
-                class="state-btn fail {% if status == 'FAIL' %}selected{% endif %}" aria-pressed="{{ 'true' if status == 'FAIL' else 'false' }}">FAIL</button>
+                class="state-btn fail {% if _st == 'FAIL' %}selected{% endif %}" aria-pressed="{{ 'true' if _st == 'FAIL' else 'false' }}">FAIL</button>
             <button name="status" value="N/A" type="submit"
-                class="state-btn na {% if status == 'N/A' %}selected{% endif %}" aria-pressed="{{ 'true' if status == 'N/A' else 'false' }}">N/A</button>
+                class="state-btn na {% if _st == 'N/A' %}selected{% endif %}" aria-pressed="{{ 'true' if _st == 'N/A' else 'false' }}">N/A</button>
         </form>
         <form method="POST" enctype="multipart/form-data" style="margin-bottom:13px;text-align:center;" aria-label="Upload ảnh kiểm thử">
             <input type="file" name="test_imgs" multiple accept="image/*" style="display:none;" id="test-imgs-upload"
@@ -454,7 +458,7 @@
         <form method="POST" class="comment-block" aria-label="Thêm ghi chú hoặc comment">
             <input type="hidden" name="group" value="{{ group }}">
             <label class="cmt-label" for="comment_input">Thêm ghi chú/comment:</label><br>
-            <textarea name="comment_input" id="comment_input" rows="2">{{comment or ''}}</textarea>
+            <textarea name="comment_input" id="comment_input" rows="2">{{ _cm or '' }}</textarea>
             <br>
             <button type="submit" name="save_comment" class="gold-upload-btn" style="margin-top:7px; font-size:15px;">Lưu comment</button>
         </form>

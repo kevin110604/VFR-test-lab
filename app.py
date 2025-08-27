@@ -1454,6 +1454,15 @@ def approve_all_cancel():
 
 @app.route("/tfr_request_status", methods=["GET", "POST"])
 def tfr_request_status():
+    import os
+    import re
+    from datetime import datetime
+    # Nếu bạn đã import sẵn pandas ở đầu file, có thể bỏ try/except này
+    try:
+        import pandas as pd
+    except Exception:
+        pd = None
+
     # ===== Helpers nhỏ trong route =====
     def _parse_date(s):
         if not s:
@@ -1760,6 +1769,165 @@ def tfr_request_status():
                     running_seen[key].add(trq)
                     r["_rank_color"] = rank
 
+    # ====== NEW: Banner cảnh báo từ DS: biến trong config là `local_main` ======
+    def _find_local_main_path():
+        candidates = []
+        try:
+            # Ưu tiên biến đúng tên trong config
+            from config import local_main  # có thể là chuỗi đường dẫn
+            if local_main:
+                candidates.append(local_main)
+            # Thêm vài gợi ý phổ biến khác trong config (không bắt buộc có)
+            try:
+                from config import DATA_DIR  # nếu có
+                if DATA_DIR:
+                    candidates += [
+                        os.path.join(DATA_DIR, "local_main.xlsx"),
+                        os.path.join(DATA_DIR, "local_main.xlsm"),
+                    ]
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+        # Fallback tên mặc định
+        candidates += [
+            "local_main.xlsx",
+            "local_main.xlsm",
+            os.path.join("data", "local_main.xlsx"),
+            os.path.join("data", "local_main.xlsm"),
+        ]
+        for p in candidates:
+            try:
+                if p and os.path.exists(p):
+                    return p
+            except Exception:
+                continue
+        return None  # không tìm thấy
+
+    REPORT_RE = re.compile(r"^\d{2}-\d{1,5}$")  # YY-serial (serial 1–5 chữ số)
+
+    def _row_is_empty_except(df_row, ignore_cols=("QR Code", "Report #")):
+        """Rỗng khi tất cả cột (trừ ignore) đều trống/NaN/chuỗi trắng."""
+        for col in df_row.index:
+            if col in ignore_cols:
+                continue
+            v = df_row[col]
+            if pd.isna(v):
+                continue
+            if isinstance(v, str):
+                if v.strip() == "":
+                    continue
+                return False
+            # số/kiểu khác -> coi là có thông tin
+            return False
+        return True
+
+    def _extract_report_code(s):
+        """Chuẩn hóa chuỗi thành dạng YY-serial nếu có thể."""
+        if s is None:
+            return None
+        s = str(s).strip()
+        if not s:
+            return None
+        if REPORT_RE.match(s):
+            return s
+        # normalize: 2025-123 -> 25-123 ; 25/0123 ; 25_12345 ...
+        m = re.match(r"^(?:20)?(\d{2})[-_/ ]?(\d{1,5})$", s)
+        if m:
+            return f"{m.group(1)}-{int(m.group(2))}"
+        return None
+
+    def _pick_latest_from_codes(codes):
+        """Ưu tiên năm hiện tại; cùng năm chọn serial lớn nhất; nếu không có, chọn (yy, serial) lớn nhất."""
+        if not codes:
+            return None
+        parsed = []
+        for c in codes:
+            try:
+                yy, ser = c.split("-")
+                parsed.append((int(yy), int(ser), c))
+            except Exception:
+                continue
+        if not parsed:
+            return None
+        cur_yy = int(datetime.now().strftime("%y"))
+        pool = [x for x in parsed if x[0] == cur_yy] or parsed
+        pool.sort(key=lambda x: (x[0], x[1]), reverse=True)
+        return pool[0][2]
+
+    def _next_code_from_codes(codes):
+        """Sinh mã kế tiếp trong năm hiện tại, serial = max+1 (không padding)."""
+        cur_yy = int(datetime.now().strftime("%y"))
+        max_ser = 0
+        for c in codes or []:
+            try:
+                yy, ser = c.split("-")
+                if int(yy) == cur_yy:
+                    max_ser = max(max_ser, int(ser))
+            except Exception:
+                continue
+        return f"{cur_yy}-{max_ser + 1 if max_ser >= 0 else 1}"
+
+    def _build_ds_report_info():
+        """Đọc `local_main`, xác định dòng cuối có thông tin (dòng sau rỗng), lấy mã report và trả chuỗi cảnh báo tiếng Anh."""
+        if pd is None:
+            return None  # không có pandas -> bỏ qua banner
+        path = _find_local_main_path()
+        if not path:
+            return None
+        try:
+            df = pd.read_excel(path)
+        except Exception:
+            try:
+                df = pd.read_excel(path, engine="openpyxl")
+            except Exception:
+                return None
+
+        if df is None or df.empty:
+            return None
+
+        # Các tên cột khả dĩ cho Report #
+        report_cols = ["Report #", "Report", "Report No", "Report no", "report_no", "report", "report_id", "Report_ID"]
+        col_found = None
+        for c in df.columns:
+            if c in report_cols:
+                col_found = c
+                break
+
+        # Thu thập toàn bộ code hợp lệ để dự phòng
+        all_codes = []
+        if col_found:
+            for v in df[col_found].tolist():
+                c = _extract_report_code(v)
+                if c:
+                    all_codes.append(c)
+
+        # Tìm dòng cuối có thông tin: row i not-empty & row i+1 empty
+        last_idx = None
+        n = len(df)
+        for i in range(0, n):
+            this_empty = _row_is_empty_except(df.iloc[i])
+            next_empty = True
+            if i + 1 < n:
+                next_empty = _row_is_empty_except(df.iloc[i+1])
+            if (not this_empty) and next_empty:
+                last_idx = i
+
+        newest_code = None
+        if last_idx is not None and col_found:
+            newest_code = _extract_report_code(df.iloc[last_idx].get(col_found))
+
+        if not newest_code:
+            # fallback: lấy mã mới nhất từ toàn bộ DS hoặc sinh mã kế tiếp
+            newest_code = _pick_latest_from_codes(all_codes) or _next_code_from_codes(all_codes)
+
+        if newest_code:
+            return f"⚠ The latest report: {newest_code}"
+        return None
+
+    ds_report_info = _build_ds_report_info()
+
     return render_template(
         "tfr_request_status.html",
         requests=show_requests,
@@ -1767,6 +1935,7 @@ def tfr_request_status():
         real_indices=real_indices,
         viewer_name=viewer_name,
         viewer_emp_id=viewer_emp_id,
+        ds_report_info=ds_report_info,  # <== truyền cho template
     )
 
 @app.route("/tfr_request_archive")

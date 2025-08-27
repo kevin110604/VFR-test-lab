@@ -7,7 +7,7 @@
 venv/
 
 # Flask uploads/static folders
-images/        # chỉ ignore images ở root
+/images/        # chỉ ignore images ở root
 qr_labels/
 
 # Office, Excel

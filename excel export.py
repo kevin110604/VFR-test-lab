@@ -5,7 +5,7 @@ import os
 import io
 import json
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import pandas as pd
 
 from openpyxl import load_workbook
@@ -153,15 +153,31 @@ def _attach_current_year_if_missing(text: str) -> str:
     return f"{s} {CURRENT_YEAR}"
 
 def parse_login_dates(series: pd.Series) -> pd.Series:
+    """
+    Ưu tiên parse ISO '%Y-%m-%d %H:%M:%S' (không cảnh báo),
+    nếu không được thì fallback dayfirst True/False.
+    """
     tmp = series.astype(str).map(_attach_current_year_if_missing)
-    dt = pd.to_datetime(tmp, errors="coerce", dayfirst=True, infer_datetime_format=True)
-    if dt.isna().mean() > 0.8:
-        dt2 = pd.to_datetime(tmp, errors="coerce", dayfirst=False, infer_datetime_format=True)
+
+    # Ưu tiên parse ISO chuẩn
+    dt = pd.to_datetime(tmp, errors="coerce", format="%Y-%m-%d %H:%M:%S", exact=False)
+    if dt.isna().any():
+        # Thử parse generic với dayfirst
+        dt2 = pd.to_datetime(tmp, errors="coerce", dayfirst=True, infer_datetime_format=True)
         if dt2.notna().sum() > dt.notna().sum():
             dt = dt2
+        else:
+            # fallback cuối cùng
+            dt3 = pd.to_datetime(tmp, errors="coerce", dayfirst=False, infer_datetime_format=True)
+            if dt3.notna().sum() > dt.notna().sum():
+                dt = dt3
     return dt.fillna(pd.Timestamp(1900, 1, 1))
 
 def hide_rows_by_login_date(ws, login_col_name_or_idx, today=None):
+    """
+    Ẩn các dòng có ngày đăng nhập (login date) <= today - 2 ngày.
+    Parse ngày theo thứ tự: ISO -> dayfirst=True -> dayfirst=False.
+    """
     if today is None:
         today = datetime.now().date()
     hide_threshold = today - timedelta(days=2)
@@ -187,7 +203,14 @@ def hide_rows_by_login_date(ws, login_col_name_or_idx, today=None):
         if not raw_str:
             continue
         s_with_year = _attach_current_year_if_missing(raw_str)
-        dt = pd.to_datetime(s_with_year, errors="coerce", dayfirst=True)
+
+        # Try ISO first
+        try:
+            dt = pd.to_datetime(s_with_year, errors="coerce", format="%Y-%m-%d %H:%M:%S")
+        except Exception:
+            dt = None
+        if dt is None or pd.isna(dt):
+            dt = pd.to_datetime(s_with_year, errors="coerce", dayfirst=True)
         if pd.isna(dt):
             dt = pd.to_datetime(s_with_year, errors="coerce", dayfirst=False)
         if pd.isna(dt):
@@ -209,6 +232,70 @@ def ensure_folder(ctx, folder_url):
                 print(f"Loi tao folder {current_url}: {e}")
                 raise
     return ctx.web.get_folder_by_server_relative_url(folder_url)
+
+# ====== HỖ TRỢ: Định dạng cột ngày thành dd-mmm cho openpyxl ======
+def _parse_to_datetime_or_none(text: str):
+    """
+    Cố gắng parse chuỗi sang datetime (không timezone).
+    Ưu tiên ISO '%Y-%m-%d %H:%M:%S', sau đó thử dayfirst True/False.
+    """
+    s = (text or "").strip()
+    if not s:
+        return None
+    # ISO trước
+    try:
+        return datetime.strptime(s, "%Y-%m-%d %H:%M:%S")
+    except Exception:
+        pass
+    # Pandas fallback
+    dt = pd.to_datetime(s, errors="coerce", dayfirst=True)
+    if pd.isna(dt):
+        dt = pd.to_datetime(s, errors="coerce", dayfirst=False)
+    if pd.isna(dt):
+        return None
+    return pd.Timestamp(dt).to_pydatetime()
+
+def format_date_columns(ws, target_headers=("log in date", "etd"), number_format="DD-MMM"):
+    """
+    - Tìm các cột header nằm trong target_headers (so sánh normalize).
+    - Với từng ô dữ liệu:
+        + Nếu là datetime/date: set number_format = 'DD-MMM'
+        + Nếu là chuỗi: thử parse; nếu parse được -> gán datetime + number_format
+        + Nếu đã đúng định dạng thì set lại number_format (idempotent, an toàn)
+    """
+    header_cells = [cell.value for cell in ws[1]]
+    target_norm = {normalize_col(h) for h in target_headers}
+    target_col_indices = []
+    for idx, name in enumerate(header_cells, start=1):
+        if name and normalize_col(name) in target_norm:
+            target_col_indices.append(idx)
+
+    for col_idx in target_col_indices:
+        for r in range(2, ws.max_row + 1):
+            cell = ws.cell(row=r, column=col_idx)
+            val = cell.value
+            if val is None or (isinstance(val, str) and not val.strip()):
+                continue
+            if isinstance(val, datetime):
+                # đã là datetime -> chỉ cần set number_format
+                cell.number_format = number_format
+                continue
+            if isinstance(val, date):
+                # date -> cast sang datetime để Excel hiển thị đúng
+                cell.value = datetime(val.year, val.month, val.day)
+                cell.number_format = number_format
+                continue
+            if isinstance(val, (int, float)):
+                # có thể là serial date; để nguyên, chỉ set number_format
+                cell.number_format = number_format
+                continue
+            # Nếu là chuỗi -> cố parse
+            if isinstance(val, str):
+                dt = _parse_to_datetime_or_none(val)
+                if dt is not None:
+                    cell.value = dt
+                    cell.number_format = number_format
+                # nếu không parse được thì bỏ qua (giữ nguyên)
 
 # ==== Cấu hình SharePoint ====
 site_url = f"{SP_HOST}/sites/TESTLAB-VFR9"
@@ -446,13 +533,16 @@ trf_file = "TRF.xlsx"
 if not os.path.exists(trf_file):
     print(f"Khong tim thay file {trf_file} o local. Khong up len SharePoint.")
 else:
+    # 1) Đọc và ghi lại để giữ cấu trúc/columns
     df_trf = pd.read_excel(trf_file, dtype=str)
     login_col_trf = find_login_date_col(df_trf)
     df_trf.to_excel(trf_file, index=False)
 
+    # 2) Mở bằng openpyxl để định dạng header + căn giữa + khung, rồi format ngày
     wb = load_workbook(trf_file); ws = wb.active
     header_fill = PatternFill("solid", fgColor="B7E1CD")
 
+    thin = Side(border_style="thin", color="888888")
     for col in ws.columns:
         max_length = 0
         col_letter = col[0].column_letter
@@ -465,12 +555,17 @@ else:
                 max_length = max(max_length, len(str(cell.value)))
         ws.column_dimensions[col_letter].width = max(max_length + 2, 15)
 
+    # 2b) Định dạng cột "Log in date" và "ETD" về dd-mmm nếu chưa đúng
+    format_date_columns(ws, target_headers=("log in date", "etd"), number_format="DD-MMM")
+
+    # 3) Ẩn dòng theo Login Date (nếu có cột đó)
     if login_col_trf:
         hide_rows_by_login_date(ws, login_col_trf, today=datetime.now().date())
 
     wb.save(trf_file)
     print("Da xuat file:", trf_file)
 
+    # 4) Upload lên SharePoint
     upload_relative_url_trf = "/sites/TESTLAB-VFR9/Shared Documents/DATA DAILY/TRF.xlsx"
     folder_excel_trf = os.path.dirname(upload_relative_url_trf)
     ensure_folder(ctx, folder_excel_trf)

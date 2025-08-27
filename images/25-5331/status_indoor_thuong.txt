@@ -1,0 +1,4 @@
+adhesion: PASS
+pencil: PASS
+standing_water: PASS
+hot_cold: PASS
