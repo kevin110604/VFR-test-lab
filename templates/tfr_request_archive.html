@@ -230,7 +230,17 @@
                 <td class="status {{ (r.status_display or '').replace(' ', '_') }}">{{ r.status_display or "" }}</td>
                 <td class="rating {{ (r.rating or '').upper() }}">{{ r.rating or "-" }}</td>
                 <td>
-                    <!-- 👁 Nút xem ảnh: CHÚ Ý thêm type="button" -->
+                    {# --- Tính nhanh cờ có ảnh --- #}
+                    {% set has_images = (
+                        (r.initial_images and r.initial_images|length>0) or
+                        (r.form_images and r.form_images|length>0) or
+                        (r.uploaded_images and r.uploaded_images|length>0) or
+                        (r.images and r.images|length>0) or
+                        r.initial_img or r.initial_image or r.initial_image_url or r.form_image
+                    ) %}
+
+                    {% if has_images %}
+                    <!-- 👁 Nút xem ảnh -->
                     <button class="btn-eye" type="button" title="Xem ảnh"
                         data-trq="{{ (r.trq_id or '') }}"
                         data-initial='{{ (r.initial_images or []) | tojson | safe }}'
@@ -248,6 +258,7 @@
                         ) | tojson | safe }}'>
                         <i class="fa fa-eye"></i>
                     </button>
+                    {% endif %}
 
                     {% if r.pdf_path %}
                         <a class="btn-pdf" href="{{ url_for('static', filename=r.pdf_path) }}" target="_blank">
@@ -446,6 +457,30 @@
                 const shown = document.getElementById('img-zoom-backdrop').style.display === 'flex';
                 if (shown) closeZoom();
             }
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            // Dò tất cả nút 👁; nếu không thu được ảnh -> ẩn
+            document.querySelectorAll('.btn-eye').forEach(btn => {
+                try {
+                    const list = collectImagesFromDataset(btn.dataset);
+                    if (!list || list.length === 0) {
+                        // fallback: thử theo TRQ trong mảng "requests" (server render)
+                        const TRQ = (btn.dataset.trq || '').toUpperCase();
+                        let has = false;
+                        if (TRQ && Array.isArray(requests)) {
+                            const rec = requests.find(x => (x.trq_id || '').toUpperCase() === TRQ);
+                            if (rec) {
+                                const ls2 = collectImages(rec);
+                                has = ls2 && ls2.length > 0;
+                            }
+                        }
+                        if (!has) btn.style.display = 'none';
+                    }
+                } catch(e) {
+                    // Nếu có lỗi parse, cứ ẩn để đỡ rối mắt
+                    btn.style.display = 'none';
+                }
+            });
         });
     </script>
 </body>

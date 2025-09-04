@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>TestLab Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{ --bg:#fffdfc; --card:#fffbe8; --text:#25312b; --border:#ffe082; --accent:#35523A; }
+    body{ margin:0; font-family:Segoe UI,system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); }
+    .wrap{ max-width:1280px; margin:26px auto; padding:0 16px 40px; }
+    h1{ margin:6px 0 12px; color:#8B6B1E; font-size:26px }
+    .filter-bar{
+      display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; background:var(--card);
+      border:1.5px solid var(--border); border-radius:14px; padding:10px 12px; margin:6px 0 16px;
+      box-shadow:0 2px 12px #c49c4820;
+    }
+    .filter-bar label{ font-weight:700; color:#b78e24; font-size:14px; }
+    .filter-bar select, .filter-bar input[type=checkbox]{
+      padding:6px 10px; border-radius:10px; border:1.5px solid var(--border); background:#fff; font-weight:700; color:#775d17;
+    }
+    .kpi{ display:grid; grid-template-columns: repeat(6, minmax(150px,1fr)); gap:12px; margin:10px 0 18px; }
+    .card{
+      background:#fff; border:1.5px solid var(--border); border-radius:14px; padding:12px;
+      box-shadow:0 2px 12px #c49c4820; text-align:center;
+    }
+    .card h3{ margin:4px 0 4px; font-size:13px; color:#8B6B1E; text-transform:uppercase; letter-spacing:.02em; }
+    .card .num{ font-size:26px; font-weight:800; margin:2px 0 0; color:#35523A; }
+    .grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap:14px; margin-top:14px; }
+    .chart-card{ background:#fff; border:1.5px solid var(--border); border-radius:14px; padding:12px; box-shadow:0 2px 12px #c49c4820; }
+    .chart-card h4{ margin:4px 0 10px; color:#546E7A; font-size:15px }
+    @media (max-width: 1040px){
+      .kpi{ grid-template-columns: repeat(3,1fr); }
+      .grid{ grid-template-columns: 1fr; }
+    }
+    a.backlink{ color:#35523A; text-decoration:none; font-weight:700 }
+    .sep{ height:4px }
+    small.note{ display:block; color:#8b6b1e; margin-top:6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+      <h1><i class="fa fa-gauge-high"></i> TestLab Dashboard</h1>
+      <a class="backlink" href="/" title="Về trang chính"><i class="fa fa-arrow-left"></i> Home</a>
+    </div>
+
+    <div class="filter-bar">
+      <label>Thời gian</label>
+      <select id="f-time">
+        <option value="day">Ngày</option>
+        <option value="week">Tuần</option>
+        <option value="month" selected>Tháng</option>
+      </select>
+
+      <label>Type of test</label>
+      <select id="f-type">
+        <option value="">All</option>
+        {% for t in type_set %}
+          <option value="{{t}}">{{t}}</option>
+        {% endfor %}
+      </select>
+
+      <label>Bộ phận request</label>
+      <select id="f-dept">
+        <option value="">All</option>
+        {% for d in dept_set %}
+          <option value="{{d}}">{{d}}</option>
+        {% endfor %}
+      </select>
+
+      <label style="display:flex;align-items:center;gap:6px">
+        <input type="checkbox" id="f-ex-out" checked />
+        Exclude OUTSOURCE
+      </label>
+
+      <div class="sep"></div>
+      <button id="btn-apply" style="padding:7px 14px; border-radius:10px; border:1.5px solid var(--border); background:#ffe082; color:#234; font-weight:800; cursor:pointer">
+        <i class="fa fa-rotate"></i> Tải dữ liệu
+      </button>
+      <a href="/testlab/dashboard/audit" target="_blank" style="margin-left:auto; font-weight:700; color:#8B6B1E; text-decoration:none">Audit</a>
+    </div>
+
+    <!-- KPI -->
+    <div class="kpi">
+      <div class="card"><h3>Total In</h3><div class="num" id="kpi-in">0</div></div>
+      <div class="card"><h3>Total Out</h3><div class="num" id="kpi-out">0</div></div>
+      <div class="card"><h3>Capacity (/day)</h3><div class="num" id="kpi-cap">0</div></div>
+      <div class="card"><h3>Total WIP</h3><div class="num" id="kpi-wip">0</div></div>
+      <div class="card">
+        <h3>Ontime</h3><div class="num" id="kpi-ont">0</div>
+        <small class="note">(% tính trên completed có ETD)</small>
+      </div>
+      <div class="card">
+        <h3>Late</h3><div class="num" id="kpi-late">0</div>
+        <small class="note">= completed late + overdue WIP</small>
+      </div>
+    </div>
+    <div class="kpi" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="card"><h3>% Ontime</h3><div class="num" id="kpi-pont">0%</div></div>
+      <div class="card"><h3>% Late (completed)</h3><div class="num" id="kpi-plate">0%</div></div>
+      <div class="card"><h3>% Late (overall)</h3><div class="num" id="kpi-plate2">0%</div></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid">
+      <div class="chart-card">
+        <h4><i class="fa fa-layer-group"></i> In/Out theo tháng (stacked bar)</h4>
+        <canvas id="c-inout" height="160"></canvas>
+      </div>
+      <div class="chart-card">
+        <h4><i class="fa fa-boxes-stacked"></i> WIP theo Type of test (bar)</h4>
+        <canvas id="c-wip-type" height="160"></canvas>
+      </div>
+      <div class="chart-card">
+        <h4><i class="fa fa-chart-bar"></i> % Fail theo Type of test (horizontal bar)</h4>
+        <canvas id="c-fail-type" height="160"></canvas>
+      </div>
+      <div class="chart-card">
+        <h4><i class="fa fa-chart-line"></i> Target leadtime vs Actual leadtime (line)</h4>
+        <canvas id="c-leadtime" height="160"></canvas>
+      </div>
+      <div class="chart-card">
+        <h4><i class="fa fa-wave-square"></i> WIP tổng theo tháng (area)</h4>
+        <canvas id="c-wip-total" height="160"></canvas>
+      </div>
+      <div class="chart-card">
+        <h4><i class="fa fa-circle-notch"></i> Tỉ lệ Pass/Fail/Other (doughnut)</h4>
+        <canvas id="c-pf" height="160"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function upNum(id, v, suffix=""){ document.getElementById(id).innerText = (v==null?0:v) + suffix; }
+
+    function mkChart(ctx, type, data, options){
+      if (ctx.__chart) { ctx.__chart.destroy(); }
+      ctx.__chart = new Chart(ctx, { type, data, options });
+      return ctx.__chart;
+    }
+
+    async function loadData(){
+      const time = document.getElementById('f-time').value;
+      const type = document.getElementById('f-type').value;
+      const dept = document.getElementById('f-dept').value;
+      const exclude_outsource = document.getElementById('f-ex-out').checked ? '1' : '0';
+
+      const params = new URLSearchParams({ time, type, dept, exclude_outsource });
+      const res = await fetch('/testlab/dashboard/data?' + params.toString());
+      const js = await res.json();
+
+      // KPIs
+      upNum("kpi-in",   js.kpi.total_in);
+      upNum("kpi-out",  js.kpi.total_out);
+      upNum("kpi-cap",  js.kpi.capacity);
+      upNum("kpi-wip",  js.kpi.total_wip);
+      upNum("kpi-ont",  js.kpi.total_ontime);
+      upNum("kpi-late", js.kpi.total_late);
+      upNum("kpi-pont", js.kpi.pct_ontime, "%");
+      upNum("kpi-plate", js.kpi.pct_late, "%");
+      upNum("kpi-plate2", js.kpi.pct_late_overall, "%");
+
+      // In/Out by month (stacked bar)
+      mkChart(
+        document.getElementById('c-inout').getContext('2d'),
+        'bar',
+        {
+          labels: js.inout_months,
+          datasets: [
+            { label: 'In',  data: js.in_by_month, stack: 'io' },
+            { label: 'Out', data: js.out_by_month, stack: 'io' }
+          ]
+        },
+        { responsive:true, plugins:{ legend:{ position:'top' }}, scales:{ y:{ beginAtZero:true } } }
+      );
+
+      // WIP by type (bar)
+      mkChart(
+        document.getElementById('c-wip-type').getContext('2d'),
+        'bar',
+        {
+          labels: js.types_wip,
+          datasets: [{ label: 'WIP', data: js.wip_by_type }]
+        },
+        { responsive:true, plugins:{ legend:{ display:false }}, scales:{ y:{ beginAtZero:true } } }
+      );
+
+      // Fail ratio by type (horizontal bar)
+      mkChart(
+        document.getElementById('c-fail-type').getContext('2d'),
+        'bar',
+        {
+          labels: js.types_fail,
+          datasets: [{ label: '% Fail', data: js.fail_ratio }]
+        },
+        { responsive:true, indexAxis:'y', plugins:{ legend:{ position:'top' }}, scales:{ x:{ beginAtZero:true, max:100 } } }
+      );
+
+      // Leadtime (line)
+      mkChart(
+        document.getElementById('c-leadtime').getContext('2d'),
+        'line',
+        {
+          labels: js.lead_months,
+          datasets: [
+            { label: 'Target', data: js.target_leadtime },
+            { label: 'Actual', data: js.actual_leadtime }
+          ]
+        },
+        { responsive:true, plugins:{ legend:{ position:'top' }}, scales:{ y:{ beginAtZero:true } } }
+      );
+
+      // WIP total by month (area line)
+      mkChart(
+        document.getElementById('c-wip-total').getContext('2d'),
+        'line',
+        {
+          labels: js.wip_months,
+          datasets: [{ label: 'WIP total', data: js.wip_total, fill: true, tension: 0.25 }]
+        },
+        { responsive:true, plugins:{ legend:{ position:'top' }}, scales:{ y:{ beginAtZero:true } } }
+      );
+
+      // Pass/Fail/Other (doughnut)
+      mkChart(
+        document.getElementById('c-pf').getContext('2d'),
+        'doughnut',
+        { labels: js.pf_labels, datasets: [{ data: js.pf_values }] },
+        { responsive:true, plugins:{ legend:{ position:'right' } } }
+      );
+    }
+
+    document.getElementById('btn-apply').addEventListener('click', loadData);
+    loadData();
+  </script>
+</body>
+</html>

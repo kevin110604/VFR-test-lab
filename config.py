@@ -33,3 +33,37 @@ TEST_GROUPS = [
     ("guong",  "GƯƠNG"),
     ("testkhac", "TEST KHÁC"),
 ]
+# >>> ADD: ánh xạ loại test -> file template .docx (đặt cùng thư mục app.py)
+TEMPLATE_MAP = {
+    # Structure
+    'bed': 'BED - GLB.docx',
+    'chair_us': 'CHAIR - US.docx',
+    'chair_uk': 'CHAIR - EU.docx',
+    'table_us': 'TABLE - US.docx',
+    'table_uk': 'TABLE - EU,UK.docx',
+    'cabinet_us': 'STORAGE - US.docx',
+    'cabinet_uk': 'STORAGE - EU.docx',
+    'mirror': 'MIRROR.docx',
+    'other': 'OTHER.docx',
+
+    # Material – Finishing
+    'material_indoor_chuyen': 'MAT-IN-CHUYEN.docx',
+    'material_indoor_qa': 'MAT-IN-QA.docx',
+    'material_indoor_stone': 'MAT-IN-STONE.docx',
+    'material_indoor_metal': 'MAT-IN-METAL.docx',
+    'material_outdoor': 'MAT-OUT.docx',
+    'line_test': 'LINE-TEST.docx',
+    'hot_cold_test': 'HOT-COLD.docx',
+
+    # Transit
+    'transit_2c_np': 'TRANSIT-2C-NP.docx',
+    'transit_rh_np': 'TRANSIT-RH-NP.docx',
+    'transit_181_lt68': 'TRANSIT-181-LT68.docx',
+    'transit_3a': 'TRANSIT-3A.docx',
+    'transit_3b_np': 'TRANSIT-3B-NP.docx',
+
+    'transit_2c_pallet': 'TRANSIT-2C-PL.docx',
+    'transit_rh_pallet': 'TRANSIT-RH-PL.docx',
+    'transit_181_gt68': 'TRANSIT-181-GT68.docx',
+    'transit_3b_pallet': 'TRANSIT-3B-PL.docx',
+}

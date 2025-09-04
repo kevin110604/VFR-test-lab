@@ -6,7 +6,7 @@ git fetch
 git checkout origin/main -- "*.py" "*.html"
 
 if __name__ == "__main__":
-    serve(app, host="0.0.0.0", port=8246, threads=8, channel_timeout=120)
+    c
 
 python generate_qr_labels_50x65.py --prefix 26 --start 1000 --end 1500 --out qr_labels.pdf --w 65 --h 50 --margin 2 --qrmm 42 --text 11
 

@@ -317,11 +317,50 @@ if not sheet_name:
     raise Exception("Khong tim thay sheet 'OL list'!")
 df = excel_file.parse(sheet_name)
 
+def norm(s):
+    return (str(s).strip().lower() if pd.notnull(s) else "")
+
+def find_col_exact(df, name):
+    """Tìm cột khớp chính xác theo normalize ('test date', 'complete date', ...)"""
+    want = normalize_col(name)
+    for c in df.columns:
+        if normalize_col(c) == want:
+            return c
+    return None
+
+def find_col_any(df, keywords):
+    """Tìm cột chứa tất cả keywords (chuỗi con, không phân biệt hoa/thường)."""
+    for col in df.columns:
+        low = str(col).lower()
+        if all(k in low for k in keywords):
+            return col
+    for col in df.columns:
+        low = str(col).lower()
+        if any(k in low for k in keywords):
+            return col
+    return None
+
+# Cột chọn từ nguồn (giữ logic cũ, nhưng sẽ đảm bảo thêm Test Date & Complete Date nếu có)
 cols_selected = list(df.columns[1:23])
+
+# Đảm bảo có cột Rating (nếu có trên nguồn)
 rating_col = next((c for c in df.columns if "rating" in str(c).lower()), None)
 if rating_col and rating_col not in cols_selected:
     cols_selected.append(rating_col)
 
+# Đảm bảo có cột 'Test Date' và 'Complete Date' từ nguồn (nếu tồn tại)
+test_date_col = find_col_exact(df, "Test Date") or find_col_any(df, ["test", "date"])
+complete_date_col = find_col_exact(df, "Complete Date") or find_col_any(df, ["complete", "date"])
+
+if test_date_col and test_date_col not in cols_selected:
+    cols_selected.append(test_date_col)
+if complete_date_col and complete_date_col not in cols_selected:
+    cols_selected.append(complete_date_col)
+
+# Xác định các cột để lọc OUTSOURCE
+type_of_cols = [c for c in df.columns if "type of" in str(c).lower()]
+
+# Tìm các cột 'status' và 'report' (giữ nguyên cách tìm như cũ)
 def find_col(keywords):
     for col in df.columns:
         if all(k in str(col).lower() for k in keywords):
@@ -331,36 +370,24 @@ def find_col(keywords):
             return col
     return None
 
-type_of_cols = [c for c in df.columns if "type of" in str(c).lower()]
 status_col = find_col(["status"])
 report_col = find_col(["report", "#"])
 
-def norm(s):
-    return (str(s).strip().lower() if pd.notnull(s) else "")
+rows = list(df.index)
 
-rows = []
-for idx, row in df.iterrows():
-    skip = False
-    for col in type_of_cols:
-        val = norm(row[col])
-        if "outsource-mts" in val or "outsource-sgs" in val:
-            skip = True
-            break
-    if skip:
-        continue
-    rows.append(idx)
+# df_out sẽ giữ nguyên dữ liệu nguồn cho Test Date & Complete Date nếu có
 df_out = df.iloc[rows].copy()[cols_selected]
 
+# Cột report chính là cột thứ 2 của df_out (giữ nguyên logic cũ)
 report_col_main = df_out.columns[1]
 df_out[report_col_main] = df_out[report_col_main].astype(str).str.strip()
 df_out = df_out.drop_duplicates(subset=report_col_main, keep='last')
 
-df_out["__report_num__"] = pd.to_numeric(df_out[report_col_main].astype(str).str.extract(r'(\d+)$')[0], errors="coerce")
-df_out = df_out[df_out["__report_num__"] >= 4500].drop(columns="__report_num__")
+# KHÔNG gán rỗng 2 cột ngày nữa (bỏ 2 dòng cũ):
+# for col in ["Test Date", "Complete Date"]:
+#     df_out[col] = ""
 
-for col in ["Test Date", "Complete Date"]:
-    df_out[col] = ""
-
+# Tạo QR code URL dựa trên report
 qr_url_dict = {}
 for _, row in df_out.iterrows():
     report_raw = str(row[report_col_main]).strip()
@@ -368,6 +395,7 @@ for _, row in df_out.iterrows():
         qr_url_dict[report_raw] = f"http://103.77.166.187:8246/update?report={report_raw}"
 df_out["QR Code"] = df_out[report_col_main].astype(str).map(qr_url_dict).fillna("")
 
+# Chuẩn hóa hiển thị các cột ngày (bao gồm cả Test Date & Complete Date nếu có)
 def only_date(val):
     if pd.isnull(val) or not str(val).strip():
         return ""
@@ -385,15 +413,25 @@ def only_date(val):
     except:
         return val
 
+# Gom các cột ngày cần format: log in date, etd, test date, complete date (nếu tồn tại)
 date_cols = [c for c in df_out.columns if "log in date" in str(c).lower() or "etd" in str(c).lower()]
+if test_date_col:
+    date_cols.append(test_date_col)
+if complete_date_col:
+    date_cols.append(complete_date_col)
+
+# Loại trùng (nếu có) + áp dụng format
+seen = set()
+unique_date_cols = []
 for c in date_cols:
+    if c not in seen:
+        seen.add(c)
+        unique_date_cols.append(c)
+
+for c in unique_date_cols:
     df_out[c] = df_out[c].apply(only_date)
 
-def is_valid_rating(val):
-    if pd.isnull(val): return False
-    sval = str(val).strip().lower()
-    return sval != "" and sval != "nan"
-
+# Merge với file local nếu đã tồn tại (giữ nguyên rating của file local)
 if os.path.exists(excel_file_out):
     df_exist = pd.read_excel(excel_file_out)
     df_exist.columns = [c.strip() for c in df_exist.columns]
@@ -409,19 +447,27 @@ if os.path.exists(excel_file_out):
 
     sharepoint_data = df_out.set_index(report_col_main).to_dict(orient="index")
 
+    def is_valid_rating(val):
+        if pd.isnull(val): return False
+        sval = str(val).strip().lower()
+        return sval != "" and sval != "nan"
+
     updated = []
     for _, row in df_exist.iterrows():
         report_val = row[report_col_exist]
-        rating_val = row[rating_col_exist]
-        if is_valid_rating(rating_val):
+        rating_val = row[rating_col_exist] if rating_col_exist in df_exist.columns else None
+        if rating_col_exist and is_valid_rating(rating_val):
+            # Giữ nguyên dòng có rating hợp lệ
             updated.append(row)
         else:
             key = str(report_val).strip()
             if pd.notnull(report_val) and key in sharepoint_data:
                 new_data = sharepoint_data[key]
+                # Cập nhật toàn bộ cột khớp tên (bao gồm Test Date & Complete Date nếu có)
                 for col in df_exist.columns:
-                    if col != rating_col_exist and col in new_data:
-                        row[col] = new_data[col]
+                    if (not rating_col_exist) or (col != rating_col_exist):
+                        if col in new_data:
+                            row[col] = new_data[col]
             updated.append(row)
     df_final = pd.DataFrame(updated, columns=df_exist.columns)
 else:

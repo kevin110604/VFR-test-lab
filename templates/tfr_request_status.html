@@ -351,11 +351,12 @@
         </div>
 
         <h2>Submitted Test Requests</h2>
-
+        {% if is_admin or is_stl %}
         {% if ds_report_info %}
         <div class="ds-report-info" role="status" aria-live="polite">
             {{ ds_report_info }}
         </div>
+        {% endif %}
         {% endif %}
 
         {% if is_admin or is_stl %}

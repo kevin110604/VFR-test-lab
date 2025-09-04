@@ -1,5 +1,5 @@
-from flask import Flask, request, render_template, session, redirect, url_for, jsonify, flash, send_from_directory, Response, stream_with_context, abort, template_rendered
-from config import SECRET_KEY, local_main, SAMPLE_STORAGE, UPLOAD_FOLDER, TEST_GROUPS, local_complete, SO_GIO_TEST, ALL_SLOTS, TEAMS_WEBHOOK_URL_TRF, TEAMS_WEBHOOK_URL_RATE, TEAMS_WEBHOOK_URL_COUNT
+from flask import Flask, request, render_template, session, redirect, url_for, jsonify, flash, send_from_directory, Response, stream_with_context, abort, template_rendered, send_file
+from config import SECRET_KEY, local_main, SAMPLE_STORAGE, UPLOAD_FOLDER, TEST_GROUPS, local_complete, SO_GIO_TEST, ALL_SLOTS, TEAMS_WEBHOOK_URL_TRF, TEAMS_WEBHOOK_URL_RATE, TEAMS_WEBHOOK_URL_COUNT, TEMPLATE_MAP
 from excel_utils import get_item_code, get_col_idx, copy_row_with_style, write_tfr_to_excel, append_row_to_trf
 from image_utils import allowed_file, get_img_urls
 from auth import login, get_user_type
@@ -7,7 +7,7 @@ from test_logic import load_group_notes, get_group_test_status, is_drop_test, is
 from test_logic import IMPACT_ZONES, IMPACT_LABELS, ROT_LABELS, ROT_ZONES, RH_IMPACT_ZONES, RH_VIB_ZONES, RH_SECOND_IMPACT_ZONES, RH_STEP12_ZONES, update_group_note_file, get_group_note_value, F2057_TEST_TITLES
 from notify_utils import send_teams_message, notify_when_enough_time
 from counter_utils import update_counter, check_and_reset_counter, log_report_complete
-from docx_utils import approve_request_fill_docx_pdf
+from docx_utils import approve_request_fill_docx_pdf, fill_bed_cover_from_excel
 from file_utils import (
     safe_write_json, safe_read_json, safe_save_excel, safe_load_excel,
     safe_write_text, safe_read_text, safe_append_backup_json   # <— thêm hàm này
@@ -25,11 +25,13 @@ from contextlib import contextmanager
 from vfr3 import vfr3_bp
 from werkzeug.utils import secure_filename
 from qr_print import qr_bp
+from testlab_dashboard import dashboard_bp
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 app.register_blueprint(vfr3_bp)
 app.register_blueprint(qr_bp)
+app.register_blueprint(dashboard_bp, url_prefix="/testlab")
 
 # Những test dùng giao diện Hot & Cold
 HOTCOLD_LIKE = set(["hot_cold", "standing_water", "stain", "corrosion"])
@@ -2632,6 +2634,63 @@ def _has_images(report_folder: str, group: str, key: str, is_hotcold_like: bool)
         pref = f"test_{group}_{key}_"
         return any(allowed_file(fn) and fn.startswith(pref) for fn in files)
 
+# >>> ADD
+@app.get('/api/report/detect')
+def api_report_detect():
+    report = (request.args.get('report') or '').strip()
+    if not report:
+        return jsonify({'ok': False, 'error': 'missing report'}), 400
+
+    # TODO: viết logic tự đoán nếu muốn (từ last_test_type, file/ảnh, v.v.)
+    # Tạm thời: luôn yêu cầu người dùng chọn
+    return jsonify({'ok': False})
+
+# ==== ROUTE ====
+@app.route("/api/report/create")
+def api_report_create():
+    """
+    Tạo file report .docx.
+    - type='bed': auto-fill bảng RESULT từ Excel theo Report # (chỉ thay ô đang '-').
+    - type khác: trả template gốc (hoặc bạn mở rộng tương tự sau).
+    """
+    report_id = (request.args.get("report") or "").strip()
+    rtype     = (request.args.get("type") or "").strip().lower()
+
+    tpl_name = TEMPLATE_MAP.get(rtype)
+    if not tpl_name:
+        return jsonify({"ok": False, "error": f"Unknown type: {rtype}"}), 400
+
+    tpl_path = os.path.join(os.path.dirname(__file__), tpl_name)
+    if not os.path.exists(tpl_path):
+        return jsonify({"ok": False, "error": f"Template not found: {tpl_name}"}), 404
+
+    if rtype == "bed":
+        excel_path = os.path.join(local_main, "ds san pham test voi qr.xlsx")
+        try:
+            bio = fill_bed_cover_from_excel(tpl_path, excel_path, report_id=report_id)
+        except Exception as ex:
+            # fallback: nếu lỗi (không có dòng, thiếu cột...), trả template để không chặn user
+            print("BED autofill error:", ex)
+            return send_file(
+                tpl_path,
+                as_attachment=True,
+                download_name=f"{report_id or 'report'}_{rtype}_TEMPLATE.docx"
+            )
+
+        return send_file(
+            bio,
+            as_attachment=True,
+            download_name=f"{report_id or 'report'}_{rtype}.docx",
+            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+
+    # default cho type khác
+    return send_file(
+        tpl_path,
+        as_attachment=True,
+        download_name=f"{report_id or 'report'}_{rtype}.docx"
+    )
+
 # --- THAY THẾ HẲN hàm test_group_page ---
 @app.route("/test_group/<report>/<group>", methods=["GET", "POST"])
 def test_group_page(report, group):
@@ -3155,8 +3214,9 @@ def render_test_group_item(report, group, key, group_titles, comment):
         content = safe_read_text(file_path)
         if content:
             for line in content.splitlines():
-                if line.strip().startswith(f"Mục {key}:"):
-                    return line.strip().split(":", 1)[1].strip()
+                s = line.strip()
+                if s.startswith(f"Mục {key}:") or s.startswith(f"{key}:"):
+                    return s.split(":", 1)[1].strip()
         return None
 
     status_value = get_group_note_value(status_file, key)
@@ -3170,7 +3230,7 @@ def render_test_group_item(report, group, key, group_titles, comment):
             if os.path.exists(img_path):
                 os.remove(img_path)
         # Ghi status PASS/FAIL/N/A
-        if 'status' in request.form and not group.startswith("transit"):
+        if 'status' in request.form:
             status = request.form['status']
             update_group_note_file(status_file, key, status)
         # Ghi comment

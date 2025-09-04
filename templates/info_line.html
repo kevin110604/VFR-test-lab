@@ -32,14 +32,14 @@
     }
     button:hover,
     .btn:hover {
-        background-color: #3d6d60;  /* darker shade of --color-green */
+        background-color: #3d6d60;
     }
     body.dark, .dark {
-        --main-bg: #2b3938;           /* nền tổng thể */
-        --main-card: #374B4A;         /* thẻ hiển thị */
-        --main-text: #f6f6ef;         /* chữ chính */
-        --main-th: #ffe082;           /* tiêu đề bảng */
-        --main-border: #263d3a;       /* viền */
+        --main-bg: #2b3938;
+        --main-card: #374B4A;
+        --main-text: #f6f6ef;
+        --main-th: #ffe082;
+        --main-border: #263d3a;
 
         --color-bg: var(--main-bg);
         --color-box: var(--main-card);
@@ -292,15 +292,15 @@
         box-shadow: 0 2px 13px var(--shadow-light);
         letter-spacing: 0.6px;
         margin: 0 auto 20px auto;
-        white-space: normal;            /* <-- Cho phép xuống dòng */
+        white-space: normal;
         word-break: break-word;
         text-align: center;
-        max-width: 95vw;                /* <-- Không cho tràn khỏi màn hình */
+        max-width: 95vw;
         font-family: 'Inter', sans-serif;
     }
     @media (max-width: 500px) {
         .drop-btn {
-            font-size: 16px;        /* Co lại trên mobile */
+            font-size: 16px;
             padding: 11px 7vw;
             min-width: 0;
             max-width: 99vw;
@@ -584,7 +584,8 @@
           <a href="{{ url_for('list_samples', report=report_id) }}">
             <i class="fa fa-list"></i> Danh sách mẫu lưu
           </a>
-          <a href="#" onclick="alert('Chức năng Tạo report sẽ bổ sung sau!');return false;">
+          <!-- Nút tạo report: phải có id để JS bắt sự kiện -->
+          <a href="#" id="btn-create-report">
             <i class="fa fa-plus-square"></i> Tạo report
           </a>
           <!-- Thêm nút mới ở đây sau này -->
@@ -597,12 +598,6 @@
             <a href="/" tabindex="0">[Chọn mã sản phẩm khác]</a>
         </div>
         <div class="info-title">THÔNG TIN SẢN PHẨM</div>
-        {% if trq_id %}
-        <div class="item-row">
-            <span class="label">TRQ‑ID</span>
-            <span class="value">{{ trq_id }}</span>
-        </div>
-        {% endif %}
         {% if last_test_type %}
         <div class="test-type-notify" style="text-align:center;color:#b68b22;font-size:18px;font-weight:600;margin-bottom:13px;">
                <b>Loại test:</b> {{ last_test_type }}
@@ -885,7 +880,6 @@
         </div>
     </div>
     <script>
-
     function toggleDropdown() {
       document.getElementById("dropdownMenu").classList.toggle("show");
     }
@@ -1066,11 +1060,9 @@
         let pendingBtn = null, lockConfirm = false;
         document.querySelectorAll(".rating-btn, .state-btn").forEach(function(btn) {
             btn.addEventListener("click", function(e) {
-                // Đã đang chờ xác nhận, không lặp lại
                 if (lockConfirm) { e.preventDefault(); return; }
                 e.preventDefault();
                 let value = btn.textContent.trim();
-                // Lấy biến report id qua template engine (với Flask: {{ report_id|default(report, true) }})
                 let report = "{{ report_id|default(report, true) }}";
                 if (!report) report = "";
                 if (confirm(`Bạn có chắc chắn chọn "${value}" không?`)) {
@@ -1078,7 +1070,7 @@
                         `Bạn đã cập nhật "${value}" cho report ${report}?`;
                     document.getElementById("confirm2-popup").style.display = "flex";
                     pendingBtn = btn;
-                    lockConfirm = true; // Khóa lại cho đến khi xong xác nhận
+                    lockConfirm = true;
                 }
             });
         });
@@ -1095,7 +1087,6 @@
                         if (typeof btn.form.requestSubmit === "function") {
                             btn.form.requestSubmit(btn);
                         } else {
-                            // Fallback cho browser cũ
                             let temp = document.createElement("input");
                             temp.type = "hidden";
                             temp.name = btn.name;
@@ -1111,7 +1102,6 @@
         var popup = document.getElementById("confirm2-popup");
         if (popup) {
             popup.onclick = function(e) {
-                // Chỉ khi click nền ngoài mới tắt
                 if (e.target === this) {
                     this.style.display = "none";
                     pendingBtn = null;
@@ -1120,7 +1110,101 @@
             }
         }
     });
+
+    // === JS cho TẠO REPORT ===
+    document.addEventListener('DOMContentLoaded', function() {
+    function getModal() { return document.getElementById('reportTypeModal'); }
+    function openReportTypeModal() { const m = getModal(); if (m) m.style.display = 'block'; }
+    window.closeReportTypeModal = function(){ const m = getModal(); if (m) m.style.display = 'none'; };
+
+    const btn = document.getElementById('btn-create-report');
+    if (btn) {
+        btn.addEventListener('click', function(e){
+        e.preventDefault();
+        const report = "{{ report_id }}";
+        // Thử detect tự động
+        fetch(`/api/report/detect?report=${encodeURIComponent(report)}`)
+            .then(r => r.ok ? r.json() : Promise.resolve({ ok: false }))
+            .then(data => {
+            if (data && data.ok && data.type) {
+                window.location = `/api/report/create?report=${encodeURIComponent(report)}&type=${encodeURIComponent(data.type)}`;
+            } else {
+                openReportTypeModal();
+            }
+            })
+            .catch(() => openReportTypeModal());
+        });
+    }
+
+    // Gắn handler cho nút xác nhận Tạo report trong modal (sau khi DOM đã sẵn sàng)
+    const confirmBtn = document.getElementById('rt-confirm');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function(){
+        const sel = document.querySelector('input[name="reportType"]:checked');
+        if (!sel) return;
+        const report = "{{ report_id }}";
+        closeReportTypeModal();
+        window.location = `/api/report/create?report=${encodeURIComponent(report)}&type=${encodeURIComponent(sel.value)}`;
+        });
+    }
+
+    // Đóng modal khi click nền tối
+    const modal = getModal();
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+        if (e.target === modal) closeReportTypeModal();
+        });
+    }
+    });
     </script>
+
+    <!-- Modal chọn loại test để tạo report -->
+    <div id="reportTypeModal" style="display:none; position:fixed; inset:0; background:#0008; z-index:9999;">
+      <div style="max-width:680px; margin:5% auto; background:#fff; border-radius:14px; padding:22px 28px;">
+        <h3 style="margin-top:0; text-align:center; color:#333;">Chọn loại test để tạo report</h3>
+
+        <!-- Các loại test: đúng như giao diện nhóm Cấu trúc / Material / Transit -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin:16px 0;">
+          <!-- Cấu trúc -->
+          <label><input type="radio" name="reportType" value="bed" checked> Giường (Bed)</label>
+          <label><input type="radio" name="reportType" value="chair_us"> Ghế US</label>
+          <label><input type="radio" name="reportType" value="chair_uk"> Ghế EU</label>
+          <label><input type="radio" name="reportType" value="table_us"> Bàn US</label>
+          <label><input type="radio" name="reportType" value="table_uk"> Bàn EU</label>
+          <label><input type="radio" name="reportType" value="cabinet_us"> Tủ US</label>
+          <label><input type="radio" name="reportType" value="cabinet_uk"> Tủ EU</label>
+          <label><input type="radio" name="reportType" value="mirror"> Gương</label>
+          <label><input type="radio" name="reportType" value="other"> Test khác</label>
+
+          <!-- Material – Finishing -->
+          <label><input type="radio" name="reportType" value="material_indoor_chuyen"> Material – Test chuyền</label>
+          <label><input type="radio" name="reportType" value="material_indoor_qa"> Material – QA Test</label>
+          <label><input type="radio" name="reportType" value="material_indoor_stone"> Material – Test đá</label>
+          <label><input type="radio" name="reportType" value="material_indoor_metal"> Material – Test metal</label>
+          <label><input type="radio" name="reportType" value="material_outdoor"> Outdoor finishing</label>
+          <label><input type="radio" name="reportType" value="line_test"> Line test</label>
+          <label><input type="radio" name="reportType" value="hot_cold_test"> Hot &amp; Cold test</label>
+
+          <!-- Transit -->
+          <label><input type="radio" name="reportType" value="transit_2c_np"> Transit 2C (Non-Pallet)</label>
+          <label><input type="radio" name="reportType" value="transit_rh_np"> Transit RH (Non-Pallet)</label>
+          <label><input type="radio" name="reportType" value="transit_181_lt68"> Transit 181 (&lt;68kg)</label>
+          <label><input type="radio" name="reportType" value="transit_3a"> Transit 3A</label>
+          <label><input type="radio" name="reportType" value="transit_3b_np"> Transit 3B (Non-Pallet)</label>
+          <label><input type="radio" name="reportType" value="transit_2c_pallet"> Transit 2C (Pallet)</label>
+          <label><input type="radio" name="reportType" value="transit_rh_pallet"> Transit RH (Pallet)</label>
+          <label><input type="radio" name="reportType" value="transit_181_gt68"> Transit 181 (&gt;68kg)</label>
+          <label><input type="radio" name="reportType" value="transit_3b_pallet"> Transit 3B (Pallet)</label>
+        </div>
+
+        <div style="text-align:right; margin-top:15px;">
+          <button type="button" onclick="closeReportTypeModal()">Hủy</button>
+          <button type="button" id="rt-confirm">Tạo report</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- (File của bạn đang có thêm 1 block confirm2-popup nữa dưới đây — giữ nguyên) -->
     <div id="confirm2-popup" style="display:none; position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:10000;
       background:rgba(40,40,40,0.21);backdrop-filter:blur(2px);align-items:center;justify-content:center;">
       <div style="background:#fffbe8;padding:30px 24px 22px 24px;border-radius:16px;box-shadow:0 3px 20px #3335;min-width:260px;text-align:center;">
