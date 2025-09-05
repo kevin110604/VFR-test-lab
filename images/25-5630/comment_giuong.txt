@@ -1,9 +1,0 @@
-muc2: a
-muc3: a
-muc4: a
-muc5: a
-muc6: a
-muc7: a
-muc8: a
-muc9: a
-muc10: a

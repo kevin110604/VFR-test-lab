@@ -581,14 +581,23 @@ def home():
     }
     summary_by_type = []
     for t in type_of_set:
-        late = sum(1 for r in full_report_list if r['type_of'] == t and r['status'] == "LATE")
-        due = sum(1 for r in full_report_list if r['type_of'] == t and r['status'] == "DUE")
-        must = sum(1 for r in full_report_list if r['type_of'] == t and r['status'] == "MUST")
+        late   = sum(1 for r in full_report_list if r['type_of'] == t and r['status'] == "LATE")
+        due    = sum(1 for r in full_report_list if r['type_of'] == t and r['status'] == "DUE")
+        must   = sum(1 for r in full_report_list if r['type_of'] == t and r['status'] == "MUST")
         active = sum(1 for r in full_report_list if r['type_of'] == t and r['status'] == "ACTIVE")
-        total = late + due + must + active
+        total  = late + due + must + active
+
+        t_up = (t or "").upper()
+        if t_up.startswith("OUTSOURCE"):
+            # Lấy 3 ký tự cuối sau dấu '-' nếu có; nếu không có '-' thì lấy 3 ký tự cuối của toàn chuỗi
+            parts = t_up.split("-")
+            short = (parts[-1][-3:] if len(parts) >= 2 else t_up[-3:])
+        else:
+            short = type_shortname.get(t, t_up[:3])
+
         summary_by_type.append({
             "type_of": t,
-            "short": type_shortname.get(t, t[:3].upper()),
+            "short": short,
             "late": late,
             "due": due,
             "must": must,
@@ -1311,6 +1320,7 @@ def approve_all_one(req):
             "requestor": req.get("requestor", ""),
             "department": req.get("department", ""),
             "request_date": req.get("request_date", ""),
+            "item_code": req.get("item_code", ""),  # NEW: carry item_code from request -> archive
             "status": req.get("status", ""),
             "pdf_path": req.get("pdf_path"),
             "docx_path": req.get("docx_path"),
@@ -1323,7 +1333,6 @@ def approve_all_one(req):
         print("Archive lỗi:", e)
 
     return req
-
 
 # ================== ROUTE: APPROVE ALL (STREAM) — ĐÃ SỬA ==================
 @app.post("/approve_all_stream")
@@ -2155,6 +2164,11 @@ def tfr_request_archive():
         return (num, s)
 
     archive.sort(key=report_sort_key, reverse=True)
+
+    # đảm bảo mỗi record khi đưa sang template đều có item_code
+    for rec in archive:
+        # nếu trước đây lưu dưới tên 'item' hoặc field khác, rơi về luôn
+        rec["item_code"] = rec.get("item_code") or rec.get("item") or ""
 
     # 7) Render
     return render_template("tfr_request_archive.html", requests=archive)
@@ -3820,6 +3834,11 @@ def view_counter_log():
                 ca_raw = str(row[ca_idx]).strip().lower() if row[ca_idx] else ""
                 ca = "HC" if "office" in ca_raw or ca_raw == "hc" else "OT"
                 type_of_raw = (row[type_idx] or "UNKNOWN").strip().upper()
+                if type_of_raw.startswith("OUTSOURCE"):
+                    parts = type_of_raw.split("-")
+                    type_of_short = (parts[-1][-3:] if len(parts) >= 2 else type_of_raw[-3:])
+                else:
+                    type_of_short = type_of_raw[:3]
                 type_of_short = type_of_raw[:3]
                 type_of_set.add(type_of_short)
                 if day not in summary:

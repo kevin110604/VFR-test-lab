@@ -95,8 +95,8 @@
         .btn-eye { color: #35523A; border-color: #35523A; }
         .btn-eye:hover { background: #e8fff3; color: #35523A; border-color: #35523A; }
 
-        .table-toolbar { width: 100%; position: sticky; top: 0; z-index: 3; padding-bottom: 8px; display: flex; justify-content: flex-end; padding-right: 14px; }
-        .table-toolbar input { padding: 7px 13px; font-size: 14px; border-radius: 8px; border:1.2px solid #ccc; width: 200px; background: #fff; }
+        .table-toolbar { width: 100%; position: sticky; top: 0; z-index: 3; padding-bottom: 8px; display: flex; justify-content: flex-end; padding-right: 14px; gap:10px; }
+        .table-toolbar input { padding: 7px 13px; font-size: 14px; border-radius: 8px; border:1.2px solid #ccc; width: 280px; background: #fff; }
 
         @media (max-width: 1200px) {
             .box { width: 99vw; max-width: 99vw; min-width: 0; }
@@ -201,7 +201,7 @@
         <h2>Test Request (TRF)</h2>
 
         <div class="table-toolbar">
-            <input type="text" id="search-id" placeholder="TRQ-ID, R.No, ID, Requestor" oninput="searchID()">
+            <input type="text" id="search-id" placeholder="TRQ-ID, R.No, ID, Requestor, Item Code" oninput="searchID()">
         </div>
 
         <div class="table-wrap">
@@ -219,7 +219,8 @@
                 <th>File</th>
             </tr>
             {% for r in requests %}
-            <tr>
+            {# gắn data-items ẩn cho phép lọc theo Item Code (không thêm cột) #}
+            <tr data-items="{{ (r.item_codes_text or (r.item_codes|join(', ') if r.item_codes else '') or r.item_code or '') | e }}">
                 <td>{{ r.trq_id }}</td>
                 <td>{{ r.report_no }}</td>
                 <td class="col-emp">{{ r.employee_id or "N/A" }}</td>
@@ -230,7 +231,6 @@
                 <td class="status {{ (r.status_display or '').replace(' ', '_') }}">{{ r.status_display or "" }}</td>
                 <td class="rating {{ (r.rating or '').upper() }}">{{ r.rating or "-" }}</td>
                 <td>
-                    {# --- Tính nhanh cờ có ảnh --- #}
                     {% set has_images = (
                         (r.initial_images and r.initial_images|length>0) or
                         (r.form_images and r.form_images|length>0) or
@@ -240,7 +240,6 @@
                     ) %}
 
                     {% if has_images %}
-                    <!-- 👁 Nút xem ảnh -->
                     <button class="btn-eye" type="button" title="Xem ảnh"
                         data-trq="{{ (r.trq_id or '') }}"
                         data-initial='{{ (r.initial_images or []) | tojson | safe }}'
@@ -311,17 +310,20 @@
         applyDark(dark);
         document.getElementById('theme-btn').onclick = () => { dark = !dark; applyDark(dark); };
 
-        // Filter
+        // ==== FILTER: thêm tìm theo Item Code (data-items) ====
         function searchID() {
-            const val = document.getElementById("search-id").value.toUpperCase();
+            const val = (document.getElementById("search-id").value || "").toUpperCase().trim();
             const rows = document.querySelectorAll("#archive-table tr");
             for (let i = 1; i < rows.length; i++) {
-                const tds = rows[i].querySelectorAll("td");
+                const row = rows[i];
+                const tds = row.querySelectorAll("td");
+                const items = (row.getAttribute("data-items") || "").toUpperCase();
                 const ok =
-                    (tds[0]?.textContent || "").toUpperCase().includes(val) ||
-                    (tds[1]?.textContent || "").toUpperCase().includes(val) ||
-                    (tds[2]?.textContent || "").toUpperCase().includes(val) ||
-                    (tds[3]?.textContent || "").toUpperCase().includes(val);
+                    (tds[0]?.textContent || "").toUpperCase().includes(val) || // TRQ-ID
+                    (tds[1]?.textContent || "").toUpperCase().includes(val) || // Report No
+                    (tds[2]?.textContent || "").toUpperCase().includes(val) || // Employee ID
+                    (tds[3]?.textContent || "").toUpperCase().includes(val) || // Requestor
+                    items.includes(val);                                       // << Item Code (ẩn)
                 rows[i].style.display = ok ? "" : "none";
             }
         }
@@ -458,13 +460,13 @@
                 if (shown) closeZoom();
             }
         });
+
+        // Ẩn nút 👁 nếu không có ảnh (giữ logic cũ)
         document.addEventListener('DOMContentLoaded', () => {
-            // Dò tất cả nút 👁; nếu không thu được ảnh -> ẩn
             document.querySelectorAll('.btn-eye').forEach(btn => {
                 try {
                     const list = collectImagesFromDataset(btn.dataset);
                     if (!list || list.length === 0) {
-                        // fallback: thử theo TRQ trong mảng "requests" (server render)
                         const TRQ = (btn.dataset.trq || '').toUpperCase();
                         let has = false;
                         if (TRQ && Array.isArray(requests)) {
@@ -477,7 +479,6 @@
                         if (!has) btn.style.display = 'none';
                     }
                 } catch(e) {
-                    // Nếu có lỗi parse, cứ ẩn để đỡ rối mắt
                     btn.style.display = 'none';
                 }
             });

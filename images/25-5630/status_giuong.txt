@@ -1,9 +1,0 @@
-muc2: PASS
-muc3: PASS
-muc4: PASS
-muc5: PASS
-muc6: FAIL
-muc7: PASS
-muc8: PASS
-muc9: PASS
-muc10: PASS

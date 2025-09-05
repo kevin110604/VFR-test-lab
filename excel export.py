@@ -383,6 +383,13 @@ report_col_main = df_out.columns[1]
 df_out[report_col_main] = df_out[report_col_main].astype(str).str.strip()
 df_out = df_out.drop_duplicates(subset=report_col_main, keep='last')
 
+# Chỉ giữ các report >= 4500 (như cũ)
+df_out["__report_num__"] = pd.to_numeric(
+    df_out[report_col_main].astype(str).str.extract(r'(\d+)$')[0],
+    errors="coerce"
+)
+df_out = df_out[df_out["__report_num__"] >= 4500].drop(columns="__report_num__")
+
 # KHÔNG gán rỗng 2 cột ngày nữa (bỏ 2 dòng cũ):
 # for col in ["Test Date", "Complete Date"]:
 #     df_out[col] = ""
