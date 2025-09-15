@@ -1,3 +1,0 @@
-muc5.5.2.2: PASS
-muc5.5.2.3: FAIL
-muc5.5.3: PASS
