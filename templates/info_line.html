@@ -595,7 +595,7 @@
     {% endif %}
     <div class="info-box animate__animated animate__fadeInDown">
         <div class="top-center">
-            <a href="/" tabindex="0">[Chọn mã sản phẩm khác]</a>
+            <a href="/" tabindex="0" onclick="resetStates()">[Chọn mã sản phẩm khác]</a>
         </div>
         <div class="info-title">THÔNG TIN SẢN PHẨM</div>
         {% if last_test_type %}
@@ -677,11 +677,11 @@
         {% if show_func %}
         <div class="center-btns">
             <form method="POST" style="display:inline;">
-                <button name="action" value="testing" class="testing-btn">TESTING</button>
+                <button name="action" value="testing" class="testing-btn" id="btn-testing">TESTING</button>
             </form>
         </div>
         <div class="center-btns">
-            <button id="show-test-btn" onclick="toggleTestBtns()" class="drop-btn" type="button">
+            <button id="show-test-btn" onclick="toggleTestBtns()" class="drop-btn test-group-btn" type="button" disabled>
                 KIỂM TRA CẤU TRÚC 
                 <span id="test-arrow" style="font-size:19px; margin-left:7px; transition:transform 0.22s;">
                     <i class="fa fa-caret-down"></i>
@@ -690,13 +690,14 @@
         </div>
         <div id="test-btns-group">
             {% for key, name in test_groups %}
-                <a href="{{ url_for('test_group_page', report=report_id, group=key) }}" class="test-btn">{{ name }}</a>
+                    <a href="{{ url_for('test_group_page', report=report_id, group=key) }}" 
+                       class="test-btn test-group-btn" disabled>{{ name }}</a>
             {% endfor %}
         </div>
         
         <!-- Block kiểm tra Material - Finishing -->
         <div class="center-btns">
-            <button id="show-material-btn" onclick="toggleMaterialBtns()" class="drop-btn" type="button">
+            <button id="show-material-btn" onclick="toggleMaterialBtns()" class="drop-btn test-group-btn" type="button" disabled>
                 KIỂM TRA MATERIAL - FINISHING
                 <span id="material-arrow" style="font-size:19px; margin-left:7px; transition:transform 0.22s;">
                     <i class="fa fa-caret-down"></i>
@@ -742,12 +743,12 @@
             {% endfor %}
         </div>
         <div class="center-btns">
-        <button id="show-transit-btn" onclick="toggleTransitBtns()" class="drop-btn" type="button">
-            KIỂM TRA TRANSIT
-            <span id="transit-arrow" style="font-size:19px; margin-left:7px; transition:transform 0.22s;">
-            <i class="fa fa-caret-down"></i>
-            </span>
-        </button>
+            <button id="show-transit-btn" onclick="toggleTransitBtns()" class="drop-btn test-group-btn" type="button" disabled>
+                KIỂM TRA TRANSIT
+                <span id="transit-arrow" style="font-size:19px; margin-left:7px; transition:transform 0.22s;">
+                    <i class="fa fa-caret-down"></i>
+                </span>
+            </button>
         </div>
         <div id="transit-btns-group" style="max-height:0; overflow:hidden; transition:max-height 0.36s cubic-bezier(.44,.09,.42,.97); margin-bottom:18px;">
         <div style="display:flex; gap:15px; justify-content:center; align-items:stretch; flex-wrap:wrap;">
@@ -830,14 +831,14 @@
             </div>
         </div>
         <form method="POST" class="testdone-row">
-            <button name="action" value="test_done" class="testdone-btn">
+            <button name="action" value="test_done" class="testdone-btn" id="btn-complete" disabled>
                 COMPLETE
             </button>
         </form>
         <form method="POST" class="rating-row">
-            <button name="action" value="rating_fail" class="rating-btn fail-btn">FAIL</button>
-            <button name="action" value="rating_pass" class="rating-btn pass-btn">PASS</button>
-            <button name="action" value="rating_data" class="rating-btn data-btn">DATA</button>
+            <button name="action" value="rating_fail" class="rating-btn fail-btn rating-action" disabled>FAIL</button>
+            <button name="action" value="rating_pass" class="rating-btn pass-btn rating-action" disabled>PASS</button>
+            <button name="action" value="rating_data" class="rating-btn data-btn rating-action" disabled>DATA</button>
         </form>
         <!-- ==== Nhóm 3 nút thao tác dưới cùng ==== -->
         <div class="main-action-col">
@@ -880,6 +881,54 @@
         </div>
     </div>
     <script>
+    // === STATE CONTROL ===
+    function resetStates() {
+        localStorage.removeItem("testingDone");
+        localStorage.removeItem("completeDone");
+    }
+
+    function updateButtonStates() {
+        const testing = localStorage.getItem("testingDone") === "true";
+        const complete = localStorage.getItem("completeDone") === "true";
+
+        // Nhóm test group
+        document.querySelectorAll(".test-group-btn, .test-btn").forEach(btn => {
+            btn.disabled = !testing;
+        });
+
+        // COMPLETE
+        const completeBtn = document.getElementById("btn-complete");
+        if (completeBtn) completeBtn.disabled = !testing;
+
+        // PASS/FAIL/DATA
+        document.querySelectorAll(".rating-action").forEach(btn => {
+            btn.disabled = !complete;
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // Khi load trang, sync trạng thái
+        updateButtonStates();
+
+        // Khi bấm TESTING
+        const testingBtn = document.getElementById("btn-testing");
+        if (testingBtn) {
+            testingBtn.addEventListener("click", function() {
+                localStorage.setItem("testingDone", "true");
+                updateButtonStates();
+            });
+        }
+
+        // Khi bấm COMPLETE
+        const completeBtn = document.getElementById("btn-complete");
+        if (completeBtn) {
+            completeBtn.addEventListener("click", function() {
+                localStorage.setItem("completeDone", "true");
+                updateButtonStates();
+            });
+        }
+    });
+    
     function toggleDropdown() {
       document.getElementById("dropdownMenu").classList.toggle("show");
     }

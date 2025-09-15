@@ -107,48 +107,48 @@ BAN_US_TEST_TITLES = {
         "short": "Stability with extendible elements open test",
         "img": ["/static/images/buoc 3 ban us.jpg"]
     },
-    "muc4": {
-        "full": "Mục 4: Stability test",
-        "short": "Stability test",
+    "muc4.3": {
+        "full": "Mục 4.3: Stability under vertical load test",
+        "short": "Stability under vertical load test",
         "img": ["/static/images/buoc 4 ban us.png"]
     },
     "muc4.4": {
-        "full": "Mục 4.4: Horizontal Stability Test for Desks and Tables with Casters",
+        "full": "Mục 4.4: Horizontal stability test for desk or tables with caster",
         "short": "Horizontal Stability Test for Desks and Tables with Casters",
         "img": ["/static/images/buoc 5 ban us.png"]
     },
     "muc4.5": {
-        "full": "Mục 4.5: Horizontal Stability Test for Keyboard/Laptop Tables (with and without casters)",
+        "full": "Mục 4.5: Stability test for keyboard/laptop tables (with and without casters)",
         "short": "Horizontal Stability Test for Keyboard/Laptop Tables (with and without casters)",
         "img": ["/static/images/buoc 6 ban us.jpg"]
     },
     "muc5.2": {
-        "full": "Mục 5.2: Concentrated load test – Functional",
+        "full": "Mục 5.2: Concentrated functional load test",
         "short": "Concentrated load test – Functional",
         "img": ["/static/images/buoc 7 ban us.jpg"]
     },
     "muc5.3": {
-        "full": "Mục 5.3: Distributed load test - Functional",
+        "full": "Mục 5.3: Distributed functional load test",
         "short": "Distributed load test - Functional",
         "img": ["/static/images/buoc 8 ban us.png"]
     },
     "muc5.4": {
-        "full": "Mục 5.4: Concentrated load test - Proof",
+        "full": "Mục 5.4: Concentrated proof load test",
         "short": "Concentrated load test - Proof",
         "img": ["/static/images/buoc 9 ban us.png"]
     },
     "muc5.5": {
-        "full": "Mục 5.5: Distributed load test - Proof",
+        "full": "Mục 5.5: Distributed proof load test",
         "short": "Distributed load test - Proof",
         "img": ["/static/images/buoc 10 ban us.png"]
     },
     "muc5.6": {
-        "full": "Mục 5.6: Transaction Surface Torsion Load Test",
+        "full": "Mục 5.6: Transaction surface torsion load test",
         "short": "Transaction Surface Torsion Load Test",
         "img": ["/static/images/buoc 11 ban us.png"]
     },
     "muc5.7": {
-        "full": "Mục 5.7: Extendible element static load test",
+        "full": "Mục 5.7: Extendible element static load tests",
         "short": "Extendible element static load test",
         "img": ["/static/images/buoc 12 ban us.png"]
     },
@@ -163,27 +163,27 @@ BAN_US_TEST_TITLES = {
         "img": ["/static/images/buoc 14 ban us.png"]
     },
     "muc8.2.2": {
-        "full": "Mục 8.2.2: Standard - Leg strength test - Functional load",
+        "full": "Mục 8.2.2: Leg strength test – standard – functional load",
         "short": "Leg strength test - Functional load",
         "img": ["/static/images/buoc 15 ban us.png"]
     },
     "muc8.2.3": {
-        "full": "Mục 8.2.3: Standard - Leg strength test – Proof load",
+        "full": "Mục 8.2.3: Leg strength test – standard – proof load",
         "short": "Leg strength test – Proof load",
         "img": ["/static/images/buoc 16 ban us.png"]
     },
     "muc8.3.2": {
-        "full": "Mục 8.3.2: Alternate - Leg Strength Test - Functional",
+        "full": "Mục 8.3.2: Leg strength test – alternate – functional load",
         "short": "Alternate - Leg Strength Test - Functional",
         "img": ["/static/images/buoc 17 ban us.png"]
     },
     "muc8.3.3": {
-        "full": "Mục 8.3.3: Alternate - Leg Strength Test - Proof",
+        "full": "Mục 8.3.3: Leg strength test – alternate – proof load",
         "short": "Alternate - Leg Strength Test - Proof",
         "img": ["/static/images/buoc 18 ban us.png"]
     },
     "muc11": {
-        "full": "Mục 11: Extendible Element Retention Impact and Durability (Out Stop) Tests",
+        "full": "Mục 11: Extendible element retention impact and durability (out stop) tests",
         "short": "Extendible Element Retention Impact and Durability Tests",
         "img": ["/static/images/buoc 19 ban us.png"]
     },
@@ -193,7 +193,7 @@ BAN_US_TEST_TITLES = {
         "img": ["/static/images/buoc 20 ban us.png"]
     },
     "muc17": {
-        "full": "Mục 17: Strength Test for Vertically Hinged Doors, Bi-fold Doors and Vertically Receding Doors",
+        "full": "Mục 17: Strength test for vertically hinged doors, bi-fold doors and vertically receding doors",
         "short": "Strength Test for Vertically Hinged/Bi-fold/Receding Doors",
         "img": ["/static/images/buoc 21 ban us.png"]
     },
@@ -205,43 +205,48 @@ BAN_US_TEST_TITLES = {
 }
 
 BAN_EU_TEST_TITLES = {
-    "muc5.5.2_7.2.2_7.2.3": {
-        "full": "Mục (5.5.2 - 12521:2023) + (7.2.2, 7.2.3 - 1730:2012): Stability under vertical load",
+    "muc5.5.2.2": {
+        "full": "Mục 5.5.2.2: Stability –  For table that are or can be set to a height of 950 or less",
         "short": "Stability under vertical load",
         "img": ["/static/images/buoc 3 ban eu.png"]
     },
-    "muc5.5.3_7.3": {
-        "full": "Mục (5.5.3 - 12521:2023) + (7.3 - 1730:2012): Stability for tables with extension elements",
+    "muc5.5.2.3": {
+        "full": "Mục 5.5.2.3: Stability –   For table that are or can be set to a height greater than 950 mm",
+        "short": "Stability under vertical load",
+        "img": ["/static/images/buoc 3 ban eu.png"]
+    },
+    "muc5.5.3": {
+        "full": "Mục 5.5.3: Stability for tables with extension elements",
         "short": "Stability for tables with extension elements",
         "img": ["/static/images/buoc 4 ban eu.png"]
     },
-    "muc5.6_6.2": {
-        "full": "Mục (5.6 - 12521:2023) + (6.2 - 1730:2012): Horizontal static load test",
+    "muc5.6.1": {
+        "full": "Mục 5.6.1: Strength and durability -  Horizontal static load test",
         "short": "Horizontal static load test",
         "img": ["/static/images/buoc 5 ban eu.png"]
     },
-    "muc5.6_6.3.1": {
-        "full": "Mục (5.6 - 12521:2023) + (6.3.1 - 1730:2012): Vertical static load on main surface tests",
+    "muc6.3.1": {
+        "full": "Mục 6.3.1: Vertical static load on main surface tests",
         "short": "Vertical static load on main surface tests",
         "img": ["/static/images/buoc 6 ban eu.png"]
     },
-    "muc5.6_6.3.2": {
-        "full": "Mục (5.6 - 12521:2023) + (6.3.2 - 1730:2012): Additional vertical static load test where the main surface has a length > 1 600 mm",
+    "muc6.3.2": {
+        "full": "Mục 6.3.2: Vertical static load on main surface tests",
         "short": "Additional vertical static load test (>1600mm)",
         "img": ["/static/images/buoc 7 ban eu.png"]
     },
-    "muc5.6_6.3.3": {
-        "full": "Mục (5.6 - 12521:2023) + (6.3.3 - 1730:2012): Vertical static load on ancillary surface",
+    "muc5.6.6": {
+        "full": "Mục 5.6.6: Strength and durability -  Vertical durability test for cantilever or pedestal tables",
         "short": "Vertical static load on ancillary surface",
         "img": ["/static/images/buoc 8 ban eu.png"]
     },
-    "muc6.6.1_6.6.3": {
-        "full": "Mục (6.6.1 & 6.6.3 - 1730:2012): Vertical impact test without glass",
+    "muc5.6.7": {
+        "full": "Mục 5.6.7: Strength and durability -  Vertical impact for tables without glass in their construction",
         "short": "Vertical impact test without glass",
         "img": ["/static/images/buoc 9 ban eu.png"]
     },
-    "muc6.6.1_6.6.2": {
-        "full": "Mục (6.6.1 & 6.6.2 - 1730:2012): Vertical impact test with glass",
+    "muc5.6.8": {
+        "full": "Mục 5.6.8: Vertical impact for tables with glass in their construction",
         "short": "Vertical impact test with glass",
         "img": ["/static/images/buoc 10 ban eu.png"]
     },
@@ -665,12 +670,12 @@ GIUONG_TEST_TITLES = {
         "img": ["/static/images/buoc 7 giuong.png"]
     },
     "muc8": {
-        "full": "Mục 8: Canopy frame static load test (khung màn che - không có rèm)",
+        "full": "Mục 8: Canopy frame static load test (no curtain)",
         "short": "Canopy frame static load (no curtain)",
         "img": ["/static/images/buoc 8 giuong.png"]
     },
     "muc9": {
-        "full": "Mục 9: Canopy frame static load test (khung màn che - có rèm)",
+        "full": "Mục 9: Canopy frame static load test (with curtain)",
         "short": "Canopy frame static load (with curtain)",
         "img": ["/static/images/buoc 9 giuong.png"]
     },

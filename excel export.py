@@ -543,18 +543,30 @@ for row in range(2, ws.max_row + 1):
 wb.save(excel_file_out)
 print("Da xuat file:", excel_file_out)
 
-# ================= PHẦN 2: completed_items.xlsx =================
-completed_file = "completed_items.xlsx"
-if not os.path.exists(completed_file):
-    print(f"Khong tim thay file {completed_file} o local. Khong up len SharePoint.")
-else:
-    df_cpl = pd.read_excel(completed_file, dtype=str)
-    login_col_cpl = find_login_date_col(df_cpl)
-    df_cpl.to_excel(completed_file, index=False)
+# ================= PHẦN 2: GỘP Completed + TRF =================
+output_file = "TRF_complete.xlsx"
 
-    wb = load_workbook(completed_file); ws = wb.active
-    header_fill = PatternFill("solid", fgColor="B7E1CD")
+with pd.ExcelWriter(output_file, engine="openpyxl") as writer:
+    # Completed
+    if os.path.exists("completed_items.xlsx"):
+        df_cpl = pd.read_excel("completed_items.xlsx", dtype=str)
+        df_cpl.to_excel(writer, sheet_name="Completed", index=False)
+    else:
+        print("⚠️ Không tìm thấy completed_items.xlsx")
+    # TRF
+    if os.path.exists("TRF.xlsx"):
+        df_trf = pd.read_excel("TRF.xlsx", dtype=str)
+        df_trf.to_excel(writer, sheet_name="TRF", index=False)
+    else:
+        print("⚠️ Không tìm thấy TRF.xlsx")
 
+# ===== Định dạng sau khi ghi =====
+wb = load_workbook(output_file)
+thin = Side(border_style="thin", color="888888")
+header_fill = PatternFill("solid", fgColor="B7E1CD")
+
+for sheet in wb.sheetnames:
+    ws = wb[sheet]
     for col in ws.columns:
         max_length = 0
         col_letter = col[0].column_letter
@@ -562,67 +574,27 @@ else:
             cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
             cell.border = Border(top=thin, left=thin, right=thin, bottom=thin)
             if cell.row == 1:
-                cell.font = Font(bold=True); cell.fill = header_fill
+                cell.font = Font(bold=True)
+                cell.fill = header_fill
             if cell.value:
                 max_length = max(max_length, len(str(cell.value)))
-        ws.column_dimensions[col_letter].width = max(max_length + 2, 15)
+        ws.column_dimensions[col_letter].width = max(max_length+2, 15)
+    # format date
+    format_date_columns(ws, target_headers=("log in date","etd"), number_format="DD-MMM")
+    # hide rows
+    df_tmp = pd.DataFrame(ws.values)
+    login_col = find_login_date_col(df_tmp)
+    if login_col:
+        hide_rows_by_login_date(ws, login_col, today=datetime.now().date())
 
-    if login_col_cpl:
-        hide_rows_by_login_date(ws, login_col_cpl, today=datetime.now().date())
+wb.save(output_file)
+print("✅ Đã xuất file:", output_file)
 
-    wb.save(completed_file)
-    print("Da xuat file:", completed_file)
-
-    upload_relative_url = "/sites/TESTLAB-VFR9/Shared Documents/DATA DAILY/completed_items.xlsx"
-    folder_excel = os.path.dirname(upload_relative_url)
-    ensure_folder(ctx, folder_excel)
-    with open(completed_file, "rb") as f:
-        ctx.web.get_folder_by_server_relative_url(folder_excel)\
-           .upload_file(os.path.basename(upload_relative_url), f.read()).execute_query()
-    print("Da upload file", completed_file, "len SharePoint:", upload_relative_url)
-
-# ================= PHẦN 3: TRF.xlsx =================
-trf_file = "TRF.xlsx"
-if not os.path.exists(trf_file):
-    print(f"Khong tim thay file {trf_file} o local. Khong up len SharePoint.")
-else:
-    # 1) Đọc và ghi lại để giữ cấu trúc/columns
-    df_trf = pd.read_excel(trf_file, dtype=str)
-    login_col_trf = find_login_date_col(df_trf)
-    df_trf.to_excel(trf_file, index=False)
-
-    # 2) Mở bằng openpyxl để định dạng header + căn giữa + khung, rồi format ngày
-    wb = load_workbook(trf_file); ws = wb.active
-    header_fill = PatternFill("solid", fgColor="B7E1CD")
-
-    thin = Side(border_style="thin", color="888888")
-    for col in ws.columns:
-        max_length = 0
-        col_letter = col[0].column_letter
-        for cell in col:
-            cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-            cell.border = Border(top=thin, left=thin, right=thin, bottom=thin)
-            if cell.row == 1:
-                cell.font = Font(bold=True); cell.fill = header_fill
-            if cell.value:
-                max_length = max(max_length, len(str(cell.value)))
-        ws.column_dimensions[col_letter].width = max(max_length + 2, 15)
-
-    # 2b) Định dạng cột "Log in date" và "ETD" về dd-mmm nếu chưa đúng
-    format_date_columns(ws, target_headers=("log in date", "etd"), number_format="DD-MMM")
-
-    # 3) Ẩn dòng theo Login Date (nếu có cột đó)
-    if login_col_trf:
-        hide_rows_by_login_date(ws, login_col_trf, today=datetime.now().date())
-
-    wb.save(trf_file)
-    print("Da xuat file:", trf_file)
-
-    # 4) Upload lên SharePoint
-    upload_relative_url_trf = "/sites/TESTLAB-VFR9/Shared Documents/DATA DAILY/TRF.xlsx"
-    folder_excel_trf = os.path.dirname(upload_relative_url_trf)
-    ensure_folder(ctx, folder_excel_trf)
-    with open(trf_file, "rb") as f:
-        ctx.web.get_folder_by_server_relative_url(folder_excel_trf)\
-           .upload_file(os.path.basename(upload_relative_url_trf), f.read()).execute_query()
-    print("Da upload file", trf_file, "len SharePoint:", upload_relative_url_trf)
+# ===== Upload SharePoint =====
+upload_relative_url = "/sites/TESTLAB-VFR9/Shared Documents/DATA DAILY/TRF_complete.xlsx"
+folder_excel = os.path.dirname(upload_relative_url)
+ensure_folder(ctx, folder_excel)
+with open(output_file, "rb") as f:
+    ctx.web.get_folder_by_server_relative_url(folder_excel)\
+       .upload_file(os.path.basename(upload_relative_url), f.read()).execute_query()
+print("🚀 Đã upload file", output_file, "lên SharePoint:", upload_relative_url)

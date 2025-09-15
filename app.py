@@ -7,7 +7,7 @@ from test_logic import load_group_notes, get_group_test_status, is_drop_test, is
 from test_logic import IMPACT_ZONES, IMPACT_LABELS, ROT_LABELS, ROT_ZONES, RH_IMPACT_ZONES, RH_VIB_ZONES, RH_SECOND_IMPACT_ZONES, RH_STEP12_ZONES, update_group_note_file, get_group_note_value, F2057_TEST_TITLES
 from notify_utils import send_teams_message, notify_when_enough_time
 from counter_utils import update_counter, check_and_reset_counter, log_report_complete
-from docx_utils import approve_request_fill_docx_pdf, fill_bed_cover_from_excel
+from docx_utils import approve_request_fill_docx_pdf, fill_cover_from_excel_generic
 from file_utils import (
     safe_write_json, safe_read_json, safe_save_excel, safe_load_excel,
     safe_write_text, safe_read_text, safe_append_backup_json   # <— thêm hàm này
@@ -2663,9 +2663,8 @@ def api_report_detect():
 @app.route("/api/report/create")
 def api_report_create():
     """
-    Tạo file report .docx.
-    - type='bed': auto-fill bảng RESULT từ Excel theo Report # (chỉ thay ô đang '-').
-    - type khác: trả template gốc (hoặc bạn mở rộng tương tự sau).
+    Create .docx report for any type using auto-mapping to TEST_GROUP_TITLES.
+    Templates are placed next to app.py.
     """
     report_id = (request.args.get("report") or "").strip()
     rtype     = (request.args.get("type") or "").strip().lower()
@@ -2678,32 +2677,31 @@ def api_report_create():
     if not os.path.exists(tpl_path):
         return jsonify({"ok": False, "error": f"Template not found: {tpl_name}"}), 404
 
-    if rtype == "bed":
-        excel_path = os.path.join(local_main, "ds san pham test voi qr.xlsx")
-        try:
-            bio = fill_bed_cover_from_excel(tpl_path, excel_path, report_id=report_id)
-        except Exception as ex:
-            # fallback: nếu lỗi (không có dòng, thiếu cột...), trả template để không chặn user
-            print("BED autofill error:", ex)
-            return send_file(
-                tpl_path,
-                as_attachment=True,
-                download_name=f"{report_id or 'report'}_{rtype}_TEMPLATE.docx"
-            )
+    # Use the same Excel as for bed (adjust if you later separate per-type files)
+    excel_path = os.path.join(local_main, "ds san pham test voi qr.xlsx")
 
+    try:
+        # Generic fill for ALL types with auto mapping
+        bio = fill_cover_from_excel_generic(
+            template_docx_path=tpl_path,
+            excel_path_or_name=excel_path,
+            report_id=report_id,
+            template_key=rtype,
+        )
         return send_file(
             bio,
             as_attachment=True,
             download_name=f"{report_id or 'report'}_{rtype}.docx",
             mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
-
-    # default cho type khác
-    return send_file(
-        tpl_path,
-        as_attachment=True,
-        download_name=f"{report_id or 'report'}_{rtype}.docx"
-    )
+    except Exception as ex:
+        # Fallback: return raw template to not block users
+        print("Autofill error:", ex)
+        return send_file(
+            tpl_path,
+            as_attachment=True,
+            download_name=f"{report_id or 'report'}_{rtype}_TEMPLATE.docx"
+        )
 
 # --- THAY THẾ HẲN hàm test_group_page ---
 @app.route("/test_group/<report>/<group>", methods=["GET", "POST"])

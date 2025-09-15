@@ -1,40 +1,48 @@
-# ========================= docx_utils.py (CLEAN ENGLISH VERSION) =========================
+# ========================= docx_utils.py (Universal, auto-mapping) =========================
+# TRF tick OK, SAMPLE PICTURE 3x4in (center), Summary & Detail auto-fill,
+# Result style preserved. Supports ALL templates via TEMPLATE_MAP + TEST_GROUP_TITLES
+# ===========================================================================================
+
 import os
 import re
 import time
 import uuid
 import tempfile
+import unicodedata
 from io import BytesIO
+
 from openpyxl import load_workbook
 from docx import Document
+from docx.shared import Inches, Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.table import WD_ALIGN_VERTICAL
 
-from config import local_main
+from config import local_main, TEMPLATE_MAP
+from test_logic import TEST_GROUP_TITLES
 from excel_utils import _find_report_col
 
-import unicodedata
+# Optional pandas dependency for cover fill from Excel
 try:
     import pandas as pd
 except Exception:
     pd = None
 
-# Optional XML path for content-control checkboxes (w14:checkbox)
-try:
-    from lxml import etree
-except Exception:
-    etree = None
-
-_NS = {
-    "w":   "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
-    "w14": "http://schemas.microsoft.com/office/word/2010/wordml",
-}
-
 WORD_TEMPLATE = "FORM-QAD-011-TEST REQUEST FORM (TRF).docx"
 PDF_OUTPUT_FOLDER = os.path.join("static", "TFR")
-
 BLANK_TOKENS = {"", "-", "—", "–"}
+_IMG_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".bmp")
 
+__all__ = [
+    "get_first_empty_report_all_blank",
+    "fill_docx_and_export_pdf",
+    "approve_request_fill_docx_pdf",
+    "fill_bed_cover_from_excel",
+    "fill_cover_from_excel_generic",
+    "create_report_for_type",
+]
 
-# ------------------------ Excel blank helpers ------------------------
+# ============================ Common helpers ============================
+
 def _normalize_to_check_blank(v):
     if v is None:
         return True, ""
@@ -50,9 +58,90 @@ def _normalize_to_check_blank(v):
         return (s in BLANK_TOKENS), s
     return False, str(v)
 
+def _is_placeholder_dash(txt: str) -> bool:
+    if txt is None:
+        return True
+    t = re.sub(r"[\s\r\n\t]+", "", str(txt or ""))
+    return t in BLANK_TOKENS
+
+def _is_result_placeholder(txt: str) -> bool:
+    """Chỉ coi là placeholder nếu là '-' hoặc các dạng gạch ngang."""
+    if txt is None:
+        return True
+    s = _norm(txt)
+    return s in {"", "-", "—", "–"}
+
+def _norm(s: str) -> str:
+    s = unicodedata.normalize("NFD", str(s or ""))
+    s = "".join(ch for ch in s if unicodedata.category(ch) != "Mn")
+    s = s.lower()
+    s = s.replace("không", "khong").replace("(không)", "(khong)").replace("(co)", "(có)")
+    s = re.sub(r"[^a-z0-9]+", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+def _token_overlap(a: str, b: str) -> float:
+    ta = set(_norm(a).split())
+    tb = set(_norm(b).split())
+    if not ta or not tb:
+        return 0.0
+    inter = len(ta & tb)
+    return inter / max(1, min(len(ta), len(tb)))
+
+def _clone_first_run_style(src_cell):
+    try:
+        p = src_cell.paragraphs[0]
+        if not p.runs:
+            return None, None, None, None
+        r = p.runs[0]
+        return r.font.name, r.font.size, r.font.bold, r.font.italic
+    except Exception:
+        return None, None, None, None
+
+def _apply_text_with_font(dst_cell, text, fname=None, fsize=None, fbold=None, fitalic=None, align=None, extra_bottom_text=None):
+    for p in list(dst_cell.paragraphs):
+        if hasattr(p, "clear"):
+            try:
+                p.clear()
+            except Exception:
+                pass
+    dst_cell.text = ""
+
+    p1 = dst_cell.paragraphs[0] if dst_cell.paragraphs else dst_cell.add_paragraph("")
+    run1 = p1.add_run("" if text is None else str(text))
+    if fname:   run1.font.name = fname
+    if fsize:   run1.font.size = fsize
+    if fbold is not None:   run1.font.bold = fbold
+    if fitalic is not None: run1.font.italic = fitalic
+    if align is not None:   p1.alignment = align
+    pf = p1.paragraph_format
+    pf.space_before = Pt(0)
+    pf.space_after  = Pt(0)
+
+    if extra_bottom_text:
+        p2 = dst_cell.add_paragraph("")
+        run2 = p2.add_run(str(extra_bottom_text))
+        if fname:   run2.font.name = fname
+        if fsize:   run2.font.size = fsize
+        run2.font.bold = False  # comment không in đậm
+        if fitalic is not None: run2.font.italic = fitalic
+        if align is not None:   p2.alignment = align
+        pf2 = p2.paragraph_format
+        pf2.space_before = Pt(0)
+        pf2.space_after  = Pt(0)
+
+def _set_cell_text_with_style(dst_cell, src_label_cell, text, align_center=False):
+    fname, fsize, fbold, fitalic = _clone_first_run_style(src_label_cell)
+    _apply_text_with_font(
+        dst_cell,
+        text,
+        fname, fsize, fbold, fitalic,
+        align=WD_ALIGN_PARAGRAPH.CENTER if align_center else None
+    )
+
+# ============================ Excel (TRF) ============================
 
 def get_first_empty_report_all_blank(excel_path):
-    """Return the first Report No whose columns C..X are all blank."""
     wb = load_workbook(excel_path, data_only=True)
     ws = wb.active
     report_col = _find_report_col(ws)
@@ -72,8 +161,14 @@ def get_first_empty_report_all_blank(excel_path):
     wb.close()
     return None
 
+# ============================ Unicode checkboxes ============================
 
-# ------------------------ TRF checkbox mapping ------------------------
+def _label_regex(label: str) -> re.Pattern:
+    cleaned = re.sub(r'[_\.\-]+', ' ', (label or '').strip())
+    parts = [p for p in cleaned.split() if p]
+    pattern = r'(☐|☑)\s*' + r'\s*'.join(re.escape(p) for p in parts)
+    return re.compile(pattern, flags=re.IGNORECASE)
+
 def build_label_value_map(data):
     label_groups = {
         "test_group": [
@@ -111,21 +206,11 @@ def build_label_value_map(data):
             for label in labels:
                 label_value_map[label] = _eq_relaxed(label, str(value), group)
 
-    # N/A flags
     for field in ["sample_description", "item_code", "supplier", "subcon"]:
         val = str(data.get(field, "")).strip().upper()
         label_value_map[f"{field.upper()} N/A"] = (val == "N/A")
 
     return label_value_map
-
-
-# ------------------------ TRF unicode-checkbox tick (by label) ------------------------
-def _label_regex(label: str) -> re.Pattern:
-    cleaned = re.sub(r'[_\.\-]+', ' ', (label or '').strip())
-    parts = [p for p in cleaned.split() if p]
-    pattern = r'(☐|☑)\s*' + r'\s*'.join(re.escape(p) for p in parts)
-    return re.compile(pattern, flags=re.IGNORECASE)
-
 
 def tick_unicode_checkbox_by_label(doc: Document, label_value_map):
     compiled = [(_label_regex(label), bool(value)) for label, value in label_value_map.items()]
@@ -151,8 +236,8 @@ def tick_unicode_checkbox_by_label(doc: Document, label_value_map):
                 if ("☐" in t) or ("☑" in t):
                     cell.text = toggle_text(t)
 
+# ============================ PDF convert (optional, Windows) ============================
 
-# ------------------------ PDF convert ------------------------
 def try_convert_to_pdf(docx_path, pdf_path):
     try:
         import pythoncom
@@ -164,11 +249,10 @@ def try_convert_to_pdf(docx_path, pdf_path):
         print("PDF convert failed:", e)
         traceback.print_exc()
 
+# ============================ Atomic save ============================
 
-# ------------------------ Atomic save ------------------------
 def _lock_path_for(report_no: str) -> str:
     return os.path.join(tempfile.gettempdir(), f"tfr_{report_no}.lock")
-
 
 def _acquire_lock(path: str, timeout=30):
     t0 = time.time()
@@ -187,7 +271,6 @@ def _acquire_lock(path: str, timeout=30):
         except Exception:
             time.sleep(0.05)
 
-
 def _release_lock(fd, path: str):
     try:
         os.close(fd)
@@ -198,27 +281,29 @@ def _release_lock(fd, path: str):
     except:
         pass
 
-
 def _atomic_save_docx(doc: Document, out_path: str):
     tmp = f"{out_path}.tmp-{uuid.uuid4().hex}"
     doc.save(tmp)
     os.replace(tmp, out_path)
 
+# ============================ TRF: fill & export ============================
 
-# ------------------------ TRF fill & export ------------------------
 def fill_docx_and_export_pdf(data, fixed_report_no=None):
+    # report no
     if fixed_report_no and str(fixed_report_no).strip():
         report_no = str(fixed_report_no).strip()
     else:
-        report_no = get_first_empty_report_all_blank(local_main)
+        report_no = get_first_empty_report_all_blank(_smart_excel_path(local_main))
         if not report_no:
             raise Exception("No empty report number available in Excel.")
 
-    data = dict(data)
+    data = dict(data or {})
     data["report_no"] = report_no
+    template_key = (data.get("template_key") or "other")
 
     doc = Document(WORD_TEMPLATE)
 
+    # basic field mapping
     mapping = {
         "requestor": "requestor",
         "department": "department",
@@ -270,13 +355,19 @@ def fill_docx_and_export_pdf(data, fixed_report_no=None):
                             if (target_cell.text or "").strip() == "" or "lab test report no." in label:
                                 target_cell.text = str(data[key])
 
+    # Tick boxes
     label_value_map = build_label_value_map(data)
     tick_unicode_checkbox_by_label(doc, label_value_map)
 
+    # === NEW: auto fill Summary/Detail (status + comment + photo) for TRF too ===
+    _update_exec_summary_results_from_status(doc, report_no, template_key)
+    _update_detail_results_and_comments(doc, report_no, template_key)
+
+    # save
     if not os.path.exists(PDF_OUTPUT_FOLDER):
         os.makedirs(PDF_OUTPUT_FOLDER)
     output_docx = os.path.join(PDF_OUTPUT_FOLDER, f"{report_no}.docx")
-    output_pdf = os.path.join(PDF_OUTPUT_FOLDER, f"{report_no}.pdf")
+    output_pdf  = os.path.join(PDF_OUTPUT_FOLDER, f"{report_no}.pdf")
 
     lock_path = _lock_path_for(report_no)
     fd = _acquire_lock(lock_path, timeout=30)
@@ -304,132 +395,653 @@ def approve_request_fill_docx_pdf(req):
         return out_pdf, report_no
     return out_docx, report_no
 
+# ======================= SAMPLE PICTURE =======================
 
-# =====================================================================
-# ==================  BED COVER AUTO-FILL (fuzzy)  ====================
-# =====================================================================
+def _find_overview_images(report_id: str) -> list[str]:
+    roots = []
+    images_root = os.path.join(os.getcwd(), "images")
+    report_dods_root = os.path.join(os.getcwd(), "report dods")
+    if report_id:
+        roots.append(os.path.join(images_root, str(report_id)))
+        roots.append(os.path.join(report_dods_root, str(report_id)))
+    roots.append(report_dods_root)
+    roots.append(images_root)
 
-# ---- fuzzy helpers ----
-def _bed_norm(s: str) -> str:
-    if s is None:
-        return ""
-    s = unicodedata.normalize("NFD", str(s).strip().lower())
-    s = "".join(ch for ch in s if unicodedata.category(ch) != "Mn")
-    s = re.sub(r"[^a-z0-9]+", " ", s)
-    return re.sub(r"\s+", " ", s).strip()
-
-
-def _bed_tokens(s: str) -> set:
-    return set(_bed_norm(s).split()) if s else set()
-
-
-def _bed_overlap_score(label: str, colname: str) -> float:
-    ln = _bed_norm(label)
-    cn = _bed_norm(colname)
-    if not ln or not cn:
-        return 0.0
-    score = 0.0
-    if ln == cn:
-        score += 5.0
-    if ln in cn:
-        score += 3.0
-    if cn in ln:
-        score += 1.0
-    lt = _bed_tokens(label)
-    ct = _bed_tokens(colname)
-    if lt and ct:
-        inter = lt & ct
-        score += 4.0 * (len(inter) / max(1, len(lt))) + 2.0 * (len(inter) / max(1, len(ct)))
-    return score
-
-
-def _bed_pick_best_column(excel_columns, label_text: str, preferred_aliases=None) -> str:
-    preferred_aliases = preferred_aliases or []
-    is_item_code = _bed_norm(label_text) in {"item material code", "item code", "item material"}
-    blacklist = {"qr code"} if is_item_code else set()
-
-    best_col, best_score = "", -1.0
-    for c in excel_columns:
-        if _bed_norm(c) in blacklist:
+    found = []
+    seen = set()
+    for root in roots:
+        if not os.path.isdir(root):
             continue
-        sc = _bed_overlap_score(label_text, c)
-        if c in preferred_aliases:
-            sc += 2.0
-        if sc > best_score:
-            best_col, best_score = c, sc
-    return best_col if best_score > 0.8 else ""
+        for name in os.listdir(root):
+            low = name.lower()
+            if any(low.endswith(ext) for ext in _IMG_EXTS) and "overview" in low:
+                p = os.path.join(root, name)
+                if p not in seen:
+                    seen.add(p)
+                    found.append(p)
+        if found:
+            break
 
+    found.sort(key=lambda p: os.path.getmtime(p), reverse=True)
+    return found
 
-def _bed_val(row, colname: str) -> str:
-    if not colname:
-        return ""
+def _find_sample_picture_target_cell(doc: Document):
+    for t in doc.tables:
+        rows = t.rows
+        for i, row in enumerate(rows):
+            for j, cell in enumerate(row.cells):
+                if "sample picture" in _norm(cell.text):
+                    if i + 1 < len(rows):
+                        return rows[i + 1].cells[0]
+    return None
+
+def _clear_cell_keep_one_paragraph(cell):
     try:
-        v = row.get(colname, "")
-    except Exception:
-        v = ""
-    if pd is not None and hasattr(pd, "isna") and pd.isna(v):
-        return ""
-    return str(v).strip()
-
-
-def _smart_excel_path(path_or_name: str) -> str:
-    if not path_or_name:
-        return local_main
-    p = str(path_or_name)
-    if os.path.exists(p) and os.path.isfile(p):
-        return p
-    try:
-        if os.path.isdir(local_main):
-            cand = os.path.join(local_main, p)
-            if os.path.exists(cand):
-                return cand
+        cell.text = ""
+        if not cell.paragraphs:
+            cell.add_paragraph("")
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
     except Exception:
         pass
-    return local_main
+
+def _insert_overview_images_into_sample_picture(doc: Document, report_id: str) -> bool:
+    img_paths = _find_overview_images(report_id)
+    if not img_paths:
+        return False
+
+    target_cell = _find_sample_picture_target_cell(doc)
+    if target_cell is None:
+        return False
+
+    _clear_cell_keep_one_paragraph(target_cell)
+    target_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+
+    pic_w = Inches(3.5)
+    pic_h = Inches(2.5)
+
+    sect = doc.sections[0]
+    avail_w = int((sect.page_width - sect.left_margin - sect.right_margin) * 0.97)
+    cols = max(1, int(avail_w // pic_w))
+
+    # tạo table con
+    inner = target_cell.add_table(rows=0, cols=cols)
+    inner.alignment = WD_ALIGN_PARAGRAPH.CENTER   # ép cả table con căn giữa
+    inner.autofit = False
+
+    for c in inner.columns:
+        for cell in c.cells:
+            cell.width = pic_w
+            cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+
+    r = None
+    for idx, path in enumerate(img_paths):
+        if idx % cols == 0:
+            r = inner.add_row()
+        c = r.cells[idx % cols]
+        c.text = ""
+        c.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+        p = c.paragraphs[0] if c.paragraphs else c.add_paragraph("")
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER   # căn giữa ảnh trong cell
+        run = p.add_run()
+        pic = run.add_picture(path)
+        pic.width = pic_w
+        pic.height = pic_h
+
+    return True
+
+# ======================= STATUS & COMMENT & PHOTO =======================
+
+def _find_status_file(report_id: str) -> str | None:
+    def _candidates(root_dir):
+        if not os.path.isdir(root_dir):
+            return []
+        return [
+            os.path.join(root_dir, f)
+            for f in os.listdir(root_dir)
+            if f.lower().startswith("status") and f.lower().endswith(".txt")
+        ]
+
+    base_roots = [os.path.join(os.getcwd(), "images"), os.path.join(os.getcwd(), "report dods")]
+    pri_roots = []
+    if report_id:
+        for b in base_roots:
+            pri_roots.append(os.path.join(b, str(report_id)))
+
+    cand = []
+    for r in (pri_roots + base_roots):
+        if os.path.isdir(r):
+            cand.extend(_candidates(r))
+    if not cand:
+        return None
+    cand.sort(key=lambda p: os.path.getmtime(p), reverse=True)
+    return cand[0]
+
+def _find_comment_file(report_id: str) -> str | None:
+    def _candidates(root_dir):
+        if not os.path.isdir(root_dir):
+            return []
+        return [
+            os.path.join(root_dir, f)
+            for f in os.listdir(root_dir)
+            if f.lower().startswith("comment") and f.lower().endswith(".txt")
+        ]
+
+    base_roots = [os.path.join(os.getcwd(), "images"), os.path.join(os.getcwd(), "report dods")]
+    pri_roots = []
+    if report_id:
+        for b in base_roots:
+            pri_roots.append(os.path.join(b, str(report_id)))
+
+    cand = []
+    for r in (pri_roots + base_roots):
+        if os.path.isdir(r):
+            cand.extend(_candidates(r))
+    if not cand:
+        return None
+    cand.sort(key=lambda p: os.path.getmtime(p), reverse=True)
+    return cand[0]
+
+def _read_status_map(report_id: str) -> dict:
+    fp = _find_status_file(report_id)
+    out = {}
+    if not fp or not os.path.exists(fp):
+        return out
+    with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            # chấp nhận cả muc4.2, muc8.3.3
+            m = re.match(r"^\s*(muc[\d\.]+)\s*:\s*([A-Za-z/ ]+)\s*$", line.strip())
+            if not m:
+                continue
+            key = m.group(1).lower()
+            val = m.group(2).strip().upper()
+            if val == "NA":
+                val = "N/A"
+            out[key] = val
+    return out
 
 
-def _bed_load_excel_df(excel_path_or_name: str):
-    if pd is None:
-        raise RuntimeError("pandas is not available")
-    excel_path = _smart_excel_path(excel_path_or_name)
-    if not os.path.exists(excel_path):
-        raise FileNotFoundError(f"Excel not found: {excel_path}")
-    df = pd.read_excel(excel_path, sheet_name=0)
-    df.columns = [str(c).strip() for c in df.columns]
-    return df
+def _read_comment_map(report_id: str) -> dict:
+    fp = _find_comment_file(report_id)
+    out = {}
+    if not fp or not os.path.exists(fp):
+        return out
+    with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            # chấp nhận cả muc4.2, muc8.3.3
+            m = re.match(r"^\s*(muc[\d\.]+)\s*:\s*(.+?)\s*$", line.strip())
+            if not m:
+                continue
+            key = m.group(1).lower()
+            val = m.group(2).strip()
+            out[key] = val
+    return out
+
+# --------- Resolve TEST_GROUP_TITLES key from template_key (auto-mapping) ---------
+
+def _resolve_group_key(template_key: str) -> str | None:
+    if not template_key:
+        return None
+    available_keys = list(TEST_GROUP_TITLES.keys())
+    lc_to_orig = {k.lower(): k for k in available_keys}
+    direct = lc_to_orig.get(template_key.lower())
+    if direct:
+        return direct
+
+    alias_map = {
+        "bed": "giuong",
+        "chair_us": "ghe_us",
+        "chair_uk": "ghe_eu",
+        "table_us": "ban_us",
+        "table_uk": "ban_eu",
+        "cabinet_us": "tu_us",
+        "cabinet_uk": "tu_eu",
+        "mirror": "guong",
+        "material_indoor_chuyen": "indoor_chuyen",
+        "material_indoor_qa": "indoor_thuong",
+        "material_indoor_stone": "indoor_stone",
+        "material_indoor_metal": "indoor_metal",
+        "material_outdoor": "outdoor_finishing",
+        "line_test": "line",
+        "transit_2c_np": "transit_2c_np",
+        "transit_rh_np": "transit_rh_np",
+        "transit_181_lt68": "transit_181_lt68",
+        "transit_3a": "transit_3a",
+        "transit_3b_np": "transit_3b_np",
+        "transit_2c_pallet": "transit_2c_pallet",
+        "transit_rh_pallet": "transit_rh_pallet",
+        "transit_181_gt68": "transit_181_gt68",
+        "transit_3b_pallet": "transit_3b_pallet",
+        "hot_cold_test": "hot_cold_test",
+        "other": "other",
+    }
+    alias_target = alias_map.get(template_key.lower())
+    if alias_target:
+        return lc_to_orig.get(alias_target.lower(), alias_target)
+
+    def _score_key(k):
+        return _token_overlap(template_key, k) + _token_overlap(template_key.replace("uk", "eu"), k)
+
+    best_key, best_score = None, 0.0
+    for k in available_keys:
+        sc = _score_key(k)
+        if sc > best_score:
+            best_key, best_score = k, sc
+    return best_key if best_score >= 0.45 else None
+
+def _prep_title_candidates(template_key: str) -> dict:
+    resolved = _resolve_group_key(template_key)
+    titles_map = TEST_GROUP_TITLES.get(resolved or "", {}) or {}
+
+    cand = {}
+    for muc, info in titles_map.items():
+        names = set()
+        for k in ("full", "short"):
+            v = info.get(k)
+            if v:
+                names.add(v)
+        more = set()
+        for n in list(names):
+            x = n
+            x = re.sub(r"\btest\b", "", x, flags=re.IGNORECASE)
+            x = re.sub(r"[\(\)]", " ", x)
+            more.add(x)
+        names |= more
+        cand[muc.lower()] = {_norm(n) for n in names if n}
+    return cand
+
+def _match_muc(desc: str, clause: str, muc_cands: dict) -> str | None:
+    parts = [desc or ""]
+    if clause:
+        parts.append(clause)
+    nd_full = _norm(" ".join(parts))
+
+    best_muc, best_score = None, 0.0
+    for muc, patterns in muc_cands.items():
+        score = 0.0
+        for p in patterns:
+            if not p:
+                continue
+            if p in nd_full or nd_full in p:
+                score = max(score, 1.0)
+            else:
+                score = max(score, _token_overlap(nd_full, p))
+        if score > best_score:
+            best_muc, best_score = muc, score
+    return best_muc if best_score >= 0.4 else None  # relaxed threshold
+
+# ======================= Table detection (with synonyms) =======================
+
+def _find_exec_summary_table(doc: Document):
+    """
+    Nhận diện bảng EXECUTIVE SUMMARY với các alias linh hoạt:
+      - Cột 1: "Clause" hoặc "Test property"
+      - Cột 2: "Description"
+      - Cột 3: "Result"
+      - Cột 4 (tuỳ chọn): "Comment(s)" / "*Comments"
+    """
+    clause_aliases = {"clause", "test property"}
+    desc_aliases = {"description"}
+    result_aliases = {"result"}
+    comment_aliases = {"comment", "comments", "*comments"}
+
+    for t in doc.tables:
+        for r in t.rows:
+            cells = r.cells
+            if len(cells) >= 3:
+                heads = [_norm(cells[i].text) for i in range(min(len(cells), 4))]
+                if (
+                    len(heads) > 2
+                    and heads[0] in clause_aliases
+                    and heads[1] in desc_aliases
+                    and heads[2] in result_aliases
+                ):
+                    return t
+    return None
 
 
-def _is_placeholder_dash(txt: str) -> bool:
-    if txt is None:
-        return True
-    t = re.sub(r"[\s\r\n\t]+", "", str(txt))
-    return t in BLANK_TOKENS
+def _find_detail_table(doc: Document):
+    """
+    Nhận diện bảng chi tiết:
+      - Cột 1: "Clause" hoặc "Test property"
+      - Cột 2: "Description"
+      - Cột 3: "Test Method/Requirement" hoặc "Criteria"
+      - Cột 4: "Result"
+      - Cột 5 (tuỳ chọn): "Photo reference"
+    """
+    clause_aliases = {"clause", "test property"}
+    desc_aliases = {"description"}
+    req_aliases = {"test method requirement", "criteria", "test method", "requirement"}
+    result_aliases = {"result"}
+    photo_aliases = {"photo reference", "photo"}
 
+    for t in doc.tables:
+        for r in t.rows:
+            cells = r.cells
+            if len(cells) >= 4:
+                heads = [_norm(cells[i].text) for i in range(min(len(cells), 5))]
+                if (
+                    len(heads) > 3
+                    and heads[0] in clause_aliases
+                    and heads[1] in desc_aliases
+                    and heads[2] in req_aliases
+                    and heads[3] in result_aliases
+                ):
+                    return t
+    return None
 
-# ---- style helpers ----
-def _clone_first_run_style(src_cell):
-    try:
-        p = src_cell.paragraphs[0]
-        if not p.runs:
-            return None, None
-        r = p.runs[0]
-        return r.font.name, r.font.size
-    except Exception:
-        return None, None
+# ======================= Result/Photo style detection =======================
 
+def _detect_result_style(tbl):
+    for r in tbl.rows:
+        cells = r.cells
+        if len(cells) < 3:
+            continue
+        c = cells[2]
+        t = (c.text or "").strip()
+        if t and not _is_placeholder_dash(t):
+            fname, fsize, fbold, fitalic = _clone_first_run_style(c)
+            try:
+                align = c.paragraphs[0].alignment or WD_ALIGN_PARAGRAPH.CENTER
+            except Exception:
+                align = WD_ALIGN_PARAGRAPH.CENTER
+            return fname, fsize, fbold, fitalic, align
+    return None, None, None, None, WD_ALIGN_PARAGRAPH.CENTER
 
-def _set_cell_text_with_style(dst_cell, src_label_cell, text):
-    dst_cell.text = ""
-    p = dst_cell.paragraphs[0]
-    run = p.add_run("" if text is None else str(text))
-    fname, fsize = _clone_first_run_style(src_label_cell)
-    if fname:
-        run.font.name = fname
-    if fsize:
-        run.font.size = fsize
+def _detect_result_style_detail(tbl):
+    for r in tbl.rows:
+        cells = r.cells
+        if len(cells) < 4:
+            continue
+        c = cells[3]
+        t = (c.text or "").strip()
+        if t and not _is_placeholder_dash(t):
+            fname, fsize, fbold, fitalic = _clone_first_run_style(c)
+            try:
+                align = c.paragraphs[0].alignment or WD_ALIGN_PARAGRAPH.CENTER
+            except Exception:
+                align = WD_ALIGN_PARAGRAPH.CENTER
+            return fname, fsize, fbold, fitalic, align
+    return None, None, None, None, WD_ALIGN_PARAGRAPH.CENTER
 
+def _detect_photo_style_detail(tbl):
+    for r in tbl.rows:
+        cells = r.cells
+        if len(cells) < 5:
+            continue
+        c = cells[4]
+        t = (c.text or "").strip()
+        if t and t.upper() not in {"-", "NO PHOTO"}:
+            fname, fsize, fbold, fitalic = _clone_first_run_style(c)
+            try:
+                align = c.paragraphs[0].alignment or WD_ALIGN_PARAGRAPH.CENTER
+            except Exception:
+                align = WD_ALIGN_PARAGRAPH.CENTER
+            return fname, fsize, fbold, fitalic, align
+        if (t or "").upper() == "NO PHOTO":
+            try:
+                align = c.paragraphs[0].alignment or WD_ALIGN_PARAGRAPH.CENTER
+            except Exception:
+                align = WD_ALIGN_PARAGRAPH.CENTER
+            return None, None, None, None, align
+    return None, None, None, None, WD_ALIGN_PARAGRAPH.CENTER
 
-# ---- RESULT: inline replacement ----
+# ======================= Fill Summary & Detail =======================
+
+def _update_exec_summary_results_from_status(doc: Document, report_id: str, template_key: str) -> bool:
+    status_map = _read_status_map(report_id)
+    if not status_map:
+        return False
+
+    muc_cands = _prep_title_candidates(template_key)
+    if not muc_cands:
+        return False
+
+    tbl = _find_exec_summary_table(doc)
+    if tbl is None:
+        return False
+
+    fname, fsize, fbold, fitalic, align = _detect_result_style(tbl)
+
+    changed = False
+    for i, r in enumerate(tbl.rows):
+        if i == 0:  # luôn bỏ header
+            continue
+        cells = r.cells
+        if len(cells) < 3:
+            continue
+
+        clause_text = cells[0].text or ""
+        desc_text = cells[1].text or ""
+        result_cell = cells[2]
+
+        if not _is_result_placeholder(result_cell.text):
+            continue
+
+        muc = _match_muc(desc_text, clause_text, muc_cands)
+        if not muc:
+            continue
+
+        val = status_map.get(muc)
+        if not val:
+            continue
+
+        _apply_text_with_font(result_cell, val, fname, fsize, fbold, fitalic, align=align)
+        changed = True
+    return changed
+
+# --------- Image helpers ---------
+
+def _all_candidate_images(report_id: str):
+    roots = []
+    images_root = os.path.join(os.getcwd(), "images")
+    report_dods_root = os.path.join(os.getcwd(), "report dods")
+    if report_id:
+        roots.append(os.path.join(images_root, str(report_id)))
+        roots.append(os.path.join(report_dods_root, str(report_id)))
+    roots.append(report_dods_root)
+    roots.append(images_root)
+
+    files = []
+    seen = set()
+    for root in roots:
+        if not os.path.isdir(root):
+            continue
+        for name in os.listdir(root):
+            low = name.lower()
+            if any(low.endswith(ext) for ext in _IMG_EXTS):
+                p = os.path.join(root, name)
+                if p not in seen:
+                    seen.add(p)
+                    files.append(p)
+    files.sort(key=lambda p: os.path.getmtime(p), reverse=True)
+    return files
+
+def _extract_muc_and_order_from_name(path: str, known_mucs: set[str] | None = None) -> tuple[str | None, int]:
+    """
+    Parse tên file thành (muc_key, order).
+    Ví dụ:
+      - ..._muc4.3_1.png  → ('muc4.3', 1)
+      - ..._muc8.2.2_3.jpg → ('muc8.2.2', 3)
+      - ..._muc5.7.1.jpeg  → nếu 'muc5.7' ∈ known_mucs và 'muc5.7.1' ∉ known_mucs
+                              thì hiểu là ('muc5.7', 1)
+    """
+    base = os.path.basename(path).lower()
+    name_noext = re.sub(r"\.[a-z0-9]+$", "", base)
+
+    # Case A: mucX[.Y...][_ - ]order
+    m = re.search(r"muc(?P<muc>\d+(?:\.\d+)*)(?:[ _\-]+(?P<ord>\d+))\b", name_noext)
+    if m:
+        muc = f"muc{m.group('muc')}"
+        order = int(m.group('ord'))
+        return muc, order
+
+    # Case B: mucA.B.order (không có underscore)
+    m2 = re.search(r"muc(?P<parts>\d+(?:\.\d+)+)\b", name_noext)
+    if m2:
+        parts = m2.group("parts").split(".")
+        full_key = "muc" + ".".join(parts)
+        muc, order = full_key, 1
+        if len(parts) >= 2:
+            maybe_parent = "muc" + ".".join(parts[:-1])
+            maybe_ord = parts[-1]
+            if maybe_ord.isdigit():
+                if known_mucs and (maybe_parent in known_mucs) and (full_key not in known_mucs):
+                    muc = maybe_parent
+                    order = int(maybe_ord)
+        return muc, order
+
+    return None, 0
+
+_IMAGE_INDEX_CACHE: dict[tuple[str, tuple[str, ...]], dict[str, list[str]]] = {}
+
+def _index_images_by_muc(report_id: str, known_mucs: set[str]) -> dict[str, list[str]]:
+    """
+    Lập chỉ mục {muc → [ảnh1, ảnh2,...]} (ảnh đã sort theo order).
+    """
+    cache_key = (str(report_id), tuple(sorted(known_mucs)))
+    if cache_key in _IMAGE_INDEX_CACHE:
+        return _IMAGE_INDEX_CACHE[cache_key]
+
+    paths = _all_candidate_images(report_id)
+    buckets: dict[str, list[tuple[int, str]]] = {}
+
+    for p in paths:
+        muc, order = _extract_muc_and_order_from_name(p, known_mucs)
+        if not muc:
+            continue
+        if muc not in buckets:
+            buckets[muc] = []
+        buckets[muc].append((order if order > 0 else 1, p))
+
+    out: dict[str, list[str]] = {}
+    for muc, items in buckets.items():
+        items.sort(key=lambda it: (it[0], os.path.getmtime(it[1])))
+        out[muc] = [path for _, path in items]
+
+    _IMAGE_INDEX_CACHE[cache_key] = out
+    return out
+
+def _insert_photo_references_stack(cell, image_paths: list[str], fname=None, fsize=None, fbold=None, fitalic=None, align=None):
+    for p in list(cell.paragraphs):
+        if hasattr(p, "clear"):
+            try:
+                p.clear()
+            except Exception:
+                pass
+    cell.text = ""
+    cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+
+    if not image_paths:
+        p = cell.paragraphs[0] if cell.paragraphs else cell.add_paragraph("")
+        run = p.add_run("NO PHOTO")
+        run.font.bold = False
+        if fname:   run.font.name = fname
+        if fsize:   run.font.size = fsize
+        if fitalic is not None: run.font.italic = fitalic
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER if align is None else align
+        pf = p.paragraph_format
+        pf.space_before = Pt(0)
+        pf.space_after  = Pt(0)
+        return
+
+    for idx, path in enumerate(image_paths):
+        p = cell.add_paragraph("")
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER if align is None else align
+        run = p.add_run()
+        try:
+            pic = run.add_picture(path)
+            pic.width = Inches(2.0)
+            pic.height = Inches(2.5)
+        except Exception:
+            continue
+        pf = p.paragraph_format
+        pf.space_before = Pt(0 if idx == 0 else 4)
+        pf.space_after  = Pt(0)
+
+def _update_detail_results_and_comments(doc: Document, report_id: str, template_key: str) -> bool:
+    status_map = _read_status_map(report_id)
+    if not status_map:
+        return False
+    comment_map = _read_comment_map(report_id)
+
+    muc_cands = _prep_title_candidates(template_key)
+    if not muc_cands:
+        return False
+
+    tbl = _find_detail_table(doc)
+    if tbl is None:
+        return False
+
+    known_mucs = set(status_map.keys()) | set(comment_map.keys())
+    img_index = _index_images_by_muc(report_id, known_mucs)
+
+    fname_r, fsize_r, fbold_r, fitalic_r, align_r = _detect_result_style_detail(tbl)
+    fname_p, fsize_p, fbold_p, fitalic_p, align_p = _detect_photo_style_detail(tbl)
+
+    changed = False
+    for i, r in enumerate(tbl.rows):
+        if i == 0:
+            continue
+        cells = r.cells
+        if len(cells) < 5:
+            continue
+
+        clause_text = cells[0].text or ""
+        desc_text = cells[1].text or ""
+        result_cell = cells[3]
+        photo_cell  = cells[4]
+
+        muc = _match_muc(desc_text, clause_text, muc_cands)
+
+        # Result
+        if muc:
+            cur_val = (result_cell.text or "").strip()
+            if _is_result_placeholder(cur_val):
+                val = status_map.get(muc)
+                if val:
+                    extra = comment_map.get(muc, None)
+                    _apply_text_with_font(
+                        result_cell, val,
+                        fname_r, fsize_r, fbold_r, fitalic_r,
+                        align=align_r, extra_bottom_text=extra
+                    )
+                    changed = True
+
+        # Photo
+        cur_text = (photo_cell.text or "").strip().upper()
+        if cur_text != "NO PHOTO" and (_is_result_placeholder(cur_text) or cur_text == ""):
+            photos = img_index.get(muc or "", []) if muc else []
+            _insert_photo_references_stack(photo_cell, photos, fname_p, fsize_p, fbold_p, fitalic_p, align_p)
+            changed = True
+
+        if not muc:
+            cur_text2 = (photo_cell.text or "").strip()
+            if _is_result_placeholder(cur_text2) or cur_text2 == "":
+                _insert_photo_references_stack(photo_cell, [], fname_p, fsize_p, fbold_p, fitalic_p, align_p)
+                changed = True
+
+    return changed
+
+# ======================= Cover table (from Excel) =======================
+
+def _find_result_table(doc: Document):
+    cover_labels = {
+        "Sample Description:", "Item/ Material code:", "Category:", "Collection:",
+        "Country of Destination:", "Supplier/ Subcontractor:", "Customer:",
+        "Sample Size:", "Sample Weight:", "Tested by:", "Generated by:"
+    }
+    for t in doc.tables:
+        if len(t.columns) >= 4:
+            seen = set()
+            for r in t.rows:
+                for c in r.cells:
+                    txt = (c.text or "").strip()
+                    if txt in cover_labels:
+                        seen.add(txt)
+            if len(seen) >= 4:
+                return t
+    return doc.tables[0] if doc.tables else None
+
 def _set_result_inline_in_paragraph(paragraph, rating_text: str) -> bool:
     if not rating_text or not paragraph.runs:
         return False
@@ -476,285 +1088,103 @@ def _set_result_inline_in_paragraph(paragraph, rating_text: str) -> bool:
     r.text = head + new_txt
     return True
 
-
 def _set_result_value(doc: Document, rating_text: str):
     if not rating_text:
         return False
 
-    # table form
     for t in doc.tables:
         for r in t.rows:
             cells = r.cells
             for j in range(len(cells) - 1):
                 if (cells[j].text or "").strip().upper().startswith("RESULT:"):
                     cur = (cells[j + 1].text or "").strip()
-                    if cur in BLANK_TOKENS:
+                    if cur in BLANK_TOKENS or _is_result_placeholder(cur):
                         _set_cell_text_with_style(cells[j + 1], cells[j], rating_text)
                         return True
 
-    # inline form
     for p in doc.paragraphs:
         if "RESULT" in (p.text or "") or "Result" in (p.text or ""):
             if _set_result_inline_in_paragraph(p, rating_text):
                 return True
     return False
 
+# ======================= Excel path resolution =======================
 
-# ---- BED: Test time tick (TRF-style regex first, fallback by position) ----
-_SUP = {
-    "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶",
-    "7": "⁷", "8": "⁸", "9": "⁹", "s": "ˢ", "t": "ᵗ", "n": "ⁿ", "d": "ᵈ", "r": "ʳ", "h": "ʰ"
-}
+def _smart_excel_path(path_or_name: str) -> str:
+    def _is_excel_file(p):
+        low = p.lower()
+        return os.path.isfile(p) and (low.endswith(".xlsx") or low.endswith(".xls"))
 
+    def _latest_excel_in_dir(d):
+        cands = []
+        try:
+            for name in os.listdir(d):
+                fp = os.path.join(d, name)
+                if _is_excel_file(fp):
+                    cands.append(fp)
+        except Exception:
+            pass
+        if not cands:
+            return ""
+        cands.sort(key=lambda p: os.path.getmtime(p), reverse=True)
+        return cands[0]
 
-def _flex_token(tok: str) -> str:
-    parts = []
-    for ch in tok:
-        low = ch.lower()
-        sup = _SUP.get(low, "")
-        if sup:
-            parts.append(f"(?:{re.escape(ch)}|{re.escape(sup)})")
-        else:
-            parts.append(re.escape(ch))
-    return "".join(parts)
-
-
-def _bed_label_regex(label: str) -> re.Pattern:
-    cleaned = re.sub(r'[_\.\-]+', ' ', (label or '').strip().lower())
-    tokens = [t for t in cleaned.split() if t]
-    flex_tokens = [_flex_token(t) for t in tokens]
-    pattern = r'(☐|☑)\s*' + r'\s*'.join(flex_tokens)
-    return re.compile(pattern, flags=re.IGNORECASE)
-
-
-def _tick_testtime_by_regex(doc: Document, picked_label: str) -> bool:
-    labels = ["1st test", "2nd test", "3rd test", "4th test"]
-    compiled = [(_bed_label_regex(lbl), lbl == picked_label) for lbl in labels]
-
-    # ⬇️ Fix here
-    def toggle_text(txt: str) -> tuple[str, bool]:
-        changed = False
-        if not txt or ('☐' not in txt and '☑' not in txt):
-            return txt, changed
-        for pat, value in compiled:
-            def _repl(m):
-                nonlocal changed
-                changed = True
-                return ('☑' if value else '☐') + m.group(0)[1:]
-            txt = pat.sub(_repl, txt)
-        return txt, changed
-
-    any_change = False
-    for p in doc.paragraphs:
-        new_text, ch = toggle_text(p.text)
-        if ch:
-            p.text = new_text
-            any_change = True
-
-    for table in doc.tables:
-        for row in table.rows:
-            for cell in row.cells:
-                new_text, ch = toggle_text(cell.text)
-                if ch:
-                    cell.text = new_text
-                    any_change = True
-    return any_change
-
-
-def _norm_ascii(s: str) -> str:
-    if s is None:
-        return ""
-    s = unicodedata.normalize("NFD", str(s))
-    supers_map = str.maketrans({
-        "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4", "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9",
-        "ᵃ": "a", "ᵇ": "b", "ᶜ": "c", "ᵈ": "d", "ᵉ": "e", "ᶠ": "f", "ᵍ": "g", "ʰ": "h", "ᶦ": "i", "ʲ": "j", "ᵏ": "k",
-        "ˡ": "l", "ᵐ": "m", "ⁿ": "n", "ᵒ": "o", "ᵖ": "p", "ʳ": "r", "ˢ": "s", "ᵗ": "t", "ᵘ": "u", "ᵛ": "v", "ʷ": "w",
-        "ˣ": "x", "ʸ": "y", "ᶻ": "z"
-    })
-    s = s.translate(supers_map)
-    s = s.replace("^", "")
-    s = unicodedata.normalize("NFD", s.lower())
-    s = "".join(ch for ch in s if unicodedata.category(ch) != "Mn")
-    s = re.sub(r"\s+", " ", s)
-    return s.strip()
-
-
-def _canon_test_label(s: str) -> str:
-    x = _norm_ascii(s)
-    x = re.sub(r"\btest\s*(\d)\b", r"\1", x)
-    x = x.replace("first", "1st").replace("second", "2nd").replace("third", "3rd").replace("fourth", "4th")
-    x = re.sub(r"\b1\s*st\b", "1st", x)
-    x = re.sub(r"\b2\s*nd\b", "2nd", x)
-    x = re.sub(r"\b3\s*rd\b", "3rd", x)
-    x = re.sub(r"\b4\s*th\b", "4th", x)
-    if "1st" in x:
-        return "1st test"
-    if "2nd" in x:
-        return "2nd test"
-    if "3rd" in x:
-        return "3rd test"
-    if "4th" in x:
-        return "4th test"
-    return ""
-
-
-def _para_has_checkbox(p) -> bool:
-    for r in p.runs:
-        if ("☐" in (r.text or "")) or ("☑" in (r.text or "")):
-            return True
-    t = p.text or ""
-    return ("☐" in t) or ("☑" in t)
-
-
-def _replace_first_checkbox_in_paragraph(p, tick=True) -> bool:
-    src = "☐" if tick else "☑"
-    dst = "☑" if tick else "☐"
-    for r in p.runs:
-        if src in (r.text or ""):
-            r.text = r.text.replace(src, dst, 1)
-            return True
-    if src in (p.text or ""):
-        p.text = (p.text or "").replace(src, dst, 1)
-        return True
-    return False
-
-
-def _ensure_checkbox_in_paragraph(p):
-    if _para_has_checkbox(p):
-        return True
-    if not p.runs:
-        p.add_run("")
-    p.runs[0].text = "☐ " + (p.runs[0].text or "")
-    return True
-
-
-def _norm_label_text(s: str) -> str:
-    s = _norm_ascii(s)
-    s = re.sub(r"\b1\s*st\s*test\b", "1st test", s)
-    s = re.sub(r"\b2\s*nd\s*test\b", "2nd test", s)
-    s = re.sub(r"\b3\s*rd\s*test\b", "3rd test", s)
-    s = re.sub(r"\b4\s*th\s*test\b", "4th test", s)
-    return s
-
-
-def _row_is_testlabel_row(row) -> bool:
-    for c in row.cells:
-        n = _norm_label_text(c.text)
-        if any(k in n for k in ["1st test", "2nd test", "3rd test", "4th test"]):
-            return True
-    return False
-
-
-def _find_test_time_table(doc: Document):
-    candidates = []
-    for t in doc.tables:
-        has_header = False
-        hits = 0
-        for r in t.rows:
-            for c in r.cells:
-                n = _norm_ascii(c.text)
-                if "test time" in n or "test phrase" in n:
-                    has_header = True
-                if any(lbl in n for lbl in ["1st test", "2nd test", "3rd test", "4th test"]):
-                    hits += 1
-        if hits:
-            candidates.append((has_header, hits, t))
-    if not candidates:
-        return None
-    candidates.sort(key=lambda x: (not x[0], -x[1]))
-    return candidates[0][2]
-
-
-def _clear_ticks_only_in_test_rows(tbl):
-    for r in tbl.rows:
-        if not _row_is_testlabel_row(r):
-            continue
-        for c in r.cells:
-            for p in c.paragraphs:
-                changed = True
-                while changed:
-                    changed = _replace_first_checkbox_in_paragraph(p, tick=False)
-
-
-def _locate_target_tick_position(row, want_label: str):
-    for j, cell in enumerate(row.cells):
-        for p in cell.paragraphs:
-            if want_label in _norm_label_text(p.text):
-                _ensure_checkbox_in_paragraph(p)
-                return p
-    label_idx = -1
-    for j, cell in enumerate(row.cells):
-        if want_label in _norm_label_text(cell.text):
-            label_idx = j
-            break
-    if label_idx == -1:
-        return None
-    for j_left in range(label_idx - 1, -1, -1):
-        left_cell = row.cells[j_left]
-        if not left_cell.paragraphs:
-            p = left_cell.add_paragraph("")
-            _ensure_checkbox_in_paragraph(p)
+    if path_or_name:
+        p = str(path_or_name)
+        if _is_excel_file(p):
             return p
-        for p in left_cell.paragraphs:
-            _ensure_checkbox_in_paragraph(p)
-            return p
-    return None
+        if os.path.isdir(p):
+            latest = _latest_excel_in_dir(p)
+            if latest:
+                return latest
+        if os.path.isdir(local_main):
+            cand = os.path.join(local_main, p)
+            if _is_excel_file(cand):
+                return cand
+            latest = _latest_excel_in_dir(local_main)
+            if latest:
+                return latest
+        if _is_excel_file(local_main):
+            return local_main
+        raise FileNotFoundError(f"Excel not found: {path_or_name}")
+    else:
+        if os.path.isdir(local_main):
+            latest = _latest_excel_in_dir(local_main)
+            if latest:
+                return latest
+            raise FileNotFoundError(f"No Excel files found in directory: {local_main}")
+        if _is_excel_file(local_main):
+            return local_main
+        raise FileNotFoundError("Excel path is not provided and local_main is not a valid Excel file or directory.")
 
+def _load_excel_df(excel_path_or_name: str):
+    if pd is None:
+        raise RuntimeError("pandas is not available")
+    excel_path = _smart_excel_path(excel_path_or_name)
+    if not os.path.exists(excel_path):
+        raise FileNotFoundError(f"Excel not found: {excel_path}")
+    df = pd.read_excel(excel_path, sheet_name=0)
+    df.columns = [str(c).strip() for c in df.columns]
+    return df
 
-def _tick_testtime_checkbox_fallback(doc: Document, picked_label: str) -> bool:
-    if not picked_label:
-        return False
-    tbl = _find_test_time_table(doc)
-    if tbl is None:
-        return False
-    want = _norm_label_text(picked_label)
-    target_para = None
-    for r in tbl.rows:
-        if not _row_is_testlabel_row(r):
-            continue
-        p = _locate_target_tick_position(r, want)
-        if p is not None:
-            target_para = p
-            break
-    if target_para is None:
-        return False
-    _clear_ticks_only_in_test_rows(tbl)
-    _ensure_checkbox_in_paragraph(target_para)
-    return _replace_first_checkbox_in_paragraph(target_para, tick=True)
+# ======================= Generic cover fill from Excel =======================
 
-
-# ---- cover table detection ----
-def _find_result_table(doc: Document):
-    cover_labels = {
-        "Sample Description:", "Item/ Material code:", "Category:", "Collection:",
-        "Country of Destination:", "Supplier/ Subcontractor:", "Customer:",
-        "Sample Size:", "Sample Weight:", "Tested by:", "Generated by:"
-    }
-    for t in doc.tables:
-        if len(t.columns) >= 4:
-            seen = set()
-            for r in t.rows:
-                for c in r.cells:
-                    txt = (c.text or "").strip()
-                    if txt in cover_labels:
-                        seen.add(txt)
-            if len(seen) >= 4:
-                return t
-    return doc.tables[0] if doc.tables else None
-
-
-def fill_bed_cover_from_excel(template_docx_path: str, excel_path_or_name: str, report_id: str) -> BytesIO:
+def fill_cover_from_excel_generic(template_docx_path: str, excel_path_or_name: str, report_id: str, template_key: str) -> BytesIO:
     if not os.path.exists(template_docx_path):
         raise FileNotFoundError(f"Template not found: {template_docx_path}")
 
-    df = _bed_load_excel_df(excel_path_or_name)
+    df = _load_excel_df(excel_path_or_name)
 
-    # key column
     key_col = None
     for name in ["Report #", "Report#", "Report No", "Report no", "Report", "Report_No", "Report_Number"]:
         if name in df.columns:
             key_col = name
             break
+    if not key_col:
+        for c in df.columns:
+            if "report" in c.lower():
+                key_col = c
+                break
     if not key_col:
         raise KeyError("Missing 'Report #' column (or variants) in Excel.")
 
@@ -777,16 +1207,67 @@ def fill_bed_cover_from_excel(template_docx_path: str, excel_path_or_name: str, 
         "Sample Weight:": ["Sample Weight", "Weight"],
     }
 
-    col_rating = next((c for c in excel_cols if _bed_norm(c) == "rating"), "")
-    col_remark = next((c for c in excel_cols if _bed_norm(c) == "remark"), "")
+    def _colnorm(x):
+        s = unicodedata.normalize("NFD", str(x or "").strip().lower())
+        s = "".join(ch for ch in s if unicodedata.category(ch) != "Mn")
+        s = re.sub(r"[^a-z0-9]+", " ", s)
+        return re.sub(r"\s+", " ", s).strip()
+
+    def _tokens(x):
+        return set(_colnorm(x).split()) if x else set()
+
+    def _overlap_score(label, colname):
+        ln = _colnorm(label)
+        cn = _colnorm(colname)
+        if not ln or not cn:
+            return 0.0
+        score = 0.0
+        if ln == cn:
+            score += 5.0
+        if ln in cn:
+            score += 3.0
+        if cn in ln:
+            score += 1.0
+        lt = _tokens(label)
+        ct = _tokens(colname)
+        if lt and ct:
+            inter = lt & ct
+            score += 4.0 * (len(inter) / max(1, len(lt))) + 2.0 * (len(inter) / max(1, len(ct)))
+        return score
+
+    def _pick_best_column(excel_columns, label_text: str, preferred_aliases=None) -> str:
+        preferred_aliases = preferred_aliases or []
+        is_item_code = _colnorm(label_text) in {"item material code", "item code", "item material"}
+        blacklist = {"qr code"} if is_item_code else set()
+
+        best_col, best_score = "", -1.0
+        for c in excel_columns:
+            if _colnorm(c) in blacklist:
+                continue
+            sc = _overlap_score(label_text, c)
+            if c in preferred_aliases:
+                sc += 2.0
+            if sc > best_score:
+                best_col, best_score = c, sc
+        return best_col if best_score > 0.8 else ""
+
+    def _val(row, colname: str) -> str:
+        if not colname:
+            return ""
+        try:
+            v = row.get(colname, "")
+        except Exception:
+            v = ""
+        if pd is not None and hasattr(pd, "isna") and pd.isna(v):
+            return ""
+        return str(v).strip()
 
     doc = Document(template_docx_path)
 
-    # RESULT from rating
+    col_rating = next((c for c in excel_cols if _colnorm(c) == "rating"), "")
     if col_rating:
-        _set_result_value(doc, _bed_val(row, col_rating))
+        _set_result_value(doc, _val(row, col_rating))
 
-    # cover table (4 columns)
     tbl = _find_result_table(doc)
     if tbl is None:
         raise RuntimeError("Cover/RESULT table not found in template.")
@@ -796,32 +1277,53 @@ def fill_bed_cover_from_excel(template_docx_path: str, excel_path_or_name: str, 
         if len(cells) >= 2:
             l_label = (cells[0].text or "").strip()
             if l_label.endswith(":"):
-                cand = _bed_pick_best_column(excel_cols, l_label, preferred_aliases=preferred.get(l_label))
+                cand = _pick_best_column(excel_cols, l_label, preferred_aliases=preferred.get(l_label))
                 if cand:
                     cur = (cells[1].text or "").strip()
                     if _is_placeholder_dash(cur):
-                        _set_cell_text_with_style(cells[1], cells[0], _bed_val(row, cand))
+                        _set_cell_text_with_style(cells[1], cells[0], _val(row, cand))
         if len(cells) >= 4:
             r_label = (cells[2].text or "").strip()
             if r_label.endswith(":"):
-                cand = _bed_pick_best_column(excel_cols, r_label, preferred_aliases=preferred.get(r_label))
+                cand = _pick_best_column(excel_cols, r_label, preferred_aliases=preferred.get(r_label))
                 if cand:
                     cur = (cells[3].text or "").strip()
                     if _is_placeholder_dash(cur):
-                        _set_cell_text_with_style(cells[3], cells[2], _bed_val(row, cand))
+                        _set_cell_text_with_style(cells[3], cells[2], _val(row, cand))
 
-    # Test time tick from Remark
-    if col_remark:
-        raw_remark = _bed_val(row, col_remark)
-        picked_label = _canon_test_label(raw_remark)  # -> '1st test' / '2nd test' / ...
-        if picked_label:
-            ok = _tick_testtime_by_regex(doc, picked_label)
-            if not ok:
-                _tick_testtime_checkbox_fallback(doc, picked_label)
+    _insert_overview_images_into_sample_picture(doc, report_id)
+
+    _update_exec_summary_results_from_status(doc, report_id, template_key)
+    _update_detail_results_and_comments(doc, report_id, template_key)
 
     bio = BytesIO()
     doc.save(bio)
     bio.seek(0)
     return bio
 
+# ======================= Wrappers / Entrypoints =======================
+
+def fill_bed_cover_from_excel(template_docx_path: str, excel_path_or_name: str, report_id: str) -> BytesIO:
+    return fill_cover_from_excel_generic(
+        template_docx_path=template_docx_path,
+        excel_path_or_name=excel_path_or_name,
+        report_id=report_id,
+        template_key="bed",
+    )
+
+def create_report_for_type(report_id: str, template_key: str, excel_path_or_name=None) -> BytesIO:
+    """
+    Locate template by TEMPLATE_MAP[template_key] next to app.py, then fill.
+    Excel path is flexible: file or directory (auto-pick latest).
+    """
+    template_name = TEMPLATE_MAP.get(template_key)
+    if not template_name:
+        raise KeyError(f"Template not found for key: {template_key}")
+    template_path = os.path.join(os.path.dirname(__file__), template_name)
+    return fill_cover_from_excel_generic(
+        template_docx_path=template_path,
+        excel_path_or_name=excel_path_or_name or local_main,
+        report_id=report_id,
+        template_key=template_key,
+    )
 # ========================= END OF FILE =========================
