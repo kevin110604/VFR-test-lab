@@ -44,7 +44,6 @@ TEMPLATE_MAP = {
     'cabinet_us': 'STORAGE - US.docx',
     'cabinet_uk': 'STORAGE - EU.docx',
     'mirror': 'MIRROR.docx',
-    'other': 'OTHER.docx',
 
     # Material – Finishing
     'material_indoor_chuyen': 'MAT-IN-CHUYEN.docx',

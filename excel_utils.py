@@ -202,7 +202,10 @@ def _to_excel_date(value):
         return value.replace(hour=0, minute=0, second=0, microsecond=0)
     s = str(value).strip()
     try:
-        dt = pd.to_datetime(s, dayfirst=True, errors='raise')
+        try:
+            dt = pd.to_datetime(s, format="%Y-%m-%d", errors='raise')
+        except Exception:
+            dt = pd.to_datetime(s, dayfirst=True, errors='raise')
         if pd.isna(dt):
             return None
         if hasattr(dt, 'to_pydatetime'):

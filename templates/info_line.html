@@ -594,9 +594,6 @@
     </div>
     {% endif %}
     <div class="info-box animate__animated animate__fadeInDown">
-        <div class="top-center">
-            <a href="/" tabindex="0" onclick="resetStates()">[Chọn mã sản phẩm khác]</a>
-        </div>
         <div class="info-title">THÔNG TIN SẢN PHẨM</div>
         {% if last_test_type %}
         <div class="test-type-notify" style="text-align:center;color:#b68b22;font-size:18px;font-weight:600;margin-bottom:13px;">
@@ -830,6 +827,53 @@
             {% endfor %}
             </div>
         </div>
+        <!-- Block nhập Sample Weight & Size -->
+        <div class="upload-block">
+        <div class="upload-title">THÔNG SỐ MẪU</div>
+        <form method="POST" class="sample-form" style="display:flex;flex-direction:column;gap:18px;align-items:center;">
+
+            <!-- Sample Weight -->
+            <div style="width:100%;max-width:260px;text-align:center;">
+            <label for="sample_weight" style="display:block;font-weight:bold;color:var(--color-bronze);font-size:15px;margin-bottom:6px;">
+                Sample Weight
+            </label>
+            <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+                <input type="number" step="0.01" name="sample_weight" id="sample_weight"
+                    placeholder="Nhập cân nặng" required
+                    style="flex:1;padding:7px 10px;border-radius:7px;border:1.5px solid var(--color-green);font-size:15px;font-family:'Inter',sans-serif;text-align:center;min-width:100px;">
+                <span style="color:var(--color-bronze);font-weight:bold;">kg</span>
+            </div>
+            </div>
+
+            <!-- Sample Size -->
+            <div style="width:100%;max-width:380px;text-align:center;">
+            <label style="display:block;font-weight:bold;color:var(--color-bronze);font-size:15px;margin-bottom:6px;">
+                Sample Size
+            </label>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:center;">
+                <input type="number" name="size_length" placeholder="Dài" required
+                    style="width:80px;padding:7px 8px;border-radius:7px;border:1.5px solid var(--color-green);font-size:15px;text-align:center;">
+                <span style="font-weight:bold;color:var(--color-bronze);">x</span>
+                <input type="number" name="size_width" placeholder="Rộng" required
+                    style="width:80px;padding:7px 8px;border-radius:7px;border:1.5px solid var(--color-green);font-size:15px;text-align:center;">
+                <span style="font-weight:bold;color:var(--color-bronze);">x</span>
+                <div style="display:flex;align-items:center;gap:6px;">
+                <input type="number" name="size_height" placeholder="Cao" required
+                        style="width:80px;padding:7px 8px;border-radius:7px;border:1.5px solid var(--color-green);font-size:15px;text-align:center;">
+                <span style="color:var(--color-bronze);font-weight:bold;">mm</span>
+                </div>
+            </div>
+            </div>
+
+            <!-- Submit button -->
+            <div style="text-align:center;margin-top:8px;">
+            <button type="submit" name="action" value="save_sample_info"
+                    class="gold-upload-btn" style="min-width:180px;">
+                <i class="fa fa-save"></i> Save
+            </button>
+            </div>
+        </form>
+        </div>
         <form method="POST" class="testdone-row">
             <button name="action" value="test_done" class="testdone-btn" id="btn-complete" disabled>
                 COMPLETE
@@ -850,8 +894,7 @@
           </form>
           <a href="{{ url_for('home') }}"
              class="main-btn action-btn btn-green"
-             style="background:var(--color-green)">
-            <i class="fa fa-arrow-left"></i> Nhập mã report khác
+             style="background:var(--color-green)"> Nhập mã report khác
           </a>
         </div>
         {% if message %}
@@ -887,45 +930,90 @@
         localStorage.removeItem("completeDone");
     }
 
+    function setDisabled(el, state) {
+        if (!el) return;
+        if (el.tagName === "A") {
+            if (state) el.setAttribute("disabled", "");
+            else el.removeAttribute("disabled");
+        } else {
+            el.disabled = !!state;
+        }
+    }
+
     function updateButtonStates() {
-        const testing = localStorage.getItem("testingDone") === "true";
+        const ratingFromExcel = "{{ rating_value|default('', true) }}".toLowerCase();
+        const validRatings = ["fail", "pass", "data", "cancel"];
+        const hasFinalRating = validRatings.includes(ratingFromExcel);
+
+        const testing  = localStorage.getItem("testingDone")  === "true";
         const complete = localStorage.getItem("completeDone") === "true";
 
-        // Nhóm test group
-        document.querySelectorAll(".test-group-btn, .test-btn").forEach(btn => {
-            btn.disabled = !testing;
-        });
+        // Reset: khóa tất cả
+        document.querySelectorAll(".test-group-btn, .test-btn, .rating-action, #btn-complete, #btn-testing")
+            .forEach(el => setDisabled(el, true));
 
-        // COMPLETE
-        const completeBtn = document.getElementById("btn-complete");
-        if (completeBtn) completeBtn.disabled = !testing;
+        if (hasFinalRating) {
+            // Nếu Excel đã có rating hợp lệ → mở hết, reset cờ
+            localStorage.removeItem("testingDone");
+            localStorage.removeItem("completeDone");
+            document.querySelectorAll(".test-group-btn, .test-btn, .rating-action, #btn-complete, #btn-testing")
+                .forEach(el => setDisabled(el, false));
+            return;
+        }
 
-        // PASS/FAIL/DATA
-        document.querySelectorAll(".rating-action").forEach(btn => {
-            btn.disabled = !complete;
-        });
+        // Nếu chưa có rating → flow theo thứ tự
+        setDisabled(document.getElementById("btn-testing"), false);
+
+        if (testing) {
+            document.querySelectorAll(".test-group-btn, .test-btn").forEach(el => setDisabled(el, false));
+            setDisabled(document.getElementById("btn-complete"), false);
+        }
+
+        if (complete) {
+            document.querySelectorAll(".rating-action").forEach(el => setDisabled(el, false));
+        }
     }
 
     document.addEventListener("DOMContentLoaded", function() {
-        // Khi load trang, sync trạng thái
         updateButtonStates();
+
+        // Ngăn click trên <a> khi disabled
+        document.addEventListener("click", (e) => {
+            const a = e.target.closest("a.test-btn, a.test-group-btn");
+            if (a && a.hasAttribute("disabled")) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }, true);
 
         // Khi bấm TESTING
         const testingBtn = document.getElementById("btn-testing");
-        if (testingBtn) {
-            testingBtn.addEventListener("click", function() {
+        if (testingBtn?.form) {
+            testingBtn.form.addEventListener("submit", () => {
                 localStorage.setItem("testingDone", "true");
-                updateButtonStates();
             });
         }
 
         // Khi bấm COMPLETE
         const completeBtn = document.getElementById("btn-complete");
-        if (completeBtn) {
-            completeBtn.addEventListener("click", function() {
+        if (completeBtn?.form) {
+            completeBtn.form.addEventListener("submit", () => {
                 localStorage.setItem("completeDone", "true");
-                updateButtonStates();
             });
+        }
+
+        // Khi bấm rating → reset cờ
+        document.querySelectorAll(".rating-action").forEach(btn => {
+            btn.form?.addEventListener("submit", () => {
+                localStorage.removeItem("testingDone");
+                localStorage.removeItem("completeDone");
+            });
+        });
+
+        // Khi bấm "Nhập mã report khác" → resetStates()
+        const backBtn = document.querySelector("a[href='{{ url_for('home') }}']");
+        if (backBtn) {
+            backBtn.addEventListener("click", () => resetStates());
         }
     });
     

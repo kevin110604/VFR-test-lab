@@ -2205,11 +2205,11 @@ def run_export_excel():
     try:
         # === GỌI TRỰC TIẾP PYTHON CHẠY SCRIPT ===
         python_path = r"C:\VFR\lab_update_app\.venv\Scripts\python.exe"  # dùng python của venv
-        script_path = r"C:\VFR\lab_update_app\excel export.py"
+        script_path = r"C:\VFR\lab_update_app\upload TRF.py"
         result = subprocess.run([python_path, script_path],
                                 shell=False, capture_output=True, text=True, timeout=900)
         if result.returncode == 0:
-            return jsonify({'success': True, 'message': 'Đã chạy xong export file Excel!', 'reload': True})
+            return jsonify({'success': True, 'message': 'Đã chạy xong TRF!', 'reload': True})
         else:
             # Log thêm stderr nếu lỗi
             return jsonify({'success': False, 'message': f'Lỗi: {result.stderr}', 'reload': False})
@@ -2269,6 +2269,59 @@ def update():
     is_logged_in = session.get("auth_ok", False)
     valid = False
 
+    # ==== helpers cho comment file ====
+    import os, re
+    def _ensure_dir(p):
+        os.makedirs(p, exist_ok=True)
+
+    def _parse_kv_file(path):
+        """Đọc file comment_{group}.txt -> dict {key: value} với format 'key: value' hoặc 'key=value'."""
+        data = {}
+        if not os.path.exists(path):
+            return data
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                m = re.split(r"\s*[:=]\s*", line, maxsplit=1)
+                if len(m) == 2:
+                    k, v = m[0].strip(), m[1].strip()
+                    if k:
+                        data[k] = v
+        return data
+
+    def _upsert_kv_file(path, kv: dict):
+        """Ghi/ghi đè các khóa trong file comment_{group}.txt, giữ nguyên các dòng khác."""
+        lines = []
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+
+        # map key -> đã thay chưa
+        replaced = {k: False for k in kv.keys()}
+        new_lines = []
+        for line in lines:
+            line_stripped = line.strip()
+            done = False
+            for k, v in kv.items():
+                if re.match(rf"^\s*{re.escape(k)}\s*[:=]", line_stripped):
+                    new_lines.append(f"{k}: {v}\n")
+                    replaced[k] = True
+                    done = True
+                    break
+            if not done:
+                new_lines.append(line)
+
+        # append các key chưa có
+        for k, v in kv.items():
+            if not replaced[k]:
+                new_lines.append(f"{k}: {v}\n")
+
+        with open(path, "w", encoding="utf-8") as f:
+            f.writelines(new_lines)
+
+    # ==== đọc Excel, tìm dòng ====
     try:
         wb = safe_load_excel(local_main)
         ws = wb.active
@@ -2276,7 +2329,6 @@ def update():
         if report_col is None:
             return "❌ Không tìm thấy cột REPORT# hoặc REPORT trong file Excel!", 500
 
-        # Tìm dòng theo report
         for row in range(2, ws.max_row + 1):
             v = ws.cell(row=row, column=report_col).value
             if v and str(v).strip() == str(report):
@@ -2287,7 +2339,14 @@ def update():
 
         valid = True
 
-# LẤY DATA CHO HIỂN THỊ (info_line)
+        # --- lấy rating_value để kiểm soát UI ---
+        rating_value = ""
+        rating_col_idx = get_col_idx(ws, "rating")
+        if rating_col_idx:
+            rv = ws.cell(row=row_idx, column=rating_col_idx).value
+            rating_value = (str(rv).strip() if rv not in (None, "") else "")
+
+        # --- build lines hiển thị ---
         if not is_logged_in:
             summary_keys = [
                 ('TRQ ID', 'TRQ ID'),
@@ -2311,12 +2370,22 @@ def update():
                 value = ws.cell(row=row_idx, column=col).value
                 if label and value not in (None, ""):
                     lines.append((str(label).upper(), str(value)))
+
     except Exception as e:
         print("Lỗi khi đọc file excel:", e)
         print(traceback.format_exc())
         return f"Lỗi khi xử lý file: {e}", 500
 
-    # --- XỬ LÝ LOGIN (nếu chưa đăng nhập) ---
+    # ==== lấy sẵn Sample Info từ comment_{group}.txt (group=main) ====
+    group_for_sample = "main"
+    report_folder = os.path.join(UPLOAD_FOLDER, str(report))
+    _ensure_dir(report_folder)
+    sample_comment_file = os.path.join(report_folder, f"comment_{group_for_sample}.txt")
+    sample_notes = _parse_kv_file(sample_comment_file)
+    sample_weight_val = sample_notes.get("sample_weight", "")
+    sample_size_val   = sample_notes.get("sample_size", "")
+
+    # --- nếu chưa login: xử lý login form ---
     if not is_logged_in:
         if request.method == "POST" and request.form.get("action") == "login":
             password_input = request.form.get("password")
@@ -2335,12 +2404,18 @@ def update():
             show_hint=True,
             show_func=False,
             report_id=report,
-            test_groups=TEST_GROUPS
+            test_groups=TEST_GROUPS,
+            rating_value=rating_value,
+            sample_weight=sample_weight_val,
+            sample_size=sample_size_val,
+            show_line_test_done_notice=False,  # ẩn phần notice khi chưa login
+            so_gio_test=SO_GIO_TEST,
         )
 
-    # === ĐÃ ĐĂNG NHẬP: XỬ LÝ POST ===
+    # ==== ĐÃ ĐĂNG NHẬP: XỬ LÝ POST ====
     if request.method == "POST":
         action = request.form.get("action")
+
         # --- Upload overview images ---
         if action == "upload_overview":
             files = request.files.getlist('overview_imgs')
@@ -2365,6 +2440,46 @@ def update():
                     file.save(os.path.join(folder, filename))
             return redirect(url_for("update", report=report))
 
+        # --- LƯU SAMPLE INFO vào comment_{group}.txt (KHÔNG ghi Excel) ---
+        elif action == "save_sample_info":
+            weight = request.form.get("sample_weight", "").strip()
+            size_length = request.form.get("size_length", "").strip()
+            size_width  = request.form.get("size_width", "").strip()
+            size_height = request.form.get("size_height", "").strip()
+
+            # Format Sample Size
+            size_str = f"{size_length} x {size_width} x {size_height} mm" if size_length and size_width and size_height else ""
+
+            # Xác định nhóm test hiện tại để chọn file comment tương ứng
+            group_code = session.get(f"last_test_code_{report}") or "main"
+            comment_file = os.path.join(UPLOAD_FOLDER, str(report), f"comment_{group_code}.txt")
+
+            os.makedirs(os.path.join(UPLOAD_FOLDER, str(report)), exist_ok=True)
+
+            # Đọc file cũ (nếu có)
+            existing_lines = []
+            if os.path.exists(comment_file):
+                with open(comment_file, "r", encoding="utf-8", errors="ignore") as f:
+                    existing_lines = f.readlines()
+
+            # Lọc bỏ các dòng Sample Weight / Sample Size cũ
+            filtered_lines = []
+            for line in existing_lines:
+                if not line.lower().startswith("sample weight") and not line.lower().startswith("sample size"):
+                    filtered_lines.append(line.rstrip("\n"))
+
+            # Thêm dòng mới cho Sample Weight & Sample Size
+            if weight:
+                filtered_lines.append(f"Sample Weight: {weight} kg")
+            if size_str:
+                filtered_lines.append(f"Sample Size: {size_str}")
+
+            # Ghi lại toàn bộ file (giữ comment cũ + sample mới)
+            with open(comment_file, "w", encoding="utf-8") as f:
+                f.write("\n".join(filtered_lines) + "\n")
+
+            message = f"✅ Đã lưu Sample Weight & Sample Size vào {os.path.basename(comment_file)}"
+            
         # --- Đánh dấu "testing" ---
         elif valid and action == "testing":
             wb = safe_load_excel(local_main)
@@ -2387,27 +2502,29 @@ def update():
             complete_col = get_col_idx(ws, "complete date")
             vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
             now = datetime.now(vn_tz).strftime("%d/%m/%Y %H:%M").upper()
-            ws.cell(row=row_idx, column=complete_col).value = now
+            if complete_col:
+                ws.cell(row=row_idx, column=complete_col).value = now
             safe_save_excel(wb, local_main)
             message = f"Đã ghi hoàn thành test cho {report}!"
 
+        # --- Rating PASS/FAIL/DATA (ghi Excel như cũ) ---
         elif valid and action and action.startswith("rating_"):
             print("==> ĐANG XỬ LÝ RATING:", action, "CHO REPORT", report)
             value = action.replace("rating_", "").upper()
 
-            # DÙNG SAFE LOAD để tránh xung đột file Excel
             wb = safe_load_excel(local_main)
             ws = wb.active
 
             rating_col = get_col_idx(ws, "rating")
             status_col = get_col_idx(ws, "status")
-            ws.cell(row=row_idx, column=rating_col).value = value
+            if rating_col:
+                ws.cell(row=row_idx, column=rating_col).value = value
 
-            # --- LẤY LOẠI TEST GẦN NHẤT (từ session hoặc từ type_of Excel) ---
+            # (… giữ nguyên phần còn lại xử lý Teams / copy completed / log như code gốc …)
+            # --- LẤY LOẠI TEST GẦN NHẤT ---
             group_code = session.get(f"last_test_code_{report}")
             group_title = get_group_title(group_code) if group_code else None
 
-            # Fallback 1: nếu chỉ có tiêu đề nhóm (cũ)
             if not group_code:
                 last_test_type = session.get(f"last_test_type_{report}")
                 if last_test_type:
@@ -2417,12 +2534,27 @@ def update():
                             group_title = g_name
                             break
 
-            # Fallback 2: đoán từ Excel 'type of' (giữ logic cũ)
             if not group_code:
                 type_of_col = get_col_idx(ws, "type of")
                 type_of = ws.cell(row=row_idx, column=type_of_col).value if type_of_col else ""
-                # TODO: nếu có bảng map chuẩn hóa riêng thì áp dụng ở đây thay vì replace space.
-                group_code = (str(type_of).strip().lower().replace(" ", "_")) if type_of else None
+                # nếu có bảng map chuẩn hóa riêng thì áp dụng ở đây thay vì replace space.
+                if type_of:
+                    t_key = str(type_of).strip().lower()
+                    mapped_code = None
+                    try:
+                        from config import TYPE_OF_MAP  # optional mapping: {raw_lower: group_code}
+                    except Exception:
+                        TYPE_OF_MAP = {}
+                    if isinstance(TYPE_OF_MAP, dict):
+                        mapped_code = TYPE_OF_MAP.get(t_key) or TYPE_OF_MAP.get(t_key.replace(" ", "_"))
+                    if not mapped_code:
+                        for g_id, g_name in TEST_GROUPS:
+                            if t_key == str(g_name).strip().lower():
+                                mapped_code = g_id
+                                break
+                    group_code = mapped_code or t_key.replace(" ", "_")
+                else:
+                    group_code = None
                 group_title = get_group_title(group_code) or (type_of or "")
 
             country_col = get_col_idx(ws, "country of destination")
@@ -2430,7 +2562,6 @@ def update():
             country = ws.cell(row=row_idx, column=country_col).value if country_col else ""
             furniture_testing = ws.cell(row=row_idx, column=furniture_testing_col).value if furniture_testing_col else ""
 
-            # ======= Lấy thêm các trường bổ sung =======
             trq_col = get_col_idx(ws, "trq id")
             item_col = get_col_idx(ws, "item#")
             desc_col = get_col_idx(ws, "item name/ description")
@@ -2441,11 +2572,9 @@ def update():
             desc = ws.cell(row=row_idx, column=desc_col).value if desc_col else ""
             requestor = ws.cell(row=row_idx, column=requestor_col).value if requestor_col else ""
 
-            # ======= ĐƯỜNG LINK detail tới mã report này =======
             report_url = f"{request.url_root.rstrip('/')}/update?report={report}"
             staff_id = session.get("staff_id", "Không rõ")
 
-            # --- Chuẩn bị thông báo Teams ---
             teams_msg = None
             if value == "PASS":
                 teams_msg = (
@@ -2458,7 +2587,7 @@ def update():
                     f"- Country of Destination: {country}\n"
                     f"- Furniture Testing: {furniture_testing}\n"
                     f"- Requestor: {requestor}\n"
-                    f"- Nhân viên thao tác: {staff_id}\n"  
+                    f"- Nhân viên thao tác: {staff_id}\n"
                     f"Chi tiết: {report_url}"
                 )
             elif value in ["FAIL", "DATA"]:
@@ -2502,56 +2631,43 @@ def update():
                         f"- Country of Destination: {country}\n"
                         f"- Furniture Testing: {furniture_testing}\n"
                         f"- Requestor: {requestor}\n"
-                        f"- Nhân viên thao tác: {staff_id}\n"  
+                        f"- Nhân viên thao tác: {staff_id}\n"
                         f"- Không có mục nào FAIL trong nhóm này."
                         + f"\nChi tiết: {report_url}"
                     )
+
             if teams_msg:
                 send_teams_message(TEAMS_WEBHOOK_URL_RATE, teams_msg)
 
-            # --- Đánh dấu hoàn thành trên file ---
             if status_col:
                 ws.cell(row=row_idx, column=status_col).value = "COMPLETE"
                 fill_complete = PatternFill("solid", fgColor="BFBFBF")
                 for col in range(2, ws.max_column + 1):
                     ws.cell(row=row_idx, column=col).fill = fill_complete
 
-            # --- Copy sang completed file ---
-            # Dùng safe_load_excel + safe_save_excel để không race condition
+            # Copy sang completed file (giữ nguyên logic cũ)
             if os.path.exists(local_complete):
                 wb_c = safe_load_excel(local_complete)
                 ws_c = wb_c.active
             else:
                 wb_c = Workbook()
                 ws_c = wb_c.active
-                # Copy header (dòng 1) cả value + style + width + height từ ws (file ds)
                 for col in range(1, ws.max_column + 1):
                     from_cell = ws.cell(row=1, column=col)
                     to_cell = ws_c.cell(row=1, column=col)
                     to_cell.value = from_cell.value
-                    if from_cell.font:
-                        to_cell.font = from_cell.font.copy()
-                    if from_cell.border:
-                        to_cell.border = from_cell.border.copy()
-                    if from_cell.fill:
-                        to_cell.fill = from_cell.fill.copy()
-                    if from_cell.protection:
-                        to_cell.protection = from_cell.protection.copy()
-                    if from_cell.alignment:
-                        to_cell.alignment = from_cell.alignment.copy()
+                    if from_cell.font:        to_cell.font = from_cell.font.copy()
+                    if from_cell.border:      to_cell.border = from_cell.border.copy()
+                    if from_cell.fill:        to_cell.fill = from_cell.fill.copy()
+                    if from_cell.protection:  to_cell.protection = from_cell.protection.copy()
+                    if from_cell.alignment:   to_cell.alignment = from_cell.alignment.copy()
                     to_cell.number_format = from_cell.number_format
                     col_letter = from_cell.column_letter
                     ws_c.column_dimensions[col_letter].width = ws.column_dimensions[col_letter].width
                 ws_c.row_dimensions[1].height = ws.row_dimensions[1].height
                 safe_save_excel(wb_c, local_complete)
 
-            # --- Sửa CHỐT: luôn kiểm tra cột mã report ---
-            report_idx_in_c = get_col_idx(ws_c, "report#")
-            if report_idx_in_c is None:
-                report_idx_in_c = get_col_idx(ws_c, "report")
-            if report_idx_in_c is None:
-                report_idx_in_c = 2  # fallback về cột 1 (A)
-
+            report_idx_in_c = get_col_idx(ws_c, "report#") or get_col_idx(ws_c, "report") or 2
             found_row = None
             for r in range(2, ws_c.max_row + 1):
                 v = ws_c.cell(row=r, column=report_idx_in_c).value
@@ -2567,7 +2683,7 @@ def update():
             safe_save_excel(wb_c, local_complete)
             safe_save_excel(wb, local_main)
 
-            # ==== PHẦN BỔ SUNG: Ghi log ngay khi hoàn thành ====
+            # Log hoàn thành
             type_of_col = get_col_idx(ws, "type of")
             type_of = ws.cell(row=row_idx, column=type_of_col).value if type_of_col else ""
             vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
@@ -2582,10 +2698,8 @@ def update():
                 ca = "ot"
             else:
                 ca = ""
-            # Lấy employee_id từ session
             employee_id = session.get("staff_id", "")
-            log_report_complete(report, type_of, ca, employee_id)  # Ghi cả ID người thao tác
-            # ==== HẾT PHẦN BỔ SUNG ====
+            log_report_complete(report, type_of, ca, employee_id)
 
             message = f"Đã cập nhật đánh giá: <b>{value}</b> cho {report}!"
             check_and_reset_counter()
@@ -2597,7 +2711,7 @@ def update():
     # === Kiểm tra đã đủ số giờ line test chưa ===
     elapsed = get_line_test_elapsed(report)
     show_line_test_done = elapsed is not None and elapsed >= SO_GIO_TEST
-    
+
     # === Kiểm tra đã có ảnh after chưa ===
     folder = os.path.join(UPLOAD_FOLDER, str(report))
     imgs_after = []
@@ -2608,10 +2722,8 @@ def update():
                 imgs_after.append(f"/images/{report}/{f}")
     has_after_img = len(imgs_after) > 0
 
-    # === Hiện thông báo nếu đủ giờ và chưa có ảnh after ===
     show_line_test_done_notice = show_line_test_done and not has_after_img
 
-    # === Trả về template ===
     return render_template(
         "info_line.html",
         lines=lines,
@@ -2625,6 +2737,10 @@ def update():
         test_groups=TEST_GROUPS,
         last_test_type=last_test_type,
         so_gio_test=SO_GIO_TEST,
+        show_line_test_done_notice=show_line_test_done_notice,
+        rating_value=rating_value,                 # <-- truyền xuống template
+        sample_weight=sample_weight_val,           # <-- giá trị đã lưu trong comment_main.txt
+        sample_size=sample_size_val,               # <--
     )
 
 def _has_images(report_folder: str, group: str, key: str, is_hotcold_like: bool) -> bool:

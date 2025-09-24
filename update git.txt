@@ -3,6 +3,7 @@ git commit -m "update all code"
 git push --force-with-lease
 
 git fetch
+git commit -m "update all code"
 git checkout origin/main -- "*.py" "*.html"
 
 if __name__ == "__main__":

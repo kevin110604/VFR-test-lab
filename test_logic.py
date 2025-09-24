@@ -258,39 +258,64 @@ BAN_EU_TEST_TITLES = {
 }
 
 GHE_US_TEST_TITLES = {
-    "muc5.4": {
-        "full": "Mục 5.4.1 + 5.4.2: Backrest strength test - horizontal – static (functional load, proof load)",
-        "short": "Backrest strength test - horizontal – static (func./proof load)",
+    "muc5.4.1": {
+        "full": "Mục 5.4.1: Backrest strength test - horizontal – static (functional load)",
+        "short": "Backrest strength test - horizontal – static (functional load)",
         "img": ["/static/images/buoc 2 ghe us.png"]
     },
-    "muc6": {
-        "full": "Mục 6: Backrest Strength Test - Vertical - Static",
+    "muc5.4.2": {
+        "full": "Mục 5.4.2: Backrest strength test - horizontal – static (proof load)",
+        "short": "Backrest strength test - horizontal – static (proof load)",
+        "img": ["/static/images/buoc 2 ghe us.png"]
+    },
+    "muc6.1": {
+        "full": "Mục 6.1: Backrest strength test - vertical – static (functional load)",
         "short": "Backrest Strength Test - Vertical - Static",
         "img": ["/static/images/buoc 3 ghe us.png"]
     },
-    "muc9.5": {
-        "full": "Mục 9.5.1 + 9.5.2: Arm strength test - horizontal – static (functional load, proof load)",
-        "short": "Arm strength test - horizontal – static (func./proof load)",
+    "muc6.2": {
+        "full": "Mục 6.2: Backrest strength test - vertical – static (proof load)",
+        "short": "Backrest Strength Test - Vertical - Static",
+        "img": ["/static/images/buoc 3 ghe us.png"]
+    },
+    "muc9.1": {
+        "full": "Mục 9.1: Arm strength test - horizontal – static (functional load)",
+        "short": "Arm strength test - horizontal – static (func load)",
         "img": ["/static/images/buoc 4 ghe us.png"]
     },
-    "muc10": {
-        "full": "Mục 10: Arm strength test - vertical – static (functional load, proof load)",
+    "muc9.2": {
+        "full": "Mục 9.2: Arm strength test - horizontal – static (proof load)",
+        "short": "Arm strength test - horizontal – static (proof load)",
+        "img": ["/static/images/buoc 4 ghe us.png"]
+    },
+    "muc10.1": {
+        "full": "Mục 10.1: Arm strength test - vertical – static (functional load)",
         "short": "Arm strength test - vertical – static (func./proof load)",
         "img": ["/static/images/buoc 5 ghe us.png"]
     },
-    "muc15": {
-        "full": "Mục 15: Drop test – dynamic (functional load, proof load)",
+    "muc10.2": {
+        "full": "Mục 10.2: Arm strength test - vertical – static (proof load)",
+        "short": "Arm strength test - vertical – static (func./proof load)",
+        "img": ["/static/images/buoc 5 ghe us.png"]
+    },
+    "muc15.1": {
+        "full": "Mục 15.1: Drop test – dynamic (functional load)",
         "short": "Drop test – dynamic (func./proof load)",
         "img": ["/static/images/buoc 6 ghe us.png"]
     },
-    "muc16.3": {
-        "full": "Mục 16.3: Leg strength test - front load test (functional load, proof load)",
-        "short": "Leg strength test - front load (func./proof load)",
+    "muc15.2": {
+        "full": "Mục 15.2: Drop test – dynamic (proof load)",
+        "short": "Drop test – dynamic (func./proof load)",
+        "img": ["/static/images/buoc 6 ghe us.png"]
+    },
+    "muc16.1": {
+        "full": "Mục 16.1 Leg strength test - front and side (functional load)",
+        "short": "Leg strength test - front and side (functional load)",
         "img": ["/static/images/buoc 7 ghe us.png"]
     },
-    "muc16.4": {
-        "full": "Mục 16.4: Leg strength test - side load test (functional load, proof load)",
-        "short": "Leg strength test - side load (func./proof load)",
+    "muc16.2": {
+        "full": "Mục 16.2: Leg strength test - front and side (proof load)",
+        "short": "Leg strength test - front and side (proof load)",
         "img": ["/static/images/buoc 8 ghe us.png"]
     },
     "muc17": {
@@ -304,22 +329,22 @@ GHE_US_TEST_TITLES = {
         "img": ["/static/images/buoc 10 ghe us.png"]
     },
     "muc21.5": {
-        "full": "Mục 21.5: Forward Stability for units < 36.3 kg (80 lbs)",
+        "full": "Mục 21.5: Front stability for units less than 36.3 kg (80 lbs.)",
         "short": "Forward Stability < 36.3kg",
         "img": ["/static/images/buoc 11 ghe us.png"]
     },
     "muc21.6": {
-        "full": "Mục 21.6: Forward Stability for units ≥ 36.3 kg (80 lbs)",
+        "full": "Mục 21.6: Front stability for units greater than or equal to 36.3 kg (80 lbs.)",
         "short": "Forward Stability ≥ 36.3kg",
         "img": ["/static/images/buoc 12 ghe us.png"]
     },
     "muc27": {
-        "full": "Mục 27: Footrest Static Load Test for Stools - Vertical",
+        "full": "Mục 27: Footrest static load test for stools – vertical – static (proof load)",
         "short": "Footrest Static Load Test - Vertical",
         "img": ["/static/images/buoc 13 ghe us.png"]
     },
-    "vfr_drop": {
-        "full": "VFR Drop test (Mod)",
+    "muc28": {
+        "full": "VFR Drop Test",
         "short": "VFR Drop test (Mod)",
         "img": ["/static/images/buoc 14 ghe us.png"]
     },
@@ -346,8 +371,8 @@ GHE_EU_TEST_TITLES = {
         "short": "Vertical static load on back",
         "img": ["/static/images/buoc 4 ghe eu.png"]
     },
-    "muc6.8_6.9": {
-        "full": "Mục 6.8 + 6.9: Foot rest static load test & Leg rest static load test",
+    "muc6.8": {
+        "full": "Mục 6.8: Foot rest static load",
         "short": "Foot rest & Leg rest static load",
         "img": ["/static/images/buoc 5 ghe eu.png"]
     },
@@ -367,12 +392,12 @@ GHE_EU_TEST_TITLES = {
         "img": ["/static/images/buoc 8 ghe eu.png"]
     },
     "muc6.15": {
-        "full": "Mục 6.15: Leg forward static load test",
+        "full": "Mục 6.15: Leg forward static load",
         "short": "Leg forward static load",
         "img": ["/static/images/buoc 9 ghe eu.png"]
     },
     "muc6.16": {
-        "full": "Mục 6.16: Leg sideways static load test",
+        "full": "Mục 6.16: Leg sideways static load",
         "short": "Leg sideways static load",
         "img": ["/static/images/buoc 10 ghe eu.png"]
     },
@@ -397,27 +422,27 @@ GHE_EU_TEST_TITLES = {
         "img": ["/static/images/buoc 14 ghe eu.png"]
     },
     "muc7.3.1": {
-        "full": "Mục 7.3.1 (1022:2018): Forwards overturning",
+        "full": "Mục 7.3.1: Stability-Forward overturning",
         "short": "Forwards overturning",
         "img": ["/static/images/buoc 15 ghe eu.png"]
     },
     "muc7.3.3": {
-        "full": "Mục 7.3.3 (1022:2018): Corner stability test",
+        "full": "Mục 7.3.3: Stability-Corner",
         "short": "Corner stability test",
         "img": ["/static/images/buoc 16 ghe eu.png"]
     },
     "muc7.3.4": {
-        "full": "Mục 7.3.4 (1022:2018): Sideways overturning, all seating without arm rest",
+        "full": "Mục 7.3.4: Stability-Sideway Overturning",
         "short": "Sideways overturning (no arm rest)",
         "img": ["/static/images/buoc 17 ghe eu.png"]
     },
-    "muc7.3.5.2": {
-        "full": "Mục 7.3.5.2 (1022:2018): Seating with arm rests",
+    "muc7.3.5": {
+        "full": "Mục 7.3.5: Stability- Sideway Overturning for arm chair",
         "short": "Overturning: seating with arm rests",
         "img": ["/static/images/buoc 18 ghe eu.png"]
     },
     "muc7.3.6": {
-        "full": "Mục 7.3.6 (1022:2018): Rearwards overturning all seating with backrest",
+        "full": "Mục 7.3.6: Stability- Rearwards Overturning",
         "short": "Rearwards overturning",
         "img": ["/static/images/buoc 19 ghe eu.png"]
     }
@@ -458,112 +483,117 @@ F2057_TEST_TITLES = {
 }
 
 TU_US_TEST_TITLES = {
-    "muc3": {
+    "muc4.2": {
         "full": "Mục 4.2: Concentrated functional load test",
         "short": "Concentrated functional load test",
         "img": ["/static/images/buoc 3 tu us.png"]
     },
-    "muc4": {
+    "muc4.3": {
         "full": "Mục 4.3: Distributed functional load test",
         "short": "Distributed functional load test",
         "img": ["/static/images/buoc 4 tu us.png"]
     },
-    "muc5": {
+    "muc4.4": {
         "full": "Mục 4.4: Concentrated proof load test",
         "short": "Concentrated proof load test",
         "img": ["/static/images/buoc 5 tu us.png"]
     },
-    "muc6": {
-        "full": "Mục 4.5: Distributed Proof Load Test",
+    "muc4.5": {
+        "full": "Mục 4.5: Distributed proof load test",
         "short": "Distributed Proof Load Test",
         "img": ["/static/images/buoc 6 tu us.png"]
     },
-    "muc7": {
-        "full": "Mục 4.6.2: Extendible Element Functional Load Test",
+    "muc4.6.2": {
+        "full": "Mục 4.6.2: Extendible element static functional load test",
         "short": "Extendible Element Functional Load Test",
         "img": ["/static/images/buoc 7 tu us.png"]
     },
-    "muc8": {
-        "full": "Mục 4.6.3: Extendible Element Proof Load Test",
+    "muc4.6.3": {
+        "full": "Mục 4.6.3: Extendible element static proof load test",
         "short": "Extendible Element Proof Load Test",
         "img": ["/static/images/buoc 8 tu us.png"]
     },
-    "muc9": {
-        "full": "Mục 5.4: Leg/Glide Assembly Strength Test (Functional và Proof) Sec 5.3 và 5.6",
+    "muc5.4": {
+        "full": "Mục 5.4: Leg or glide assembly strength test - functional load",
         "short": "Leg/Glide Assembly Strength Test",
         "img": ["/static/images/buoc 9 tu us.png"]
     },
-    "muc10": {
-        "full": "Mục 6: Racking Resistance Test",
+    "muc5.6": {
+        "full": "Mục 5.6: Leg or glide assembly strength test - proof load",
+        "short": "Leg or glide assembly strength test - proof load",
+        "img": ["/static/images/buoc 9 tu us.png"]
+    },
+    "muc6": {
+        "full": "Mục 6: Racking resistance test",
         "short": "Racking Resistance Test",
         "img": ["/static/images/buoc 10 tu us.png"]
     },
-    "muc11": {
-        "full": "Mục 7.2: Drop Test - Dynamic - for Units with Seat Surfaces",
+    "muc7.2": {
+        "full": "Mục 7.2: Drop test - dynamic - for units with seat surfaces",
         "short": "Drop Test - Dynamic",
         "img": ["/static/images/buoc 11 tu us.png"]
     },
-    "muc12": {
-        "full": "Mục 8.1: Separation Test for Tall Storage Units with Vertically Attached or Stackable Components",
+    "muc8.1": {
+        "full": "Mục 8.1: Separation test for tall storage units with vertically attached or stackable components",
         "short": "Separation Test (Tall Storage)",
         "img": ["/static/images/buoc 12 tu us.png"]
     },
-    "muc13": {
+    "muc9.2": {
         "full": "Mục 9.2: Horizontal force stability test for storage units without extendible elements",
         "short": "Horizontal force stability (no extendible)",
         "img": ["/static/images/buoc 13 tu us.png"]
     },
-    "muc14": {
+    "muc9.3": {
         "full": "Mục 9.3: Stability test for type I units with at least one extendible elements",
         "short": "Stability test type I",
         "img": ["/static/images/buoc 14 tu us.png"]
     },
-    "muc15": {
-        "full": "Mục 9.4: Stability Test for Type I Storage Units with Multiple Extendible Elements",
+    "muc9.4": {
+        "full": "Mục 9.4: Stability test for type I storage units with multiple extendible elements",
         "short": "Stability Test Type I Multiple",
         "img": ["/static/images/buoc 15 tu us.png"]
     },
-    "muc16": {
-        "full": "Mục 9.5: Stability Test for Type II Storage Units with Extendible Elements",
+    "muc9.5": {
+        "full": "Mục 9.5: Stability test for type II storage units with extendible elements",
         "short": "Stability Test Type II",
         "img": ["/static/images/buoc 16 tu us.png"]
     },
-    "muc17": {
-        "full": "Mục 9.6: Vertical Force Stability Test for Storage Units",
+    "muc9.6": {
+        "full": "Mục 9.6: Vertical force stability test for storage units",
         "short": "Vertical Force Stability",
         "img": ["/static/images/buoc 17 tu us.png"]
     },
-    "muc18": {
-        "full": "Mục 9.7: Stability Test for Pedestals/Storage Units with Seat Surfaces",
+    "muc9.7": {
+        "full": "Mục 9.7: Stability test for pedestals/storage units with seat surfaces",
         "short": "Stability Pedestals/Seat Surfaces",
         "img": ["/static/images/buoc 18 tu us.png"]
     },
-    "muc19": {
+    "muc9.9": {
         "full": "Mục 9.9: Extendible element rebound test",
         "short": "Extendible element rebound test",
         "img": ["/static/images/buoc 19 tu us.png"]
     },
-    "muc20": {
+    "muc12": {
         "full": "Mục 12: Extendible element rebound test",
         "short": "Extendible element rebound test",
         "img": ["/static/images/buoc 20 tu us.png"]
     },
-    "muc21": {
-        "full": "Mục 13: Extendible Element Retention Impact and Durability (Out Stop) Tests",
+    "muc13": {
+        "full": "Mục 13: Extendible element retention impact and durability (out stop) tests",
         "short": "Retention Impact/Durability (Out Stop)",
         "img": ["/static/images/buoc 21 tu us.png"]
     },
-    "muc22": {
-        "full": "Mục 17.2: Strength Test for Vertically Hinged Doors, Bi-fold Doors and Vertically Receding Doors",
+    "muc17.2": {
+        "full": "Mục 17.2: Strength test for vertically hinged doors, bi-fold doors and vertically receding doors",
         "short": "Strength Test Hinged/Bi-fold/Receding Doors",
         "img": ["/static/images/buoc 22 tu us.png"]
     },
-    "muc23": {
-        "full": "Mục 17.3: Hinge Override Test for Vertically Hinged Doors (See Figure 17b)",
+    "muc17.3": {
+        "full": "Mục 17.3: Hinge override test for vertically hinged doors",
         "short": "Hinge Override Test Hinged Doors",
         "img": ["/static/images/buoc 23 tu us.png"]
     },
-    "muc24": {
+    "muc20": {
         "full": "Mục 20: Pull force test",
         "short": "Pull force test",
         "img": ["/static/images/buoc 24 tu us.png"]
@@ -571,68 +601,73 @@ TU_US_TEST_TITLES = {
 }
 TU_US_TEST_TITLES.update(F2057_TEST_TITLES)
 TU_EU_TEST_TITLES = {
-    "muc3": {
-        "full": "Mục 5.2.5: Extension elements (EN14749:2016)",
+    "muc5.2.5": {
+        "full": "Mục 5.2.5: Extension elements",
         "short": "Extension elements",
         "img": ["/static/images/buoc 3 tu eu.png"]
     },
-    "muc4": {
-        "full": "Mục 5.3.2.1: Shelf retention - vertical downward (EN14749:2016); Mục 6.1.3 (EN16122:2012)",
+    "muc5.3.2.1": {
+        "full": "Mục 5.3.2.1: Shelf retention - vertical downward",
         "short": "Shelf retention - vertical downward",
         "img": ["/static/images/buoc 4 tu eu.png"]
     },
-    "muc5": {
-        "full": "Mục 5.3.2.2: Shelf retention - horizontal outward (EN14749:2016); Mục 6.1.2 (EN16122:2012)",
+    "muc5.3.2.2": {
+        "full": "Mục 5.3.2.2: Shelf retention - horizontal outward",
         "short": "Shelf retention - horizontal outward",
         "img": ["/static/images/buoc 5 tu eu.png"]
     },
-    "muc6": {
-        "full": "Mục 5.3.3: Shelf supports (EN14749:2016); Mục 6.1.5 (EN16122:2012)",
+    "muc5.3.3": {
+        "full": "Mục 5.3.3: Shelf supports",
         "short": "Shelf supports",
         "img": ["/static/images/buoc 6 tu eu.png"]
     },
-    "muc7": {
-        "full": "Mục 5.3.5.1: Vertical load of pivoted doors (EN14749:2016); Mục 7.1.1, 7.1.2 (EN16122:2012)",
+    "muc5.3.5.1": {
+        "full": "Mục 5.3.5.1: Vertical load of pivoted doors",
         "short": "Vertical load of pivoted doors",
         "img": ["/static/images/buoc 7 tu eu.png"]
     },
-    "muc8": {
-        "full": "Mục 5.3.5.2: Horizontal load on pivoted doors (EN14749:2016); Mục 7.1.1, 7.1.3 (EN16122:2012)",
+    "muc5.3.5.2": {
+        "full": "Mục 5.3.5.2: Horizontal load on pivoted doors",
         "short": "Horizontal load on pivoted doors",
         "img": ["/static/images/buoc 8 tu eu.png"]
     },
-    "muc9": {
-        "full": "Mục 5.3.7.2: Strength test of extension elements (EN14749:2016); Mục 7.5.1, 7.5.2 (EN16122:2012)",
-        "short": "Strength test of extension elements",
-        "img": ["/static/images/buoc 9 tu eu.png"]
-    },
-    "muc10": {
-        "full": "Mục 5.3.7.1: Slam open of extension elements (EN14749:2016); Mục 7.5.1, 7.5.4 (EN16122:2012)",
+    "muc5.3.7.1": {
+        "full": "Mục 5.3.7.1: Slam open of extension elements",
         "short": "Slam open of extension elements",
         "img": ["/static/images/buoc 10 tu eu.png"]
     },
-    "muc11": {
-        "full": "Mục 8.3: Drop test for trays (EN16122:2012)",
+    "muc5.3.7.2": {
+        "full": "Mục 5.3.7.2: Strength test of extension elements",
+        "short": "Strength test of extension elements",
+        "img": ["/static/images/buoc 9 tu eu.png"]
+    },
+    "muc8.3": {
+        "full": "Mục 8.3: Drop test for trays",
         "short": "Drop test for trays",
         "img": ["/static/images/buoc 11 tu eu.png"]
     },
-    "muc12": {
-        "full": "Mục 5.4.1.1: Stability (EN14749:2016); Mục 11.2.1, 11.2.2 (EN16122:2012)",
+    "muc5.4.1.1": {
+        "full": "Mục 5.4.1.1: Stability - unloaded - height of unit 1000 mm or less ",
         "short": "Stability",
         "img": ["/static/images/buoc 12 tu eu.png"]
     },
-    "muc13": {
-        "full": "Mục 5.4.1.3: Stability - unloaded - all doors, extension elements and flaps open (EN14749:2016); Mục 11.4.1 (EN16122:2012)",
+    "muc5.4.1.2": {
+        "full": "Mục 5.4.1.2: Stability - unloaded - height of unit more than 1000 mm  ",
+        "short": "Stability",
+        "img": ["/static/images/buoc 12 tu eu.png"]
+    },
+    "muc5.4.1.3": {
+        "full": "Mục 5.4.1.3: Stability - unloaded - all doors, extension elements and flaps open",
         "short": "Stability - unloaded (all open)",
         "img": ["/static/images/buoc 13 tu eu.png"]
     },
-    "muc14": {
-        "full": "Mục 5.4.1.4: Stability - unloaded - with overturning load (EN14749:2016); Mục 11.4.2 (EN16122:2012)",
+    "muc5.4.1.4": {
+        "full": "Mục 5.4.1.4: Stability - unloaded - with overturning load",
         "short": "Stability - unloaded (overturning load)",
         "img": ["/static/images/buoc 14 tu eu.png"]
     },
-    "muc15": {
-        "full": "Mục 5.4.1.5: Stability - loaded - with overturning load (EN14749:2016); Mục 11.4.3 (EN16122:2012)",
+    "muc5.4.1.5": {
+        "full": "Mục 5.4.1.5: Stability - loaded - with overturning load",
         "short": "Stability - loaded (overturning load)",
         "img": ["/static/images/buoc 15 tu eu.png"]
     }
@@ -690,7 +725,12 @@ GUONG_TEST_TITLES = {
     "muc1": {
         "full": "Mục 1: Hanging strength",
         "short": "Hanging strength",
-        "img": ["/static/images/buoc 1 guong.png"]   # Cần tạo ảnh mô tả, hoặc bỏ nếu chưa có
+        "img": ["/static/images/buoc 1 guong.png"]
+    },
+    "muc2": {
+        "full": "Mục 2: Tilt resistance",
+        "short": "Tilt resistance",
+        "img": ["/static/images/buoc 1 guong.png"]
     }
 }
 

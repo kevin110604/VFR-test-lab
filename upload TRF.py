@@ -17,6 +17,9 @@ from office365.sharepoint.client_context import ClientContext
 # MSAL cho OAuth (Delegated + cache)
 import msal
 
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
 # ================== CẤU HÌNH OAUTH (DELEGATED + CACHE) ==================
 TENANT_ID = "064944f6-1e04-4050-b3e1-e361758625ec"       # Directory (tenant) ID
 CLIENT_ID = "9abf6ee2-50c8-47c8-a9f2-8cf18587c6ea"       # Application (client) ID

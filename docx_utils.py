@@ -16,7 +16,7 @@ from docx import Document
 from docx.shared import Inches, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_ALIGN_VERTICAL
-
+from datetime import datetime
 from config import local_main, TEMPLATE_MAP
 from test_logic import TEST_GROUP_TITLES
 from excel_utils import _find_report_col
@@ -443,6 +443,17 @@ def _clear_cell_keep_one_paragraph(cell):
         cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
     except Exception:
         pass
+def _clear_cell(cell):
+    """Xóa toàn bộ nội dung và paragraph trong cell trước khi thêm ảnh."""
+    try:
+        # Xóa text
+        cell.text = ""
+        # Xóa luôn paragraph cũ
+        while cell.paragraphs:
+            p = cell.paragraphs[0]
+            p._element.getparent().remove(p._element)
+    except Exception:
+        pass
 
 def _insert_overview_images_into_sample_picture(doc: Document, report_id: str) -> bool:
     img_paths = _find_overview_images(report_id)
@@ -453,7 +464,8 @@ def _insert_overview_images_into_sample_picture(doc: Document, report_id: str) -
     if target_cell is None:
         return False
 
-    _clear_cell_keep_one_paragraph(target_cell)
+    # gọi hàm mới: xóa hết paragraph trống
+    _clear_cell(target_cell)
     target_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
 
     pic_w = Inches(3.5)
@@ -465,7 +477,7 @@ def _insert_overview_images_into_sample_picture(doc: Document, report_id: str) -
 
     # tạo table con
     inner = target_cell.add_table(rows=0, cols=cols)
-    inner.alignment = WD_ALIGN_PARAGRAPH.CENTER   # ép cả table con căn giữa
+    inner.alignment = WD_ALIGN_PARAGRAPH.CENTER
     inner.autofit = False
 
     for c in inner.columns:
@@ -478,10 +490,10 @@ def _insert_overview_images_into_sample_picture(doc: Document, report_id: str) -
         if idx % cols == 0:
             r = inner.add_row()
         c = r.cells[idx % cols]
-        c.text = ""
+        _clear_cell(c)
         c.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
         p = c.paragraphs[0] if c.paragraphs else c.add_paragraph("")
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER   # căn giữa ảnh trong cell
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         run = p.add_run()
         pic = run.add_picture(path)
         pic.width = pic_w
@@ -576,6 +588,30 @@ def _read_comment_map(report_id: str) -> dict:
             out[key] = val
     return out
 
+def _read_sample_info(report_id: str) -> tuple[str, str]:
+    """
+    Đọc Sample Weight & Sample Size từ file comment_<...>.txt
+    - Ưu tiên tìm trong thư mục images/{report_id} và report dods/{report_id}
+    - Nếu không có, fallback sang thư mục gốc images/ hoặc report dods/
+    Trả về (weight, size), chuỗi rỗng nếu không có.
+    """
+    fp = _find_comment_file(report_id)
+    if not fp or not os.path.exists(fp):
+        return "", ""
+
+    weight, size = "", ""
+    with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            low = line.lower()
+            if low.startswith("sample weight"):
+                weight = line.split(":", 1)[-1].strip()
+            elif low.startswith("sample size"):
+                size = line.split(":", 1)[-1].strip()
+    return weight, size
+
 # --------- Resolve TEST_GROUP_TITLES key from template_key (auto-mapping) ---------
 
 def _resolve_group_key(template_key: str) -> str | None:
@@ -629,45 +665,36 @@ def _resolve_group_key(template_key: str) -> str | None:
     return best_key if best_score >= 0.45 else None
 
 def _prep_title_candidates(template_key: str) -> dict:
+    """
+    Chuẩn bị {muc -> {full, short}}. 
+    Bỏ tiền tố 'Mục x:' để so với Description. Không fuzzy nữa.
+    """
     resolved = _resolve_group_key(template_key)
     titles_map = TEST_GROUP_TITLES.get(resolved or "", {}) or {}
 
     cand = {}
     for muc, info in titles_map.items():
-        names = set()
+        variants = set()
         for k in ("full", "short"):
-            v = info.get(k)
-            if v:
-                names.add(v)
-        more = set()
-        for n in list(names):
-            x = n
-            x = re.sub(r"\btest\b", "", x, flags=re.IGNORECASE)
-            x = re.sub(r"[\(\)]", " ", x)
-            more.add(x)
-        names |= more
-        cand[muc.lower()] = {_norm(n) for n in names if n}
+            v = (info.get(k) or "").strip()
+            if not v:
+                continue
+            # bỏ tiền tố "Mục x:"
+            v2 = re.sub(r"^\s*M[ụu]?c\s*\d+(\.\d+)*\s*:\s*", "", v, flags=re.IGNORECASE).strip()
+            variants.add(v2)
+        cand[muc.lower()] = {_norm(x) for x in variants if x}
     return cand
 
 def _match_muc(desc: str, clause: str, muc_cands: dict) -> str | None:
-    parts = [desc or ""]
-    if clause:
-        parts.append(clause)
-    nd_full = _norm(" ".join(parts))
-
-    best_muc, best_score = None, 0.0
+    """
+    So khớp chính xác: Description chuẩn hóa phải khớp với 1 trong các pattern (full/short).
+    Không dựa vào Clause, không fuzzy.
+    """
+    nd = _norm(desc or "")
     for muc, patterns in muc_cands.items():
-        score = 0.0
-        for p in patterns:
-            if not p:
-                continue
-            if p in nd_full or nd_full in p:
-                score = max(score, 1.0)
-            else:
-                score = max(score, _token_overlap(nd_full, p))
-        if score > best_score:
-            best_muc, best_score = muc, score
-    return best_muc if best_score >= 0.4 else None  # relaxed threshold
+        if nd in patterns:
+            return muc
+    return None
 
 # ======================= Table detection (with synonyms) =======================
 
@@ -922,12 +949,6 @@ def _index_images_by_muc(report_id: str, known_mucs: set[str]) -> dict[str, list
     return out
 
 def _insert_photo_references_stack(cell, image_paths: list[str], fname=None, fsize=None, fbold=None, fitalic=None, align=None):
-    for p in list(cell.paragraphs):
-        if hasattr(p, "clear"):
-            try:
-                p.clear()
-            except Exception:
-                pass
     cell.text = ""
     cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
 
@@ -945,17 +966,25 @@ def _insert_photo_references_stack(cell, image_paths: list[str], fname=None, fsi
         return
 
     for idx, path in enumerate(image_paths):
-        p = cell.add_paragraph("")
+        if idx < len(cell.paragraphs):
+            p = cell.paragraphs[idx]
+            if hasattr(p, "clear"):
+                try:
+                    p.clear()
+                except Exception:
+                    pass
+        else:
+            p = cell.add_paragraph("")
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER if align is None else align
         run = p.add_run()
         try:
             pic = run.add_picture(path)
             pic.width = Inches(2.0)
-            pic.height = Inches(2.5)
+            pic.height = Inches(2.0)
         except Exception:
             continue
         pf = p.paragraph_format
-        pf.space_before = Pt(0 if idx == 0 else 4)
+        pf.space_before = Pt(0)
         pf.space_after  = Pt(0)
 
 def _update_detail_results_and_comments(doc: Document, report_id: str, template_key: str) -> bool:
@@ -1043,71 +1072,154 @@ def _find_result_table(doc: Document):
     return doc.tables[0] if doc.tables else None
 
 def _set_result_inline_in_paragraph(paragraph, rating_text: str) -> bool:
+    """
+    Ghi đè giá trị sau 'RESULT:' trong một paragraph (inline), KHÔNG phụ thuộc placeholder.
+    Bảo toàn phần 'RESULT:' và style run đầu tiên tối đa có thể.
+    """
     if not rating_text or not paragraph.runs:
         return False
 
+    # Ghép toàn bộ text các run để tìm vị trí sau "RESULT:"
     full = "".join(r.text for r in paragraph.runs)
-    m = re.search(r"(?i)RESULT\s*:\s*", full)
+    m = re.search(r"(?i)(RESULT\s*:\s*)", full)
     if not m:
         return False
-    start_after_colon = m.end()
 
-    idx = 0
-    run_index = None
-    offset_in_run = None
-    for ridx, r in enumerate(paragraph.runs):
-        txt = r.text
-        nxt = idx + len(txt)
-        if nxt > start_after_colon and idx <= start_after_colon:
-            offset_in_run = start_after_colon - idx
-            tail = txt[offset_in_run:]
-            m2 = re.match(r"[\s]*[–—-]+", tail)
-            if m2:
-                run_index = ridx
-            break
-        idx = nxt
+    prefix = m.group(1)  # "RESULT: " với khoảng trắng nếu có
+    head = full[: m.end()]  # phần trước và bao gồm "RESULT: "
 
-    if run_index is None:
-        for ridx in range(len(paragraph.runs)):
-            if re.fullmatch(r"\s*[–—-]+\s*", paragraph.runs[ridx].text or ""):
-                run_index = ridx
-                offset_in_run = 0
-                break
+    # Ghi đè: đặt run đầu = head + RATING, xoá text ở các run còn lại
+    paragraph.runs[0].text = head + str(rating_text).upper()
+    for r in paragraph.runs[1:]:
+        r.text = ""
 
-    if run_index is None:
-        return False
-
-    r = paragraph.runs[run_index]
-    txt = r.text or ""
-    head = txt[:offset_in_run] if offset_in_run else ""
-    new_txt = re.sub(
-        r"^\s*[–—-]+\s*",
-        " " + str(rating_text),
-        (txt[offset_in_run:] if offset_in_run is not None else txt),
-    )
-    r.text = head + new_txt
     return True
 
-def _set_result_value(doc: Document, rating_text: str):
+def _set_result_value(doc: Document, rating_text: str) -> bool:
+    """
+    Đặt giá trị RESULT theo rating_text.
+    - Với TABLE: ghi đè ô bên phải dù đang là '-', 'PASS', 'FAIL', 'DATA', 'N/A', ...
+    - Với PARAGRAPH inline: luôn ghi đè phần sau 'RESULT:'.
+    Trả về True nếu đã thay ở ít nhất một nơi.
+    """
     if not rating_text:
         return False
+    rating_text = str(rating_text).strip().upper()
 
+    replaced = False
+
+    # 1) Ưu tiên tìm theo TABLE có cột "RESULT:"
     for t in doc.tables:
         for r in t.rows:
             cells = r.cells
+            # tìm ô có label "RESULT:" và ô giá trị bên phải
             for j in range(len(cells) - 1):
-                if (cells[j].text or "").strip().upper().startswith("RESULT:"):
-                    cur = (cells[j + 1].text or "").strip()
-                    if cur in BLANK_TOKENS or _is_result_placeholder(cur):
-                        _set_cell_text_with_style(cells[j + 1], cells[j], rating_text)
-                        return True
+                left_txt = (cells[j].text or "").strip()
+                if re.match(r"(?i)^RESULT\s*:\s*$", left_txt):
+                    right_cell = cells[j + 1]
+                    # luôn ghi đè (kể cả đang PASS/FAIL/DATA hoặc '-')
+                    _set_cell_text_with_style(right_cell, cells[j], rating_text, align_center=True)
+                    replaced = True
 
+    if replaced:
+        return True
+
+    # 2) Nếu không khớp TABLE, thử ghi theo PARAGRAPH inline "RESULT:"
     for p in doc.paragraphs:
-        if "RESULT" in (p.text or "") or "Result" in (p.text or ""):
+        txt = p.text or ""
+        if re.search(r"(?i)RESULT\s*:", txt):
             if _set_result_inline_in_paragraph(p, rating_text):
-                return True
-    return False
+                replaced = True
 
+    return replaced
+
+def _normalize(s: str) -> str:
+    return (s or "").strip().upper()
+
+def _replace_dash_runs(paragraphs, value: str) -> bool:
+    """
+    Thay trực tiếp các run đang là dấu '-' (kể cả có khoảng trắng/nbsp), để giữ style.
+    Trả về True nếu đã thay ít nhất 1 run.
+    """
+    replaced = False
+    for p in paragraphs:
+        for run in p.runs:
+            # loại bỏ mọi khoảng trắng thường & đặc biệt trước khi so
+            t = re.sub(r"[\s\u00A0\u200B]+", "", run.text or "")
+            if t in BLANK_TOKENS:
+                run.text = str(value)
+                replaced = True
+    return replaced
+
+def _process_table(tbl, mapping: dict, overwrite_any: bool) -> bool:
+    """
+    Duyệt một bảng (và các bảng con trong cell) để điền giá trị theo mapping.
+    mapping: keys UPPER như 'REPORT NO.', 'RECEIVED DATE', 'REPORT DATE'
+    overwrite_any: nếu True thì luôn ghi đè ô phải; nếu False thì chỉ ghi khi ô phải đang là '-'
+    """
+    changed = False
+    for row in tbl.rows:
+        cells = row.cells
+        n = len(cells)
+        for ci, cell in enumerate(cells):
+            left_text = _normalize(cell.text)
+            for key, val in mapping.items():
+                if key in left_text:
+                    # chọn ô bên phải ngay cạnh
+                    if ci + 1 < n:
+                        right = cells[ci + 1]
+                        # 1) thử thay trực tiếp run dấu '-' để giữ style
+                        replaced = _replace_dash_runs(right.paragraphs, str(val))
+                        # 2) fallback: nếu không có run '-' thì tuỳ chọn ghi đè
+                        if not replaced:
+                            if overwrite_any or _normalize(right.text) in BLANK_TOKENS :
+                                right.text = str(val)
+                                replaced = True
+                        if replaced:
+                            changed = True
+            # đệ quy các bảng con trong cell (nested tables)
+            for inner in cell.tables:
+                if _process_table(inner, mapping, overwrite_any):
+                    changed = True
+    return changed
+
+def _fill_header_fields(doc: Document, data_row: dict, overwrite_any: bool = False) -> bool:
+    """
+    Điền Report No., Received Date, Report Date vào các bảng lồng nhau trong HEADER.
+    - Chỉ ghi đè run dấu '-' để giữ style; fallback ghi thẳng nếu không tìm thấy run '-'.
+    - Duyệt cả primary/first/even headers để tránh miss khi template bật tùy chọn khác nhau.
+    Trả về True nếu có thay đổi.
+    """
+    # Lấy dữ liệu
+    report_no = str(data_row.get("Report #", "")).strip()
+
+    received_date = data_row.get("Log in date", "")
+    if received_date and pd is not None:
+        try:
+            received_date = pd.to_datetime(received_date).strftime("%b %d, %Y").upper()
+        except Exception:
+            received_date = str(received_date)
+    else:
+        received_date = str(received_date)
+
+    report_date = datetime.today().strftime("%b %d, %Y").upper()
+
+    mapping = {
+        "REPORT NO.": report_no or "-",
+        "RECEIVED DATE": received_date or "-",
+        "REPORT DATE": report_date or "-",
+    }
+
+    changed = False
+    # Duyệt tất cả section headers: primary, first-page, even-page
+    for sec in doc.sections:
+        for hdr in [sec.header, sec.first_page_header, sec.even_page_header]:
+            if hdr is None:
+                continue
+            for tbl in hdr.tables:
+                if _process_table(tbl, mapping, overwrite_any):
+                    changed = True
+    return changed
 # ======================= Excel path resolution =======================
 
 def _smart_excel_path(path_or_name: str) -> str:
@@ -1203,8 +1315,6 @@ def fill_cover_from_excel_generic(template_docx_path: str, excel_path_or_name: s
         "Country of Destination:": ["Country of destination", "Country of Destination", "Destination"],
         "Supplier/ Subcontractor:": ["QA comment", "QA Comment", "QA comments", "Supplier / Subcontractor ", "Supplier/ Subcontractor", "Supplier", "Subcontractor"],
         "Customer:": ["Customer / Buyer", "Customer", "Buyer"],
-        "Sample Size:": ["Sample Size", "Size"],
-        "Sample Weight:": ["Sample Weight", "Weight"],
     }
 
     def _colnorm(x):
@@ -1272,11 +1382,32 @@ def fill_cover_from_excel_generic(template_docx_path: str, excel_path_or_name: s
     if tbl is None:
         raise RuntimeError("Cover/RESULT table not found in template.")
 
+    # Đọc sample info từ comment file
+    weight, size = _read_sample_info(report_id)
+
     for r in tbl.rows:
         cells = r.cells
         if len(cells) >= 2:
             l_label = (cells[0].text or "").strip()
             if l_label.endswith(":"):
+                # --- CUSTOM: Sample Weight & Size ---
+                label_norm = _norm(re.sub(r"[:\uFF1A]+$", "", l_label))
+
+                if "sample weight" in label_norm:
+                    if weight:
+                        replaced = _replace_dash_runs(cells[1].paragraphs, weight)
+                        if not replaced and _is_placeholder_dash(cells[1].text):
+                            _set_cell_text_with_style(cells[1], cells[0], weight)
+                    continue
+
+                if "sample size" in label_norm:
+                    if size:
+                        replaced = _replace_dash_runs(cells[1].paragraphs, size)
+                        if not replaced and _is_placeholder_dash(cells[1].text):
+                            _set_cell_text_with_style(cells[1], cells[0], size)
+                    continue
+
+                # --- Các field khác vẫn lấy từ Excel ---
                 cand = _pick_best_column(excel_cols, l_label, preferred_aliases=preferred.get(l_label))
                 if cand:
                     cur = (cells[1].text or "").strip()
@@ -1285,6 +1416,24 @@ def fill_cover_from_excel_generic(template_docx_path: str, excel_path_or_name: s
         if len(cells) >= 4:
             r_label = (cells[2].text or "").strip()
             if r_label.endswith(":"):
+                # >>> THÊM KHỐI SAMPLE Ở BÊN PHẢI NGAY ĐÂY <<<
+                r_label_norm = _norm(re.sub(r"[:\uFF1A]+$", "", r_label))
+
+                if "sample weight" in r_label_norm:
+                    if weight:
+                        replaced = _replace_dash_runs(cells[3].paragraphs, weight)
+                        if not replaced and _is_placeholder_dash(cells[3].text):
+                            _set_cell_text_with_style(cells[3], cells[2], weight)
+                    continue  # Đừng rơi xuống Excel mapping
+
+                if "sample size" in r_label_norm:
+                    if size:
+                        replaced = _replace_dash_runs(cells[3].paragraphs, size)
+                        if not replaced and _is_placeholder_dash(cells[3].text):
+                            _set_cell_text_with_style(cells[3], cells[2], size)
+                    continue  # Đừng rơi xuống Excel mapping
+
+                # --- Các field KHÁC bên phải vẫn lấy từ Excel như cũ ---
                 cand = _pick_best_column(excel_cols, r_label, preferred_aliases=preferred.get(r_label))
                 if cand:
                     cur = (cells[3].text or "").strip()
@@ -1292,6 +1441,7 @@ def fill_cover_from_excel_generic(template_docx_path: str, excel_path_or_name: s
                         _set_cell_text_with_style(cells[3], cells[2], _val(row, cand))
 
     _insert_overview_images_into_sample_picture(doc, report_id)
+    _fill_header_fields(doc, row)
 
     _update_exec_summary_results_from_status(doc, report_id, template_key)
     _update_detail_results_and_comments(doc, report_id, template_key)
