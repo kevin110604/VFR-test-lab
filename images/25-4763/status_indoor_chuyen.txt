@@ -1,0 +1,3 @@
+pencil: PASS
+adhesion: PASS
+standing_water: PASS

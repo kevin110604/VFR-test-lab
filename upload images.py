@@ -423,32 +423,15 @@ def process():
         m_label = month_from_day_label(day_label)     # YYYYMM
         month_buckets.setdefault(m_label, []).append((folder, day_label))
 
-    # 3) Với mỗi tháng -> tải zip cũ (nếu có), merge, thêm local, zip lại & upload
+     # 3) Với mỗi tháng -> tạo staging, merge local, zip lại & upload (always overwrite)
     for thang, entries in sorted(month_buckets.items()):
         month_zip_name = f"images_{thang}.zip"
 
         with tempfile.TemporaryDirectory() as staging_parent:
-            staging_root = os.path.join(staging_parent, f"{thang}_root")  # YYYY-MM-DD/25-xxxx/...
+            staging_root = os.path.join(staging_parent, f"{thang}_root")
             ensure_dir(staging_root)
 
-            # 3.1 Merge từ SharePoint nếu có
-            sp_local_copy = os.path.join(staging_parent, f"dl_{month_zip_name}")
-            exists_remote = download_file_from_sharepoint(ctx, upload_folder_sharepoint, month_zip_name, sp_local_copy)
-            if exists_remote:
-                print(f"[INFO] Tải {month_zip_name} từ SharePoint để merge...")
-                unzip_to_dir(sp_local_copy, staging_parent)
-
-                # Tìm tất cả thư mục ngày đã unzip, copy vào staging_root
-                # (không giả định exact root trong zip; copy mọi dir con vào staging_root)
-                for item in os.listdir(staging_parent):
-                    p = os.path.join(staging_parent, item)
-                    if os.path.isdir(p) and item != os.path.basename(staging_root):
-                        for day_folder in os.listdir(p):
-                            src_day = os.path.join(p, day_folder)
-                            dst_day = os.path.join(staging_root, day_folder)
-                            if os.path.isdir(src_day):
-                                ensure_dir(dst_day)
-                                copy_merge_folder(src_day, dst_day)
+            # 3.1 Bỏ bước tải & merge từ SharePoint (luôn overwrite)
 
             # 3.2 Thêm dữ liệu LOCAL theo đúng ngày
             for folder, day_label in entries:
@@ -457,7 +440,7 @@ def process():
                 ensure_dir(dst_folder)
                 copy_merge_folder(folder, dst_folder)
 
-            # 3.3 Đóng gói lại zip tháng (không giữ byday trên máy)
+            # 3.3 Đóng gói lại zip tháng
             parent_for_zip = os.path.dirname(staging_root)
             zip_path_temp = os.path.join(staging_parent, month_zip_name)
             with zipfile.ZipFile(zip_path_temp, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -467,20 +450,10 @@ def process():
                         arc = os.path.relpath(full, parent_for_zip)
                         zf.write(full, arc)
 
-            # 3.4 So sánh MD5 với bản cũ & upload nếu có thay đổi
-            if exists_remote:
-                old_md5 = md5sum(sp_local_copy)
-                new_md5 = md5sum(zip_path_temp)
-                if old_md5 == new_md5:
-                    print(f"[INFO] {month_zip_name}: Không có thay đổi. Bỏ qua upload.")
-                else:
-                    print(f"[INFO] {month_zip_name}: Có thay đổi. Upload lên SharePoint...")
-                    upload_file_to_sharepoint(ctx, upload_folder_sharepoint, zip_path_temp, month_zip_name)
-                    print(f"[OK] Uploaded {month_zip_name}")
-            else:
-                print(f"[INFO] {month_zip_name} chưa tồn tại. Upload mới...")
-                upload_file_to_sharepoint(ctx, upload_folder_sharepoint, zip_path_temp, month_zip_name)
-                print(f"[OK] Uploaded {month_zip_name}")
+            # 3.4 Upload đè lên SharePoint (không kiểm tra nữa)
+            print(f"[INFO] Upload overwrite {month_zip_name} lên SharePoint...")
+            upload_file_to_sharepoint(ctx, upload_folder_sharepoint, zip_path_temp, month_zip_name)
+            print(f"[OK] Uploaded (overwrite) {month_zip_name}")
 
 if __name__ == "__main__":
     process()

@@ -810,6 +810,11 @@ INDOOR_THUONG_TEST_TITLES = {
         "full": "7: Solvent test",
         "short": "Solvent",
         "img": ["/static/images/buoc 15 indoor.png"]
+    },
+    "colorfastness": {
+        "full": "8: Colorfastness to Crocking test",
+        "short": "Colorfastness to Crocking",
+        "img": ["/static/images/buoc 16 indoor.jpg"]
     }
 }
 
@@ -845,6 +850,11 @@ INDOOR_STONE_TEST_TITLES = {
         "full": "6: Stain test",
         "short": "Stain",
         "img": ["/static/images/buoc 8 indoor.png"]
+    },
+    "resistance": {
+        "full": "7: Resistance to hot water test",
+        "short": "Resistance to hot water",
+        "img": ["/static/images/buoc 17 indoor.jpg"]
     },
 }
 
@@ -935,17 +945,17 @@ TRANSIT_2C_NP_TEST_TITLES = {
         "short": "Chuẩn bị rung động (dynamic load)",
         "img": ["/static/images/buoc 3 2C std.png"]
     },
-    "step5": {
+    "step4": {
         "full": "Bước 5: Vibration Under Dynamic Load",
         "short": "Rung động (dynamic load)",
         "img": ["/static/images/buoc 5 2C std.png"]
     },
-    "step6": {
+    "step5": {
         "full": "Bước 6: Drop test",
         "short": "Thả rơi",
         "img": ["/static/images/buoc 6 2C std.png"]
     },
-    "step10": {
+    "step6": {
         "full": "Bước 10: Kiểm tra lại trong quá trình test",
         "short": "Kiểm tra lại sau test",
         "img": ["/static/images/buoc 10 2C std.png"]
@@ -968,22 +978,22 @@ TRANSIT_2C_PALLET_TEST_TITLES = {
         "short": "Chuẩn bị rung động (dynamic load)",
         "img": ["/static/images/buoc 3 2C std.png"]
     },
-    "step5": {
+    "step4": {
         "full": "Bước 5: Vibration Under Dynamic Load",
         "short": "Rung động (dynamic load)",
         "img": ["/static/images/buoc 5 2C std.png"]
     },
-    "step8": {
+    "step5": {
         "full": "Bước 8: Exception Two – Shock - Impact",
         "short": "Shock - Impact (Exception Two)",
         "img": ["/static/images/buoc 8 2C std.png"]
     },
-    "step9": {
+    "step6": {
         "full": "Bước 9: Exception Two – Rotational Edge Drop",
         "short": "Rotational Edge Drop",
         "img": ["/static/images/buoc 9 2C std.png"]
     },
-    "step10": {
+    "step7": {
         "full": "Bước 10: Kiểm tra lại trong quá trình test",
         "short": "Kiểm tra lại sau test",
         "img": ["/static/images/buoc 10 2C std.png"]

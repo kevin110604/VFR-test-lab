@@ -1,235 +1,597 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>TestLab Dashboard</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
   <style>
-    :root{ --bg:#fffdfc; --card:#fffbe8; --text:#25312b; --border:#ffe082; --accent:#35523A; }
-    body{ margin:0; font-family:Segoe UI,system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); }
-    .wrap{ max-width:1280px; margin:26px auto; padding:0 16px 40px; }
-    h1{ margin:6px 0 12px; color:#8B6B1E; font-size:26px }
+    :root{
+      --main-bg:#fffdfc; --main-card:#fffdfccf; --main-text:#333;
+      --main-th:#4d665c; --main-border:#4d665c55;
+      --main-btn:#c49c48; --main-btn-hover:#35523A;
+      --main-btn-text:#fff; --main-btn-hover-text:#ffe082;
+      --kpi-border:#ffe082; --kpi-card:#fffbe8;
+      --kpi-title:#8B6B1E; --kpi-num:#35523A;
+    }
+    body.darkmode{
+      --main-bg:#2b3938; --main-card:#374B4A; --main-text:#f6f6ef;
+      --main-th:#ffe082; --main-border:#263d3a;
+      --main-btn:#97722a; --main-btn-hover:#35523A;
+      --main-btn-text:#fff; --main-btn-hover-text:#ffe082;
+      --kpi-border:#ffe082; --kpi-card:#ffe082;
+      --kpi-title:#232; --kpi-num:#1b3429;
+    }
+    body{ margin:0; font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:var(--main-bg); color:var(--main-text); }
+    .wrap{ max-width:96vw; margin:26px auto; padding:0 16px 44px; }
+    h1{ margin:6px 0 12px; color:var(--kpi-title); font-size:26px; display:flex; align-items:center; gap:10px; }
+    a.backlink{ color:#35523A; text-decoration:none; font-weight:700 }
+    body.darkmode a.backlink{ color:#ffe082 }
+
     .filter-bar{
-      display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; background:var(--card);
-      border:1.5px solid var(--border); border-radius:14px; padding:10px 12px; margin:6px 0 16px;
+      display:grid; grid-template-columns:1fr auto auto auto auto auto auto 1fr;
+      gap:10px 12px; align-items:center;
+      background:var(--kpi-card); border:1.5px solid var(--kpi-border); border-radius:14px;
+      padding:12px; margin:10px 0 16px; box-shadow:0 2px 12px #c49c4820;
+    }
+    .filter-group{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .filter-title{ font-weight:800; color:#b78e24; }
+    .radio-chip{
+      display:inline-flex; align-items:center; gap:8px; padding:7px 12px;
+      border:1.5px solid var(--kpi-border); border-radius:999px; background:#fff; color:#775d17; font-weight:800; cursor:pointer;
+    }
+    .radio-chip input{ accent-color:#b78e24; }
+    .sel,.date,.chk{
+      padding:6px 10px; border-radius:10px; border:1.5px solid var(--kpi-border);
+      background:#fff; color:#775d17; font-weight:700;
+    }
+    .btn{
+      padding:8px 16px; border-radius:12px; border:1.5px solid var(--kpi-border);
+      background:var(--main-btn); color:var(--main-btn-text); font-weight:800; cursor:pointer;
       box-shadow:0 2px 12px #c49c4820;
     }
-    .filter-bar label{ font-weight:700; color:#b78e24; font-size:14px; }
-    .filter-bar select, .filter-bar input[type=checkbox]{
-      padding:6px 10px; border-radius:10px; border:1.5px solid var(--border); background:#fff; font-weight:700; color:#775d17;
-    }
-    .kpi{ display:grid; grid-template-columns: repeat(6, minmax(150px,1fr)); gap:12px; margin:10px 0 18px; }
-    .card{
-      background:#fff; border:1.5px solid var(--border); border-radius:14px; padding:12px;
-      box-shadow:0 2px 12px #c49c4820; text-align:center;
-    }
-    .card h3{ margin:4px 0 4px; font-size:13px; color:#8B6B1E; text-transform:uppercase; letter-spacing:.02em; }
-    .card .num{ font-size:26px; font-weight:800; margin:2px 0 0; color:#35523A; }
-    .grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap:14px; margin-top:14px; }
-    .chart-card{ background:#fff; border:1.5px solid var(--border); border-radius:14px; padding:12px; box-shadow:0 2px 12px #c49c4820; }
+    .btn:hover{ background:var(--main-btn-hover); color:var(--main-btn-hover-text) }
+    .right{ justify-self:end; }
+
+    .kpi{ display:grid; grid-template-columns: repeat(6,minmax(150px,1fr)); gap:12px; margin:12px 0 18px; }
+    .card{ position:relative; background:var(--kpi-card); border:1.5px solid var(--kpi-border); border-radius:14px; padding:12px; box-shadow:0 2px 12px #c49c4820; text-align:center; }
+    .card h3{ margin:2px 0 6px; font-size:13px; color:var(--kpi-title); text-transform:uppercase; }
+    .card .num{ font-size:26px; font-weight:800; margin:2px 0 0; color:var(--kpi-num); }
+    .info-btn{ position:absolute; top:6px; right:6px; width:22px; height:22px; border-radius:50%; border:1px solid #e0c066; background:#fffbe8; color:#a37b10; font-size:12px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+
+    .grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:14px; }
+    .chart-card{ background:var(--kpi-card); border:1.5px solid var(--kpi-border); border-radius:14px; padding:12px; box-shadow:0 2px 12px #c49c4820; position:relative; overflow:hidden; }
     .chart-card h4{ margin:4px 0 10px; color:#546E7A; font-size:15px }
-    @media (max-width: 1040px){
-      .kpi{ grid-template-columns: repeat(3,1fr); }
-      .grid{ grid-template-columns: 1fr; }
+    .chart-card canvas{ width:100% !important; height:auto !important; }
+    .chart-card.big{ grid-column:1 / span 2; }
+
+    /* Donut nhỏ & cân đối */
+    .chart-card canvas.donut{ max-width:520px; aspect-ratio:1/1; height:auto !important; margin:0 auto; display:block; }
+    .chart-card.fullscreen canvas.donut{ max-width:600px; aspect-ratio:1/1; }
+
+    @media (max-width:1100px){
+      .kpi{ grid-template-columns:repeat(3,1fr); }
+      .grid{ grid-template-columns:1fr; }
+      .chart-card.big{ grid-column:auto; }
     }
-    a.backlink{ color:#35523A; text-decoration:none; font-weight:700 }
-    .sep{ height:4px }
-    small.note{ display:block; color:#8b6b1e; margin-top:6px; }
+
+    #theme-btn{ position:fixed; right:24px; bottom:26px; z-index:11001; background:#8B6B1E; color:#fff; border-radius:100px; font-size:17px; padding:6px 11px; border:none; cursor:pointer; height:38px; width:38px; display:flex; align-items:center; justify-content:center; }
+    body.darkmode #theme-btn{ background:#6c837f; color:#fefefe }
+
+    /* Fullscreen button */
+    .fs-btn{
+      position:absolute; top:8px; right:10px; cursor:pointer;
+      background:linear-gradient(180deg,#c9a356,#b68e3e);
+      color:#fff; border:none; border-radius:8px; padding:6px 8px; font-weight:800;
+      box-shadow:0 2px 12px #c49c4833;
+    }
+    .fs-btn:hover{ filter:brightness(.92) }
+
+    /* Fullscreen layout cân đối, không quá dài */
+    .chart-card.fullscreen{ position:fixed; inset:0; z-index:9999; background:var(--main-bg); padding:18px; border-radius:0; overflow:auto; }
+    .chart-card.fullscreen canvas{ width:100% !important; height:78vh !important; max-height:1000px; margin:auto; display:block; }
+    .mini-table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:14px;
+    }
+    .mini-table thead{
+      background:var(--main-th);
+      color:#fff;
+    }
+    .mini-table th, .mini-table td{
+      padding:6px 10px;
+      border-bottom:1px solid var(--main-border);
+      text-align:center;
+    }
+    .mini-table tbody tr:nth-child(even){
+      background:rgba(0,0,0,0.03);
+    }
+    .mini-table td.ok{ color:#2e7d32; font-weight:700; }
+    .mini-table td.bad{ color:#c62828; font-weight:700; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
       <h1><i class="fa fa-gauge-high"></i> TestLab Dashboard</h1>
-      <a class="backlink" href="/" title="Về trang chính"><i class="fa fa-arrow-left"></i> Home</a>
+      <a class="backlink" href="/" title="Home"><i class="fa fa-arrow-left"></i> Home</a>
     </div>
 
+    <!-- FILTERS -->
     <div class="filter-bar">
-      <label>Thời gian</label>
-      <select id="f-time">
-        <option value="day">Ngày</option>
-        <option value="week">Tuần</option>
-        <option value="month" selected>Tháng</option>
-      </select>
-
-      <label>Type of test</label>
-      <select id="f-type">
-        <option value="">All</option>
-        {% for t in type_set %}
-          <option value="{{t}}">{{t}}</option>
-        {% endfor %}
-      </select>
-
-      <label>Bộ phận request</label>
-      <select id="f-dept">
-        <option value="">All</option>
-        {% for d in dept_set %}
-          <option value="{{d}}">{{d}}</option>
-        {% endfor %}
-      </select>
-
-      <label style="display:flex;align-items:center;gap:6px">
-        <input type="checkbox" id="f-ex-out" checked />
-        Exclude OUTSOURCE
-      </label>
-
-      <div class="sep"></div>
-      <button id="btn-apply" style="padding:7px 14px; border-radius:10px; border:1.5px solid var(--border); background:#ffe082; color:#234; font-weight:800; cursor:pointer">
-        <i class="fa fa-rotate"></i> Tải dữ liệu
-      </button>
-      <a href="/testlab/dashboard/audit" target="_blank" style="margin-left:auto; font-weight:700; color:#8B6B1E; text-decoration:none">Audit</a>
+      <div class="filter-group">
+        <span class="filter-title">Time mode</span>
+        <label class="radio-chip"><input type="radio" name="mode" value="ytd" checked> YTD</label>
+        <label class="radio-chip"><input type="radio" name="mode" value="year"> Year</label>
+        <label class="radio-chip"><input type="radio" name="mode" value="range"> Range</label>
+      </div>
+      <div class="filter-group"><span class="filter-title">Year</span><select id="f-year" class="sel"></select></div>
+      <div class="filter-group"><span class="filter-title">From</span><input type="date" id="f-from" class="date"></div>
+      <div class="filter-group"><span class="filter-title">To</span><input type="date" id="f-to" class="date"></div>
+      <div class="filter-group">
+        <span class="filter-title">Type</span>
+        <select id="f-type" class="sel">
+          <option value="">All</option>
+          {% for t in type_set %}<option value="{{t}}">{{t}}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-title">Department</span>
+        <select id="f-dept" class="sel">
+          <option value="">All</option>
+          {% for d in dept_set %}<option value="{{d}}">{{d}}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="filter-group"><label class="chk"><input type="checkbox" id="f-ex-out" checked/> Exclude OUTSOURCE</label></div>
+      <div class="filter-group right">
+        <button id="btn-apply" class="btn"><i class="fa fa-rotate"></i> Load data</button>
+        <a href="/testlab/dashboard/audit" target="_blank" style="margin-left:10px; font-weight:800; color:#8B6B1E; text-decoration:none">Audit</a>
+      </div>
     </div>
 
     <!-- KPI -->
     <div class="kpi">
-      <div class="card"><h3>Total In</h3><div class="num" id="kpi-in">0</div></div>
-      <div class="card"><h3>Total Out</h3><div class="num" id="kpi-out">0</div></div>
-      <div class="card"><h3>Capacity (/day)</h3><div class="num" id="kpi-cap">0</div></div>
-      <div class="card"><h3>Total WIP</h3><div class="num" id="kpi-wip">0</div></div>
-      <div class="card">
-        <h3>Ontime</h3><div class="num" id="kpi-ont">0</div>
-        <small class="note">(% tính trên completed có ETD)</small>
-      </div>
-      <div class="card">
-        <h3>Late</h3><div class="num" id="kpi-late">0</div>
-        <small class="note">= completed late + overdue WIP</small>
-      </div>
+      <div class="card" id="kpi_total_in"><button class="info-btn" data-k="total_in">i</button><h3>Total In</h3><div class="num" id="k-in">0</div></div>
+      <div class="card" id="kpi_total_out"><button class="info-btn" data-k="total_out">i</button><h3>Total Out</h3><div class="num" id="k-out">0</div></div>
+      <div class="card" id="kpi_capacity"><button class="info-btn" data-k="capacity">i</button><h3>Capacity (/day)</h3><div class="num" id="k-cap">0</div></div>
+      <div class="card" id="kpi_total_wip"><button class="info-btn" data-k="total_wip">i</button><h3>Total WIP</h3><div class="num" id="k-wip">0</div></div>
+      <div class="card" id="kpi_total_ontime"><button class="info-btn" data-k="total_ontime">i</button><h3>Ontime</h3><div class="num" id="k-ont">0</div></div>
+      <div class="card" id="kpi_total_late"><button class="info-btn" data-k="total_late">i</button><h3>Late</h3><div class="num" id="k-late">0</div></div>
     </div>
-    <div class="kpi" style="grid-template-columns: repeat(3, 1fr);">
-      <div class="card"><h3>% Ontime</h3><div class="num" id="kpi-pont">0%</div></div>
-      <div class="card"><h3>% Late (completed)</h3><div class="num" id="kpi-plate">0%</div></div>
-      <div class="card"><h3>% Late (overall)</h3><div class="num" id="kpi-plate2">0%</div></div>
+    <div class="kpi" style="grid-template-columns:repeat(3, 1fr);">
+      <div class="card" id="kpi_pct_ontime"><button class="info-btn" data-k="pct_ontime">i</button><h3>% Ontime</h3><div class="num" id="k-pont">0%</div></div>
+      <div class="card" id="kpi_pct_late"><button class="info-btn" data-k="pct_late">i</button><h3>% Late (completed)</h3><div class="num" id="k-plate">0%</div></div>
+      <div class="card" id="kpi_pct_late_overall"><button class="info-btn" data-k="pct_late_overall">i</button><h3>% Late (overall)</h3><div class="num" id="k-plate2">0%</div></div>
+    </div>
+    <div class="kpi" style="grid-template-columns:repeat(7,1fr);">
+      <div class="card"><h3>Today Target</h3><div class="num" id="k-tday">0</div></div>
+      <div class="card"><h3>Today Out</h3><div class="num" id="k-tout">0</div></div>
+      <div class="card"><h3>Today %</h3><div class="num" id="k-tpct">0%</div></div>
+      <div class="card"><h3>Today Overdue</h3><div class="num" id="k-toverdue">0</div></div>
+      <div class="card"><h3>Month Target</h3><div class="num" id="k-mtgt">0</div></div>
+      <div class="card"><h3>Month Out</h3><div class="num" id="k-mout">0</div></div>
+      <div class="card"><h3>Month %</h3><div class="num" id="k-mpct">0%</div></div>
     </div>
 
-    <!-- Charts -->
+    <!-- CHARTS -->
     <div class="grid">
-      <div class="chart-card">
-        <h4><i class="fa fa-layer-group"></i> In/Out theo tháng (stacked bar)</h4>
-        <canvas id="c-inout" height="160"></canvas>
+      <div class="chart-card big">
+        <h4><i class="fa fa-chart-column"></i> In vs Out — Daily / Monthly (Zoomable)</h4>
+        <button class="fs-btn" data-target="c-inout-zoom" title="Fullscreen"><i class="fa fa-up-right-and-down-left-from-center"></i></button>
+        <canvas id="c-inout-zoom"></canvas>
       </div>
+
       <div class="chart-card">
-        <h4><i class="fa fa-boxes-stacked"></i> WIP theo Type of test (bar)</h4>
-        <canvas id="c-wip-type" height="160"></canvas>
+        <h4><i class="fa fa-layer-group"></i> In vs Out — Monthly</h4>
+        <button class="fs-btn" data-target="c-inout-month" title="Fullscreen"><i class="fa fa-up-right-and-down-left-from-center"></i></button>
+        <canvas id="c-inout-month"></canvas>
       </div>
+
       <div class="chart-card">
-        <h4><i class="fa fa-chart-bar"></i> % Fail theo Type of test (horizontal bar)</h4>
-        <canvas id="c-fail-type" height="160"></canvas>
+        <h4><i class="fa fa-boxes-stacked"></i> WIP by Test Type</h4>
+        <button class="fs-btn" data-target="c-wip-type" title="Fullscreen"><i class="fa fa-up-right-and-down-left-from-center"></i></button>
+        <canvas id="c-wip-type"></canvas>
       </div>
+
       <div class="chart-card">
-        <h4><i class="fa fa-chart-line"></i> Target leadtime vs Actual leadtime (line)</h4>
-        <canvas id="c-leadtime" height="160"></canvas>
+        <h4><i class="fa fa-wave-square"></i> Total WIP by Month</h4>
+        <button class="fs-btn" data-target="c-wip-total" title="Fullscreen"><i class="fa fa-up-right-and-down-left-from-center"></i></button>
+        <canvas id="c-wip-total"></canvas>
       </div>
+
       <div class="chart-card">
-        <h4><i class="fa fa-wave-square"></i> WIP tổng theo tháng (area)</h4>
-        <canvas id="c-wip-total" height="160"></canvas>
+        <h4><i class="fa fa-chart-line"></i> Target vs Actual Leadtime</h4>
+        <button class="fs-btn" data-target="c-leadtime" title="Fullscreen"><i class="fa fa-up-right-and-down-left-from-center"></i></button>
+        <canvas id="c-leadtime"></canvas>
       </div>
+
       <div class="chart-card">
-        <h4><i class="fa fa-circle-notch"></i> Tỉ lệ Pass/Fail/Other (doughnut)</h4>
-        <canvas id="c-pf" height="160"></canvas>
+        <h4><i class="fa fa-chart-bar"></i> % Fail by Test Type</h4>
+        <button class="fs-btn" data-target="c-fail-type" title="Fullscreen"><i class="fa fa-up-right-and-down-left-from-center"></i></button>
+        <canvas id="c-fail-type"></canvas>
+      </div>
+
+      <div class="chart-card">
+        <h4><i class="fa fa-circle-notch"></i> Pass / Fail / Other</h4>
+        <button class="fs-btn" data-target="c-pf" title="Fullscreen"><i class="fa fa-up-right-and-down-left-from-center"></i></button>
+        <canvas id="c-pf" class="donut"></canvas>
+      </div>
+
+      <div class="chart-card">
+        <h4><i class="fa fa-bullseye"></i> Daily Out vs Target (ETD)</h4>
+        <button class="fs-btn" data-target="c-daily" title="Fullscreen"><i class="fa fa-up-right-and-down-left-from-center"></i></button>
+        <canvas id="c-daily"></canvas>
+      </div>
+
+      <div class="chart-card">
+        <h4><i class="fa fa-hourglass"></i> WIP Aging Buckets</h4>
+        <button class="fs-btn" data-target="c-aging" title="Fullscreen"><i class="fa fa-up-right-and-down-left-from-center"></i></button>
+        <canvas id="c-aging"></canvas>
+      </div>
+
+      <!-- Bảng 14 ngày -->
+      <div class="chart-card">
+        <h4><i class="fa fa-table"></i> Last 14 days progress</h4>
+        <table class="mini-table" id="daily-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>In</th>
+              <th>Target</th>
+              <th>Out</th>
+              <th>%</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <!-- Bảng mới: WIP lâu nhất -->
+      <div class="chart-card">
+        <h4><i class="fa fa-clock"></i> Oldest unfinished samples (by Log-in Date)</h4>
+        <table class="mini-table" id="oldest-wip-table">
+          <thead>
+            <tr>
+              <th>Report #</th>
+              <th>Type</th>
+              <th>Department</th>
+              <th>Log-in Date</th>
+              <th>Days in WIP</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div style="margin-top:10px; text-align:center;">
+          <button class="btn" id="prev-page">Prev</button>
+          <span id="page-info" style="margin:0 8px; font-weight:700;"></span>
+          <button class="btn" id="next-page">Next</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <script>
-    function upNum(id, v, suffix=""){ document.getElementById(id).innerText = (v==null?0:v) + suffix; }
+  <button id="theme-btn" title="Toggle Dark/Light mode"><i class="fa fa-moon"></i></button>
 
+  <!-- KPI info modal -->
+  <div id="kpi-info-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.3); z-index:11000; align-items:center; justify-content:center;">
+    <div id="kpi-info-card" style="background:#fff; border-radius:12px; border:1.5px solid var(--kpi-border); width:min(520px,92vw); box-shadow:0 6px 26px #0001;">
+      <div id="kpi-info-head" style="padding:12px 14px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px dashed var(--kpi-border);">
+        <div id="kpi-info-title" style="font-weight:800; color:#8B6B1E;">Info</div>
+        <button id="kpi-info-close" class="btn" style="padding:4px 10px;">Close</button>
+      </div>
+      <div id="kpi-info-body" style="padding:14px; font-size:14.5px; line-height:1.5;"></div>
+    </div>
+  </div>
+
+  <script>
+    /* --------- pref ---------- */
+    function setPref(key, value){
+      try{ localStorage.setItem("vfr-" + key, value); }catch(e){}
+      try{ fetch('/set_pref',{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, value })}); }catch(e){}
+    }
+
+    /* --------- dark mode ---------- */
+    function applyDarkMode(dark){
+      document.body.classList.toggle('darkmode', !!dark);
+      const btn = document.getElementById('theme-btn');
+      if (btn) btn.innerHTML = dark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
+      setPref("darkmode", dark ? "1" : "0");
+      try { localStorage.setItem("vfr-darkmode", dark ? "1" : "0"); } catch(e){}
+    }
+    (function initDark(){
+      let dark=false; try{ const saved=localStorage.getItem("vfr-darkmode"); if(saved!==null) dark=(saved==="1"); }catch(e){}
+      applyDarkMode(dark);
+      document.getElementById('theme-btn').onclick=function(){ dark=!dark; applyDarkMode(dark); };
+    })();
+
+    /* --------- year select ---------- */
+    (function initYears(){
+      const ysel = document.getElementById('f-year');
+      const now = new Date(); const maxY = now.getFullYear(); const minY = maxY - 6;
+      for (let y = maxY; y >= minY; y--){
+        const opt = document.createElement('option'); opt.value = String(y); opt.textContent = String(y); ysel.appendChild(opt);
+      }
+    })();
+
+    /* --------- KPI info ---------- */
+    const KPI_INFO = {
+      total_in:"Number of samples <b>Log-in</b> within the selected window.",
+      total_out:"Number of samples <b>Completed</b> within the selected window.",
+      capacity:"Average processing capacity <b>per day</b>.",
+      total_wip:"Samples in <b>WIP</b> as of the end date.",
+      total_ontime:"Completed ≤ ETD.",
+      total_late:"Late total = Late completed + overdue WIP.",
+      pct_ontime:"% Ontime = Ontime / (Completed with ETD).",
+      pct_late:"% Late (completed).",
+      pct_late_overall:"% Late (completed + overdue WIP) over total with ETD.",
+    };
+    function openInfo(key, titleText){
+      const ov=document.getElementById('kpi-info-overlay'), t=document.getElementById('kpi-info-title'), b=document.getElementById('kpi-info-body');
+      t.textContent = titleText || 'Info'; b.innerHTML = KPI_INFO[key] || ''; ov.style.display='flex';
+    }
+    function closeInfo(){ document.getElementById('kpi-info-overlay').style.display='none'; }
+    document.getElementById('kpi-info-close').onclick = closeInfo;
+    document.getElementById('kpi-info-overlay').addEventListener('click', e=>{ if(e.target.id==='kpi-info-overlay') closeInfo(); });
+    document.querySelectorAll('.info-btn').forEach(btn=>{
+      btn.addEventListener('click', function(){ openInfo(this.dataset.k, this.parentElement.querySelector('h3')?.textContent||'Info'); });
+    });
+
+    /* --------- time mode toggle ---------- */
+    function syncTimeInputs(){
+      const mode = document.querySelector('input[name="mode"]:checked').value;
+      const year = document.getElementById('f-year'), ff = document.getElementById('f-from'), ft = document.getElementById('f-to');
+      year.disabled = (mode !== 'year'); ff.disabled = ft.disabled = (mode !== 'range');
+      year.style.opacity = year.disabled ? .4 : 1; ff.style.opacity = ft.style.opacity = (ff.disabled? .4:1);
+    }
+    document.querySelectorAll('input[name="mode"]').forEach(r=> r.addEventListener('change', syncTimeInputs));
+    syncTimeInputs();
+
+    /* --------- chart helpers ---------- */
     function mkChart(ctx, type, data, options){
       if (ctx.__chart) { ctx.__chart.destroy(); }
       ctx.__chart = new Chart(ctx, { type, data, options });
       return ctx.__chart;
     }
 
+    // Tooltip gọn gàng
+    const TOOLTIP_STY = {
+      tooltip:{
+        backgroundColor:'rgba(0,0,0,0.72)',
+        titleFont:{ size:12, weight:'bold' },
+        bodyFont:{ size:12 },
+        padding:8,
+        displayColors:false
+      }
+    };
+
+    // Zoom + Pan cấu hình (pan ngang, zoom bánh xe/pinch)
+    function zoomConfig(enabled=false, jsData=null){
+      return {
+        plugins:{
+          zoom:{
+            limits:{
+              x:{
+                min:0,
+                max: jsData && jsData.daily_labels ? jsData.daily_labels.length - 1 : undefined,
+                minRange: 7
+              }
+            },
+            pan:{
+              enabled: !!enabled,
+              mode:'x',
+              modifierKey: null,   // không cần giữ ctrl/alt
+              overScaleMode: 'x',
+              threshold: 5,        // độ nhạy kéo
+            },
+            zoom:{
+              wheel:{ enabled: !!enabled, speed: 0.05 },
+              pinch:{ enabled: !!enabled },
+              mode:'x'
+            }
+          }
+        }
+      };
+    }
+    function withZoom(baseOptions, enabled=false, isFullscreen=false, jsData=null){
+      const z = zoomConfig(enabled, jsData);
+      return Object.assign({}, baseOptions, z, {
+        maintainAspectRatio: !isFullscreen,
+        plugins: Object.assign({}, (baseOptions?.plugins||{}), TOOLTIP_STY, z.plugins)
+      });
+    }
+    function setZoomEnabledForCanvas(canvas, enabled){
+      if(!canvas) return;
+      const ch = canvas.getContext('2d').__chart; if(!ch) return;
+      if(!ch.options.plugins) ch.options.plugins = {};
+      if(!ch.options.plugins.zoom) ch.options.plugins.zoom = zoomConfig().plugins.zoom;
+      ch.options.plugins.zoom.pan.enabled = !!enabled;
+      ch.options.plugins.zoom.zoom.wheel.enabled = !!enabled;
+      ch.options.plugins.zoom.zoom.pinch.enabled = !!enabled;
+      ch.update('none');
+    }
+    function up(id, v, suffix=""){ const el = document.getElementById(id); if(el) el.innerText = (v==null?0:v) + suffix; }
+
+    /* --------- fullscreen ---------- */
+    function wireFullscreen(){
+      document.querySelectorAll('.fs-btn').forEach(btn=>{
+        btn.onclick = ()=>{
+          const target = btn.getAttribute('data-target');
+          const card = btn.closest('.chart-card');
+          const canvas = document.getElementById(target);
+          const entering = !card.classList.contains('fullscreen');
+          card.classList.toggle('fullscreen');
+          const icon = btn.querySelector('i');
+          if (entering){
+            setZoomEnabledForCanvas(canvas, true);
+            const chart = canvas.__chart;
+            if(chart){
+              chart.options = withZoom(chart.options, true, true);
+              chart.update();
+            }
+            document.body.style.overflow='hidden';
+            if(icon) icon.className="fa fa-down-left-and-up-right-to-center";
+          }else{
+            if (canvas && canvas.__chart && canvas.__chart.resetZoom) canvas.__chart.resetZoom();
+            setZoomEnabledForCanvas(canvas, false);
+            const chart = canvas.__chart;
+            if(chart){
+              chart.options = withZoom(chart.options, false, false);
+              chart.update();
+            }
+            document.body.style.overflow='';
+            if(icon) icon.className="fa fa-up-right-and-down-left-from-center";
+          }
+        };
+      });
+    }
+
+    /* --------- big daily/monthly chart ---------- */
+    function renderDailyMonthlyZoomChart(canvas, js){
+      const ctx = canvas.getContext('2d');
+      const cfg = {
+        labels: js.daily_labels || js.days,
+        datasets:[
+          { label:'In',  data: js.in_daily },
+          { label:'Out', data: js.out_daily }
+        ]
+      };
+      const opt = withZoom({
+        responsive:true,
+        maintainAspectRatio:true,
+        plugins:{ legend:{ position:'top' } },
+        scales:{
+          y:{ beginAtZero:true },
+          x:{
+            ticks:{ maxRotation:88, minRotation:75, autoSkip:true, autoSkipPadding:8 },
+            min: 0,
+            max: 30   // chỉ hiển thị 30 ngày đầu, pan để xem tiếp
+          }
+        }
+      }, false, false, js);
+      mkChart(ctx, 'bar', cfg, opt);
+    }
+
+    /* --------- load & render ---------- */
     async function loadData(){
-      const time = document.getElementById('f-time').value;
-      const type = document.getElementById('f-type').value;
-      const dept = document.getElementById('f-dept').value;
+      const mode = document.querySelector('input[name="mode"]:checked').value;
+      const year = document.getElementById('f-year').value || '';
+      const from = document.getElementById('f-from').value || '';
+      const to   = document.getElementById('f-to').value || '';
+      const type = document.getElementById('f-type').value || '';
+      const dept = document.getElementById('f-dept').value || '';
       const exclude_outsource = document.getElementById('f-ex-out').checked ? '1' : '0';
 
-      const params = new URLSearchParams({ time, type, dept, exclude_outsource });
+      const params = new URLSearchParams({ mode, year, from, to, type, dept, exclude_outsource });
       const res = await fetch('/testlab/dashboard/data?' + params.toString());
-      const js = await res.json();
+      const js  = await res.json();
+      if(js.error){ alert("Load error: " + js.error); return; }
 
       // KPIs
-      upNum("kpi-in",   js.kpi.total_in);
-      upNum("kpi-out",  js.kpi.total_out);
-      upNum("kpi-cap",  js.kpi.capacity);
-      upNum("kpi-wip",  js.kpi.total_wip);
-      upNum("kpi-ont",  js.kpi.total_ontime);
-      upNum("kpi-late", js.kpi.total_late);
-      upNum("kpi-pont", js.kpi.pct_ontime, "%");
-      upNum("kpi-plate", js.kpi.pct_late, "%");
-      upNum("kpi-plate2", js.kpi.pct_late_overall, "%");
+      up("k-in",js.kpi.total_in); up("k-out",js.kpi.total_out); up("k-cap",js.kpi.capacity);
+      up("k-wip",js.kpi.total_wip); up("k-ont",js.kpi.total_ontime); up("k-late",js.kpi.total_late);
+      up("k-pont",js.kpi.pct_ontime,"%"); up("k-plate",js.kpi.pct_late,"%"); up("k-plate2",js.kpi.pct_late_overall,"%");
+      up("k-tday",js.kpi.today_target); up("k-tout",js.kpi.today_out); up("k-tpct",js.kpi.today_progress,"%");
+      up("k-toverdue",js.kpi.today_overdue); up("k-mtgt",js.kpi.month_target); up("k-mout",js.kpi.month_out); up("k-mpct",js.kpi.month_progress,"%");
 
-      // In/Out by month (stacked bar)
-      mkChart(
-        document.getElementById('c-inout').getContext('2d'),
-        'bar',
-        {
-          labels: js.inout_months,
-          datasets: [
-            { label: 'In',  data: js.in_by_month, stack: 'io' },
-            { label: 'Out', data: js.out_by_month, stack: 'io' }
-          ]
-        },
-        { responsive:true, plugins:{ legend:{ position:'top' }}, scales:{ y:{ beginAtZero:true } } }
+      // Charts
+      renderDailyMonthlyZoomChart(document.getElementById('c-inout-zoom'), js);
+
+      mkChart(document.getElementById('c-inout-month').getContext('2d'),'bar',
+        { labels:(js.mon_labels||js.inout_months), datasets:[ {label:'In',data:(js.mon_in||js.in_by_month)}, {label:'Out',data:(js.mon_out||js.out_by_month)} ] },
+        withZoom({ responsive:true, maintainAspectRatio:true, plugins:{ legend:{position:'top'} }, scales:{ y:{beginAtZero:true}, x:{ticks:{maxRotation:88,minRotation:75}} } }, false, false, js)
       );
 
-      // WIP by type (bar)
-      mkChart(
-        document.getElementById('c-wip-type').getContext('2d'),
-        'bar',
-        {
-          labels: js.types_wip,
-          datasets: [{ label: 'WIP', data: js.wip_by_type }]
-        },
-        { responsive:true, plugins:{ legend:{ display:false }}, scales:{ y:{ beginAtZero:true } } }
+      mkChart(document.getElementById('c-wip-type').getContext('2d'),'bar',
+        { labels:js.types_wip, datasets:[{ label:'WIP', data:js.wip_by_type }] },
+        withZoom({ responsive:true, maintainAspectRatio:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true }, x:{ticks:{maxRotation:88,minRotation:75}} } }, false, false, js)
       );
 
-      // Fail ratio by type (horizontal bar)
-      mkChart(
-        document.getElementById('c-fail-type').getContext('2d'),
-        'bar',
-        {
-          labels: js.types_fail,
-          datasets: [{ label: '% Fail', data: js.fail_ratio }]
-        },
-        { responsive:true, indexAxis:'y', plugins:{ legend:{ position:'top' }}, scales:{ x:{ beginAtZero:true, max:100 } } }
+      mkChart(document.getElementById('c-fail-type').getContext('2d'),'bar',
+        { labels:js.types_fail, datasets:[{ label:'% Fail', data:js.fail_ratio }] },
+        withZoom({ responsive:true, maintainAspectRatio:true, indexAxis:'y', plugins:{ legend:{ position:'top' } }, scales:{ x:{ beginAtZero:true, max:100 } } }, false, false, js)
       );
 
-      // Leadtime (line)
-      mkChart(
-        document.getElementById('c-leadtime').getContext('2d'),
-        'line',
-        {
-          labels: js.lead_months,
-          datasets: [
-            { label: 'Target', data: js.target_leadtime },
-            { label: 'Actual', data: js.actual_leadtime }
-          ]
-        },
-        { responsive:true, plugins:{ legend:{ position:'top' }}, scales:{ y:{ beginAtZero:true } } }
+      mkChart(document.getElementById('c-leadtime').getContext('2d'),'line',
+        { labels:js.lead_months, datasets:[ {label:'Target',data:js.target_leadtime}, {label:'Actual',data:js.actual_leadtime} ] },
+        withZoom({ responsive:true, maintainAspectRatio:true, plugins:{ legend:{ position:'top' } }, scales:{ y:{ beginAtZero:true }, x:{ticks:{maxRotation:88,minRotation:75}} } }, false, false, js)
       );
 
-      // WIP total by month (area line)
-      mkChart(
-        document.getElementById('c-wip-total').getContext('2d'),
-        'line',
-        {
-          labels: js.wip_months,
-          datasets: [{ label: 'WIP total', data: js.wip_total, fill: true, tension: 0.25 }]
-        },
-        { responsive:true, plugins:{ legend:{ position:'top' }}, scales:{ y:{ beginAtZero:true } } }
+      mkChart(document.getElementById('c-wip-total').getContext('2d'),'line',
+        { labels:js.wip_months, datasets:[ {label:'WIP total', data:js.wip_total, fill:true, tension:.25} ] },
+        withZoom({ responsive:true, maintainAspectRatio:true, plugins:{ legend:{ position:'top' } }, scales:{ y:{ beginAtZero:true }, x:{ticks:{maxRotation:88,minRotation:75}} } }, false, false, js)
       );
 
-      // Pass/Fail/Other (doughnut)
-      mkChart(
-        document.getElementById('c-pf').getContext('2d'),
-        'doughnut',
-        { labels: js.pf_labels, datasets: [{ data: js.pf_values }] },
-        { responsive:true, plugins:{ legend:{ position:'right' } } }
+      // DONUT nhỏ + gọn
+      mkChart(document.getElementById('c-pf').getContext('2d'),'doughnut',
+        { labels:js.pf_labels, datasets:[{ data:js.pf_values }] },
+        { responsive:true, maintainAspectRatio:true,
+          plugins:Object.assign({},TOOLTIP_STY,{ legend:{ position:'right' } }),
+          cutout:'62%'
+        }
       );
+
+      mkChart(document.getElementById('c-daily').getContext('2d'),'bar',
+        { labels:js.daily_labels, datasets:[ {label:'Out',data:js.daily_out}, {label:'Target (ETD)',data:js.daily_target,type:'line',tension:.2,pointRadius:2} ] },
+        withZoom({ responsive:true, maintainAspectRatio:true, plugins:{ legend:{ position:'top' } }, scales:{ y:{ beginAtZero:true }, x:{ticks:{maxRotation:88,minRotation:75}} } }, false, false, js)
+      );
+
+      mkChart(document.getElementById('c-aging').getContext('2d'),'bar',
+        { labels:js.aging_labels, datasets:[{ label:'WIP', data:js.aging_values }] },
+        withZoom({ responsive:true, maintainAspectRatio:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true }, x:{ticks:{maxRotation:88,minRotation:75}} } }, false, false, js)
+      );
+
+      // table
+      const tb = document.querySelector('#daily-table tbody'); 
+      tb.innerHTML='';
+      (js.daily_table || []).slice().reverse().forEach(r=>{
+        const tr=document.createElement('tr'); 
+        const pct=r.progress_pct||0;
+        tr.innerHTML = `
+          <td style="font-weight:600; text-align:left;">${r.date}</td>
+          <td>${r.in||0}</td>
+          <td>${r.target||0}</td>
+          <td>${r.out||0}</td>
+          <td class="${pct>=100?'ok':'bad'}">${pct}%</td>`;
+        tb.appendChild(tr);
+      });
+
+      // hiển thị bảng WIP lâu nhất có phân trang
+      const tb2 = document.querySelector('#oldest-wip-table tbody'); 
+      const pageInfo = document.getElementById('page-info');
+      const prevBtn = document.getElementById('prev-page');
+      const nextBtn = document.getElementById('next-page');
+
+      const data = (js.oldest_wip_table || []).sort((a,b)=> new Date(a.login_date) - new Date(b.login_date));
+      let currentPage = 1;
+      const rowsPerPage = 10;
+
+      function renderPage(page){
+        tb2.innerHTML='';
+        const start = (page - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+        data.slice(start, end).forEach(r=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML = `
+            <td style="font-weight:600; text-align:left;">${r.report_no}</td>
+            <td>${r.type}</td>
+            <td>${r.department}</td>
+            <td>${r.login_date}</td>
+            <td>${r.days_in_wip}</td>`;
+          tb2.appendChild(tr);
+        });
+        pageInfo.textContent = `Page ${page} of ${Math.ceil(data.length / rowsPerPage)}`;
+        prevBtn.disabled = (page === 1);
+        nextBtn.disabled = (end >= data.length);
+      }
+      prevBtn.onclick = ()=>{ if(currentPage>1){ currentPage--; renderPage(currentPage);} };
+      nextBtn.onclick = ()=>{ if(currentPage<Math.ceil(data.length/rowsPerPage)){ currentPage++; renderPage(currentPage);} };
+
+      renderPage(1);
+
+      wireFullscreen();
     }
 
     document.getElementById('btn-apply').addEventListener('click', loadData);

@@ -326,54 +326,51 @@ def allocate_unique_report_no(make_report_func, req, tfr_requests, max_try=2):
     Cấp và cố định report_no đúng logic:
     - Nếu req đã có report_no: kiểm tra dòng B==report_no còn trống (C..X). Nếu đã có dữ liệu -> báo lỗi.
     - Nếu chưa có: để make_report_func chọn DÒNG TRỐNG (C..X trống) và trả về report_no tương ứng.
-    - Không bump tuần hoàn theo 'mã có trong Excel' vì cột B luôn có sẵn toàn bộ mã.
-    - Có retry nhẹ (2 lần) để chống race-condition hiếm gặp.
+    - Có retry nhẹ (bump số) nếu hi hữu bị chiếm chỗ giữa chừng.
     """
-    with report_lock():
-        tries = 0
+    tries = 0
 
-        # Case A: đã có report_no trong req -> validate & dùng đúng số này
-        fixed_req = dict(req)
-        preset = str(fixed_req.get("report_no", "")).strip()
-        if preset:
-            if row_is_filled_for_report(local_main, preset):
-                raise RuntimeError(f"Mã report {preset} đã có dữ liệu, không thể ghi đè.")
-            pdf_path, report_no = make_report_func(fixed_req)  # docx_utils ưu tiên số đã set
+    # Case A: preset report_no trong req
+    fixed_req = dict(req)
+    preset = str(fixed_req.get("report_no", "")).strip()
+    if preset:
+        if row_is_filled_for_report(local_main, preset):
+            raise RuntimeError(f"Mã report {preset} đã có dữ liệu, không thể ghi đè.")
+        pdf_path, report_no = make_report_func(fixed_req)  # docx_utils ưu tiên số đã set
+        return pdf_path, report_no
+
+    # Case B: chưa có -> để make_report_func chọn dòng C..X trống
+    while True:
+        pdf_path, report_no = make_report_func(req)
+
+        # Xác nhận lại: dòng vẫn còn trống?
+        if not row_is_filled_for_report(local_main, report_no):
             return pdf_path, report_no
 
-        # Case B: chưa có -> để make_report_func chọn dòng C..X trống
-        while True:
-            pdf_path, report_no = make_report_func(req)
-            # xác nhận lại: dòng vẫn còn trống?
-            if not row_is_filled_for_report(local_main, report_no):
-                return pdf_path, report_no
+        # Hi hữu: ai đó vừa điền vào dòng này giữa chừng -> thử lại (bump số + regenerate)
+        tries += 1
+        if tries >= max_try:
+            raise RuntimeError("Không tìm được dòng trống để cấp mã report.")
 
-            # hi hữu: ai đó vừa điền vào dòng này giữa chừng -> thử lại một lần
-            tries += 1
-            if tries >= max_try:
-                raise RuntimeError("Không tìm được dòng trống để cấp mã report.")
-            # xoá file vừa sinh (đi nhầm dòng)
-            try:
-                outdir = os.path.join('static', 'TFR')
-                for ext in ('.pdf', '.docx'):
-                    fp = os.path.join(outdir, f"{report_no}{ext}")
-                    if os.path.exists(fp):
-                        os.remove(fp)
-            except Exception:
-                pass
+        # Xoá file vừa sinh (đi nhầm dòng)
+        try:
+            outdir = os.path.join('static', 'TFR')
+            for ext in ('.pdf', '.docx'):
+                fp = os.path.join(outdir, f"{report_no}{ext}")
+                if os.path.exists(fp):
+                    os.remove(fp)
+        except Exception:
+            pass
 
-            # Bump số và tái tạo với số cố định
-            tries += 1
-            if tries >= max_try:
-                raise RuntimeError("Không cấp được report_no duy nhất sau nhiều lần thử")
+        # Bump số và tái tạo với số cố định
+        tries += 1
+        if tries >= max_try:
+            raise RuntimeError("Không cấp được report_no duy nhất sau nhiều lần thử")
 
-            bumped = bump_report_no(report_no)
-            # ép số mới vào req để make_report_func dùng đúng số này
-            fixed_req = dict(req)
-            fixed_req["report_no"] = bumped
-            pdf_path, report_no = make_report_func(fixed_req)
-
-        return pdf_path, report_no
+        bumped = bump_report_no(report_no)
+        fixed_req = dict(req)
+        fixed_req["report_no"] = bumped
+        pdf_path, report_no = make_report_func(fixed_req)
 
 # ---- ARCHIVE REQUEST LOG ----
 def archive_request(short_data):
@@ -1224,113 +1221,116 @@ def approve_all_one(req):
       - đẩy vào archive
       - trả về req đã cập nhật (status/report_no/pdf_path/docx_path)
     """
-    with REPORT_NO_LOCK:
-        current_list = safe_read_json(TFR_LOG_FILE)
-        pdf_path, report_no = allocate_unique_report_no(
-            approve_request_fill_docx_pdf, req, current_list
-        )
+    # 🔒 Khoá file-level cho cả phiên cấp số -> ghi Excel -> archive
+    with report_lock():                              # ← THÊM DÒNG NÀY
+        # (giữ thread-lock như cũ để an toàn trong cùng process)
+        with REPORT_NO_LOCK:
+            current_list = safe_read_json(TFR_LOG_FILE)
+            pdf_path, report_no = allocate_unique_report_no(
+                approve_request_fill_docx_pdf, req, current_list
+            )
 
-    req["status"] = "Approved"
-    req["decline_reason"] = ""
-    req["report_no"] = report_no
+        req["status"] = "Approved"
+        req["decline_reason"] = ""
+        req["report_no"] = report_no
 
-    output_folder = os.path.join('static', 'TFR')
-    output_docx = os.path.join(output_folder, f"{report_no}.docx")
-    output_pdf  = os.path.join(output_folder, f"{report_no}.pdf")
+        output_folder = os.path.join('static', 'TFR')
+        output_docx = os.path.join(output_folder, f"{report_no}.docx")
+        output_pdf  = os.path.join(output_folder, f"{report_no}.pdf")
 
-    try:
-        if not os.path.exists(output_pdf):
-            from docx_utils import try_convert_to_pdf
-            try_convert_to_pdf(output_docx, output_pdf)
-    except Exception as _pdf_e:
-        print("PDF convert failed, fallback to DOCX:", _pdf_e)
+        try:
+            if not os.path.exists(output_pdf):
+                from docx_utils import try_convert_to_pdf
+                try_convert_to_pdf(output_docx, output_pdf)
+        except Exception as _pdf_e:
+            print("PDF convert failed, fallback to DOCX:", _pdf_e)
 
-    if os.path.exists(output_pdf):
-        req['pdf_path'] = f"TFR/{report_no}.pdf"
-        req['docx_path'] = None
-    else:
-        req['pdf_path'] = None
-        req['docx_path'] = f"TFR/{report_no}.docx"
+        if os.path.exists(output_pdf):
+            req['pdf_path'] = f"TFR/{report_no}.pdf"
+            req['docx_path'] = None
+        else:
+            req['pdf_path'] = None
+            req['docx_path'] = f"TFR/{report_no}.docx"
 
     # Ghi Excel & TRF.xlsx & archive (giữ nguyên như bạn đang có)
-    try:
-        write_tfr_to_excel(local_main, report_no, req)
-        wb = load_workbook(local_main)
-        ws = wb.active
-        report_col = get_col_idx(ws, "report#")
-        row_idx = None
-        for row in range(2, ws.max_row + 1):
-            v = ws.cell(row=row, column=report_col).value
-            if v and str(v).strip() == str(report_no):
-                row_idx = row
-                break
-        if row_idx:
-            def set_val(col_name, value, is_date_col=False):
-                col_idx = get_col_idx(ws, col_name)
-                if col_idx:
-                    cell = ws.cell(row=row_idx, column=col_idx)
-                    if is_date_col:
-                        dt_val = try_parse_excel_date(value)
-                        if dt_val:
-                            cell.value = dt_val
-                            cell.number_format = 'dd-mmm'   # <- đổi d-mmm -> dd-mmm
+        try:
+            write_tfr_to_excel(local_main, report_no, req)
+            wb = load_workbook(local_main)
+            ws = wb.active
+            report_col = get_col_idx(ws, "report#")
+            row_idx = None
+            for row in range(2, ws.max_row + 1):
+                v = ws.cell(row=row, column=report_col).value
+                if v and str(v).strip() == str(report_no):
+                    row_idx = row
+                    break
+            if row_idx:
+                def set_val(col_name, value, is_date_col=False):
+                    col_idx = get_col_idx(ws, col_name)
+                    if col_idx:
+                        cell = ws.cell(row=row_idx, column=col_idx)
+                        if is_date_col:
+                            dt_val = try_parse_excel_date(value)
+                            if dt_val:
+                                cell.value = dt_val
+                                cell.number_format = 'dd-mmm'   # <- đổi d-mmm -> dd-mmm
+                            else:
+                                cell.value = value
                         else:
-                            cell.value = value
-                    else:
-                        cell.value = value.upper() if isinstance(value, str) else value
+                            cell.value = value.upper() if isinstance(value, str) else value
 
-            def clean_type_of(val):
-                return val[:-5].strip() if val and isinstance(val, str) and val.upper().endswith(" TEST") else val
+                def clean_type_of(val):
+                    return val[:-5].strip() if val and isinstance(val, str) and val.upper().endswith(" TEST") else val
 
-            set_val("item#", req.get("item_code", ""))
-            set_val("type of", clean_type_of(req.get("test_group", "")))
-            set_val("item name/ description", req.get("sample_description", ""))
-            set_val("furniture testing", req.get("furniture_testing", ""))
-            set_val("submiter in", req.get("requestor", ""))
-            set_val("submited", req.get("department", ""))
-            set_val("qa comment", req.get("remark", ""))
+                set_val("item#", req.get("item_code", ""))
+                set_val("type of", clean_type_of(req.get("test_group", "")))
+                set_val("item name/ description", req.get("sample_description", ""))
+                set_val("furniture testing", req.get("furniture_testing", ""))
+                set_val("submiter in", req.get("requestor", ""))
+                set_val("submited", req.get("department", ""))
+                set_val("qa comment", req.get("remark", ""))
 
-            etd_val = req.get("etd", "")
-            set_val("etd", etd_val, is_date_col=True)  # <-- bỏ format_excel_date_short
+                etd_val = req.get("etd", "")
+                set_val("etd", etd_val, is_date_col=True)  # <-- bỏ format_excel_date_short
 
 
+                vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
+                req_login = (req.get("request_date") or "").strip()
+                val_for_excel = req_login if req_login else datetime.now(vn_tz).strftime("%Y-%m-%d")
+                set_val("log in date", val_for_excel, is_date_col=True)
+
+                finishing_type = req.get("finishing_type", "")
+                material_type  = req.get("material_type", "")
+                cat_comp_pos   = get_category_component_position(finishing_type, material_type)
+                set_val("category / component name / position", cat_comp_pos)
+                wb.save(local_main)
+        except Exception as e:
+            print("Ghi vào Excel bị lỗi:", e)
+
+        try:
+            append_row_to_trf(report_no, local_main, "TRF.xlsx", trq_id=req.get("trq_id", ""))
+        except Exception as e:
+            print("Append TRF lỗi:", e)
+
+        try:
             vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
-            req_login = (req.get("request_date") or "").strip()
-            val_for_excel = req_login if req_login else datetime.now(vn_tz).strftime("%Y-%m-%d")
-            set_val("log in date", val_for_excel, is_date_col=True)
-
-            finishing_type = req.get("finishing_type", "")
-            material_type  = req.get("material_type", "")
-            cat_comp_pos   = get_category_component_position(finishing_type, material_type)
-            set_val("category / component name / position", cat_comp_pos)
-            wb.save(local_main)
-    except Exception as e:
-        print("Ghi vào Excel bị lỗi:", e)
-
-    try:
-        append_row_to_trf(report_no, local_main, "TRF.xlsx", trq_id=req.get("trq_id", ""))
-    except Exception as e:
-        print("Append TRF lỗi:", e)
-
-    try:
-        vn_tz = pytz.timezone("Asia/Ho_Chi_Minh")
-        short_data = {
-            "trq_id": req.get("trq_id", ""),
-            "report_no": req.get("report_no", ""),
-            "requestor": req.get("requestor", ""),
-            "department": req.get("department", ""),
-            "request_date": req.get("request_date", ""),
-            "item_code": req.get("item_code", ""),  # NEW: carry item_code from request -> archive
-            "status": req.get("status", ""),
-            "pdf_path": req.get("pdf_path"),
-            "docx_path": req.get("docx_path"),
-            "employee_id": req.get("employee_id", ""),
-            "approved_date": datetime.now(vn_tz).strftime("%Y-%m-%d"),
-            "test_group": req.get("test_group", ""),
-        }
-        archive_request(short_data)
-    except Exception as e:
-        print("Archive lỗi:", e)
+            short_data = {
+                "trq_id": req.get("trq_id", ""),
+                "report_no": req.get("report_no", ""),
+                "requestor": req.get("requestor", ""),
+                "department": req.get("department", ""),
+                "request_date": req.get("request_date", ""),
+                "item_code": req.get("item_code", ""),
+                "status": req.get("status", ""),
+                "pdf_path": req.get("pdf_path"),
+                "docx_path": req.get("docx_path"),
+                "employee_id": req.get("employee_id", ""),
+                "approved_date": datetime.now(vn_tz).strftime("%Y-%m-%d"),
+                "test_group": req.get("test_group", ""),
+            }
+            archive_request(short_data)
+        except Exception as e:
+            print("Archive lỗi:", e)
 
     return req
 
@@ -2275,7 +2275,7 @@ def update():
         os.makedirs(p, exist_ok=True)
 
     def _parse_kv_file(path):
-        """Đọc file comment_{group}.txt -> dict {key: value} với format 'key: value' hoặc 'key=value'."""
+        """Đọc file comment_{group}.txt -> dict {key: value} (key được chuẩn hóa lowercase)."""
         data = {}
         if not os.path.exists(path):
             return data
@@ -2288,7 +2288,7 @@ def update():
                 if len(m) == 2:
                     k, v = m[0].strip(), m[1].strip()
                     if k:
-                        data[k] = v
+                        data[k.lower()] = v
         return data
 
     def _upsert_kv_file(path, kv: dict):
@@ -2376,14 +2376,52 @@ def update():
         print(traceback.format_exc())
         return f"Lỗi khi xử lý file: {e}", 500
 
-    # ==== lấy sẵn Sample Info từ comment_{group}.txt (group=main) ====
-    group_for_sample = "main"
+    # ==== lấy sẵn Sample Info (ưu tiên nhóm test gần nhất, fallback main) ====
     report_folder = os.path.join(UPLOAD_FOLDER, str(report))
     _ensure_dir(report_folder)
-    sample_comment_file = os.path.join(report_folder, f"comment_{group_for_sample}.txt")
-    sample_notes = _parse_kv_file(sample_comment_file)
-    sample_weight_val = sample_notes.get("sample_weight", "")
-    sample_size_val   = sample_notes.get("sample_size", "")
+
+    group_pref = session.get(f"last_test_code_{report}") or "main"
+
+    def _read_notes(gname):
+        return _parse_kv_file(os.path.join(report_folder, f"comment_{gname}.txt"))
+
+    sample_notes = _read_notes(group_pref)
+    if not sample_notes or (not sample_notes.get("sample_weight") and not sample_notes.get("sample_size")):
+        base_notes = _read_notes("main")
+        if base_notes:
+            for k, v in base_notes.items():
+                sample_notes.setdefault(k, v)
+
+    # --- Chuẩn hóa sample_weight: lấy số thuần để render vào <input type="number">
+    def _extract_number_str(s):
+        if not s:
+            return ""
+        s = str(s)
+        m = re.search(r'[-+]?\d+(?:[.,]\d+)?', s)  # lấy số đầu tiên
+        if not m:
+            return ""
+        return m.group(0).replace(",", ".")  # 12,3 -> 12.3
+
+    sample_weight_val_raw = sample_notes.get("sample_weight", "")
+    sample_weight_val = _extract_number_str(sample_weight_val_raw)
+
+    # --- Parse sample_size "L x W x H" -> ba trường để bind vào input
+    sample_size_val = sample_notes.get("sample_size", "")
+
+    def _parse_size_triplet(s):
+        if not s:
+            return "", "", ""
+        s = str(s)
+        m = re.search(
+            r'([0-9]+(?:[.,][0-9]+)?)\s*[x×*]\s*([0-9]+(?:[.,][0-9]+)?)\s*[x×*]\s*([0-9]+(?:[.,][0-9]+)?)',
+            s, re.I
+        )
+        if not m:
+            return "", "", ""
+        a, b, c = m.group(1), m.group(2), m.group(3)
+        return a.replace(",", "."), b.replace(",", "."), c.replace(",", ".")
+
+    size_length_val, size_width_val, size_height_val = _parse_size_triplet(sample_size_val)
 
     # --- nếu chưa login: xử lý login form ---
     if not is_logged_in:
@@ -2447,39 +2485,28 @@ def update():
             size_width  = request.form.get("size_width", "").strip()
             size_height = request.form.get("size_height", "").strip()
 
-            # Format Sample Size
-            size_str = f"{size_length} x {size_width} x {size_height} mm" if size_length and size_width and size_height else ""
+            size_str = ""
+            if size_length and size_width and size_height:
+                size_str = f"{size_length} x {size_width} x {size_height}"
 
-            # Xác định nhóm test hiện tại để chọn file comment tương ứng
             group_code = session.get(f"last_test_code_{report}") or "main"
             comment_file = os.path.join(UPLOAD_FOLDER, str(report), f"comment_{group_code}.txt")
+            os.makedirs(os.path.dirname(comment_file), exist_ok=True)
 
-            os.makedirs(os.path.join(UPLOAD_FOLDER, str(report)), exist_ok=True)
-
-            # Đọc file cũ (nếu có)
-            existing_lines = []
-            if os.path.exists(comment_file):
-                with open(comment_file, "r", encoding="utf-8", errors="ignore") as f:
-                    existing_lines = f.readlines()
-
-            # Lọc bỏ các dòng Sample Weight / Sample Size cũ
-            filtered_lines = []
-            for line in existing_lines:
-                if not line.lower().startswith("sample weight") and not line.lower().startswith("sample size"):
-                    filtered_lines.append(line.rstrip("\n"))
-
-            # Thêm dòng mới cho Sample Weight & Sample Size
+            updates = {}
             if weight:
-                filtered_lines.append(f"Sample Weight: {weight} kg")
+                # Lưu nguyên số thập phân, thêm " kg" để người đọc dễ hiểu
+                # (nếu không muốn 'kg' thì bỏ đi)
+                updates["sample_weight"] = f"{weight} kg"
             if size_str:
-                filtered_lines.append(f"Sample Size: {size_str}")
+                updates["sample_size"] = size_str
 
-            # Ghi lại toàn bộ file (giữ comment cũ + sample mới)
-            with open(comment_file, "w", encoding="utf-8") as f:
-                f.write("\n".join(filtered_lines) + "\n")
+            if updates:
+                _upsert_kv_file(comment_file, updates)
 
-            message = f"✅ Đã lưu Sample Weight & Sample Size vào {os.path.basename(comment_file)}"
-            
+            # PRG: đảm bảo reload trang sẽ hiển thị giá trị mới trong input
+            return redirect(url_for("update", report=report))
+        
         # --- Đánh dấu "testing" ---
         elif valid and action == "testing":
             wb = safe_load_excel(local_main)
@@ -2738,9 +2765,13 @@ def update():
         last_test_type=last_test_type,
         so_gio_test=SO_GIO_TEST,
         show_line_test_done_notice=show_line_test_done_notice,
-        rating_value=rating_value,                 # <-- truyền xuống template
-        sample_weight=sample_weight_val,           # <-- giá trị đã lưu trong comment_main.txt
-        sample_size=sample_size_val,               # <--
+        rating_value=rating_value,
+        # Sample info
+        sample_weight=sample_weight_val,
+        sample_size=sample_size_val,
+        size_length=size_length_val,
+        size_width=size_width_val,
+        size_height=size_height_val,
     )
 
 def _has_images(report_folder: str, group: str, key: str, is_hotcold_like: bool) -> bool:
@@ -3391,9 +3422,13 @@ def render_test_group_item(report, group, key, group_titles, comment):
     # === Lấy ảnh thường cho mục không phải drop/impact/rot/RH np ===
     imgs = []
     if os.path.exists(report_folder) and not is_drop:
+        prefix = f"test_{group}_{key}_"
         for f in sorted(os.listdir(report_folder)):
-            if allowed_file(f) and f.startswith(f"test_{group}_{key}"):
-                imgs.append(f"/images/{report}/{f}")
+            if allowed_file(f) and f.startswith(prefix):
+                # Chỉ nhận file có số thứ tự ngay sau prefix (vd: ..._1.jpg, ..._2.png)
+                tail = f[len(prefix):].split('.')[0]
+                if tail.isdigit():
+                    imgs.append(f"/images/{report}/{f}")
 
     # === Chọn template (transit dùng test_transit_item.html) ===
     TRANSIT_GROUPS = (

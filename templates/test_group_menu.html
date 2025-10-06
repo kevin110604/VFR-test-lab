@@ -117,6 +117,18 @@
         word-break: break-word; word-wrap: break-word; text-decoration: none;
         font-family: 'Inter', sans-serif;
     }
+
+    /* nút đã có status -> xám nhạt */
+    .test-btn.done {
+        background: #cccccc !important;
+        color: #555 !important;
+        cursor: default;
+        box-shadow: none;
+    }
+    body.dark .test-btn.done {
+        background: #555 !important;
+        color: #ddd !important;
+    }
     body.dark .test-btn { background: var(--color-green); color: #25312b; box-shadow: 0 2px 10px var(--shadow-dark); }
     .test-btn:hover { background: var(--color-bronze); }
     .test-btn b {
@@ -221,14 +233,15 @@
                         <div class="f2057-panel">
                             {% for fkey, fval in F2057_TEST_TITLES.items() %}
                             <div style="margin-bottom: 12px;">
-                                <a class="test-btn" href="{{ url_for('test_group_item_dynamic', report=report, group=group, test_key=fkey) }}">
+                                {% set s = f2057_status.get(fkey, {}) %}
+                                <a class="test-btn {% if s.status %}done{% endif %}"
+                                href="{{ url_for('test_group_item_dynamic', report=report, group=group, test_key=fkey) }}">
                                     {% if fval.full %}
                                         <b>{{ fval.full.split(':')[0] }}:</b> {{ fval.full.split(':', 1)[1]|default('', true) }}
                                     {% else %}
                                         {{ fval.full }}
                                     {% endif %}
                                 </a>
-                                {% set s = f2057_status.get(fkey, {}) %}
                                 {% if s.status or s.comment or not s.status %}
                                 <div>
                                     {% if s.status %}
@@ -264,14 +277,15 @@
                 {% elif not (group == 'tu_us' and key == 'f2057') %}
                     <!-- Các nút bình thường -->
                     <div>
-                        <a class="test-btn" href="{{ url_for('test_group_item_dynamic', report=report, group=group, test_key=key) }}">
+                        {% set s = test_status.get(key, {}) %}
+                        <a class="test-btn {% if s.status %}done{% endif %}"
+                        href="{{ url_for('test_group_item_dynamic', report=report, group=group, test_key=key) }}">
                             {% if value.full %}
                                 <b>{{ value.full.split(':')[0] }}:</b> {{ value.full.split(':', 1)[1]|default('', true) }}
                             {% else %}
                                 {{ value.full }}
                             {% endif %}
                         </a>
-                        {% set s = test_status.get(key, {}) %}
                         {% if s.status or s.comment or not s.status %}
                         <div>
                             {% if s.status %}
