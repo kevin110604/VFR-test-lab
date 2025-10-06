@@ -5,7 +5,7 @@ from image_utils import allowed_file, get_img_urls
 from auth import login, get_user_type
 from test_logic import load_group_notes, get_group_test_status, is_drop_test, is_impact_test, is_rotational_test,  TEST_GROUP_TITLES, TEST_TYPE_VI, DROP_ZONES, DROP_LABELS, GT68_FACE_LABELS, GT68_FACE_ZONES
 from test_logic import IMPACT_ZONES, IMPACT_LABELS, ROT_LABELS, ROT_ZONES, RH_IMPACT_ZONES, RH_VIB_ZONES, RH_SECOND_IMPACT_ZONES, RH_STEP12_ZONES, update_group_note_file, get_group_note_value, F2057_TEST_TITLES
-from notify_utils import send_teams_message, notify_when_enough_time
+from notify_utils import send_teams_message
 from counter_utils import update_counter, check_and_reset_counter, log_report_complete
 from docx_utils import approve_request_fill_docx_pdf, fill_cover_from_excel_generic
 from file_utils import (
@@ -19,13 +19,14 @@ from waitress import serve
 from openpyxl import load_workbook, Workbook
 from openpyxl.styles import PatternFill
 from collections import defaultdict, OrderedDict
-from apscheduler.schedulers.background import BackgroundScheduler
 from threading import Lock
 from contextlib import contextmanager
 from vfr3 import vfr3_bp
 from werkzeug.utils import secure_filename
 from qr_print import qr_bp
 from testlab_dashboard import dashboard_bp
+from flask_session import Session
+from collections import OrderedDict
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
@@ -33,11 +34,65 @@ app.register_blueprint(vfr3_bp)
 app.register_blueprint(qr_bp)
 app.register_blueprint(dashboard_bp, url_prefix="/testlab")
 
+# ==== Server-side session config ====
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app.config.update(
+    SESSION_TYPE='filesystem',  # có thể đổi sang 'redis' / 'sqlalchemy' nếu muốn
+    SESSION_FILE_DIR=os.path.join(BASE_DIR, '.flask_session'),
+    SESSION_PERMANENT=False,  # cookie phiên (đóng trình duyệt là hết)
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
+    SESSION_COOKIE_NAME='vfr_session',
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',  # đổi 'Strict' nếu kiosk
+    # SESSION_COOKIE_SECURE=True,   # bật nếu chạy HTTPS
+)
+Session(app)
 # Những test dùng giao diện Hot & Cold
 HOTCOLD_LIKE = set(["hot_cold", "standing_water", "stain", "corrosion"])
 INDOOR_GROUPS = {"indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal","outdoor_finishing"}
 REPORT_NO_LOCK = Lock()
 BLANK_TOKENS = {"", "-", "—"}
+
+_LAST_TEST_LRU_LIMIT = 50  # lưu tối đa 50 report gần nhất
+
+def _set_limited_mapping(session_key: str, subkey: str, value, limit: int = _LAST_TEST_LRU_LIMIT):
+    """
+    Lưu value vào session[session_key][subkey] với giới hạn số phần tử.
+    Dùng OrderedDict như LRU: nếu quá 'limit' thì pop phần tử cũ nhất.
+    """
+    mapping = session.get(session_key)
+    if not isinstance(mapping, dict):
+        mapping = {}
+
+    od = OrderedDict(mapping)
+    if subkey in od:
+        od.move_to_end(subkey)
+    od[subkey] = value
+
+    while len(od) > limit:
+        od.popitem(last=False)
+
+    session[session_key] = dict(od)
+
+def set_last_test(report: str, group_code: str, display_title: str = None):
+    """
+    Ghi đồng thời 'last_test_code' (group) và 'last_test_type' (display title).
+    Nếu không truyền display_title sẽ dùng tên nhóm (VI) qua get_group_title.
+    """
+    if display_title is None:
+        display_title = get_group_title(group_code) or group_code.upper()
+    _set_limited_mapping("last_test_code", str(report), group_code)
+    _set_limited_mapping("last_test_type", str(report), display_title)
+
+def set_last_test_type(report: str, display_title: str):
+    """Chỉ cập nhật 'last_test_type' (không đụng tới last_test_code)."""
+    _set_limited_mapping("last_test_type", str(report), display_title)
+
+def get_last_test_code(report: str, default=None):
+    return (session.get("last_test_code") or {}).get(str(report), default)
+
+def get_last_test_type(report: str, default=None):
+    return (session.get("last_test_type") or {}).get(str(report), default)
 
 def _is_blank_cell(v):
     if v is None:
@@ -2253,8 +2308,8 @@ def delete_test_group_image(report, group, key, imgfile):
 
 @app.route("/logout")
 def logout():
-    session.pop("auth_ok", None)
-    session.pop("staff_id", None)  # Đăng xuất thì xóa luôn staff_id
+    for k in ("auth_ok", "staff_id", "user_type", "role", "last_test_type", "last_test_code"):
+        session.pop(k, None)
     return "<h3 style='text-align:center;margin-top:80px;'>Đã đăng xuất!<br><a href='/' style='color:#4d665c;'>Về trang chọn sản phẩm</a></h3>"
 
 @app.route("/update", methods=["GET", "POST"])
@@ -2380,7 +2435,7 @@ def update():
     report_folder = os.path.join(UPLOAD_FOLDER, str(report))
     _ensure_dir(report_folder)
 
-    group_pref = session.get(f"last_test_code_{report}") or "main"
+    group_pref = get_last_test_code(report, default="main")
 
     def _read_notes(gname):
         return _parse_kv_file(os.path.join(report_folder, f"comment_{gname}.txt"))
@@ -2489,7 +2544,7 @@ def update():
             if size_length and size_width and size_height:
                 size_str = f"{size_length} x {size_width} x {size_height}"
 
-            group_code = session.get(f"last_test_code_{report}") or "main"
+            group_code = get_last_test_code(report, default="main")
             comment_file = os.path.join(UPLOAD_FOLDER, str(report), f"comment_{group_code}.txt")
             os.makedirs(os.path.dirname(comment_file), exist_ok=True)
 
@@ -2549,11 +2604,11 @@ def update():
 
             # (… giữ nguyên phần còn lại xử lý Teams / copy completed / log như code gốc …)
             # --- LẤY LOẠI TEST GẦN NHẤT ---
-            group_code = session.get(f"last_test_code_{report}")
+            group_code = get_last_test_code(report)
             group_title = get_group_title(group_code) if group_code else None
 
             if not group_code:
-                last_test_type = session.get(f"last_test_type_{report}")
+                last_test_type = get_last_test_type(report)
                 if last_test_type:
                     for g_id, g_name in TEST_GROUPS:
                         if g_name == last_test_type:
@@ -2733,7 +2788,7 @@ def update():
             update_counter()
 
     # === Lấy loại test gần nhất (last_test_type) ===
-    last_test_type = session.get(f"last_test_type_{report}")
+    last_test_type = get_last_test_type(report)
 
     # === Kiểm tra đã đủ số giờ line test chưa ===
     elapsed = get_line_test_elapsed(report)
@@ -2854,8 +2909,7 @@ def api_report_create():
 @app.route("/test_group/<report>/<group>", methods=["GET", "POST"])
 def test_group_page(report, group):
     # Lưu context gần nhất
-    session[f"last_test_type_{report}"] = get_group_title(group)
-    session[f"last_test_code_{report}"] = group
+    set_last_test(report, group)
 
     group_titles = TEST_GROUP_TITLES.get(group)
     if not group_titles:
@@ -2931,8 +2985,7 @@ def test_group_page(report, group):
 @app.route('/test_group/<report>/<group>/<test_key>', methods=['GET', 'POST'])
 def test_group_item_dynamic(report, group, test_key):
     # Lưu lại loại test gần nhất
-    session[f"last_test_type_{report}"] = get_group_title(group)
-    session[f"last_test_code_{report}"] = group
+    set_last_test(report, group)
 
     # Hot/Cold chuyển sang route riêng
     if test_key in HOTCOLD_LIKE and group in INDOOR_GROUPS:
@@ -3398,7 +3451,7 @@ def render_test_group_item(report, group, key, group_titles, comment):
             update_group_note_file(comment_file, key, comment)
         # Cập nhật loại kiểm tra gần nhất
         vi_name = TEST_TYPE_VI.get(group, group.upper())
-        session[f"last_test_type_{report}"] = vi_name
+        set_last_test_type(report, vi_name)
         return redirect(request.url)
 
     # === Tính trạng thái tổng thể từng mục cho menu group ===
@@ -3543,7 +3596,7 @@ def hot_cold_test(report, group, test_key):
     else:
         display_title = test_key.replace('_', ' ').title()
 
-    session[f"last_test_type_{report}"] = f"{display_title} ({group.upper()})"
+    set_last_test_type(report, f"{display_title} ({group.upper()})")
 
     # ====== Chuẩn bị đường dẫn/lưu trữ ======
     vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
@@ -3708,7 +3761,7 @@ def get_hotcold_elapsed(report, group):
 
 @app.route("/line_test/<report>", methods=["GET", "POST"])
 def line_test(report):
-    session[f"last_test_type_{report}"] = "LINE TEST"
+    set_last_test_type(report, "LINE TEST")
     folder = os.path.join(UPLOAD_FOLDER, str(report))
     os.makedirs(folder, exist_ok=True)
     before_tag, after_tag = "line_before", "line_after"
@@ -3764,7 +3817,7 @@ def line_test(report):
                 if img.startswith(tag):
                     if not any(allowed_file(f) and f.startswith(tag) for f in os.listdir(folder)):
                         if os.path.exists(time_file): os.remove(time_file)
-        session[f"last_test_type_{report}"] = "LINE TEST"
+        set_last_test_type(report, "LINE TEST")
         return redirect(request.url)
 
     # --- GET: Đọc dữ liệu đã lưu ---
@@ -4035,165 +4088,25 @@ DISPLAY = {
     "corrosion": "Corrosion test",
 }
 
-def auto_notify_all_first_time():
-    webhook_url = TEAMS_WEBHOOK_URL_COUNT
-    try:
-        for report_folder in os.listdir(UPLOAD_FOLDER):
-            folder = os.path.join(UPLOAD_FOLDER, report_folder)
-            if not os.path.isdir(folder):
-                continue
-
-            # Line test: gửi ngay khi đủ giờ (job mỗi phút)
-            try:
-                notify_when_enough_time(
-                    report=report_folder,
-                    so_gio_test=SO_GIO_TEST,
-                    tag_after="line_after",
-                    time_file_name="before_upload_time.txt",
-                    flag_file_name="teams_notified_line.txt",
-                    webhook_url=webhook_url,
-                    notify_msg=f"✅ [TỰ ĐỘNG] Line test của sản phẩm REPORT {report_folder} đã đủ {SO_GIO_TEST} tiếng! Vui lòng upload ảnh after.",
-                    force_send=False,
-                    pending_notify_name="pending_notify_line.txt"
-                )
-            except Exception as e:
-                print(f"[auto_notify_all_first_time] Error notifying LINE for {report_folder}:", e)
-
-            # Hotcold test: gửi ngay khi đủ giờ (job mỗi phút)
-            for group in ["indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal"]:
-                for key in HOTCOLD_LIKE:
-                    try:
-                        notify_when_enough_time(
-                            report=report_folder,
-                            so_gio_test=SO_GIO_TEST,
-                            tag_after=f"{key}_after",                             # ví dụ: hot_cold_after
-                            time_file_name=f"{key}_{group}_before_time.txt",      # ví dụ: hot_cold_indoor_thuong_before_time.txt
-                            flag_file_name=f"teams_notified_{key}_{group}.txt",
-                            webhook_url=webhook_url,
-                            notify_msg=(f"✅ [TỰ ĐỘNG] {DISPLAY.get(key, key.title())} của REPORT {report_folder} "
-                                        f"({group.upper()}) đã đủ {SO_GIO_TEST} tiếng! Vui lòng upload ảnh after."),
-                            force_send=False,
-                            pending_notify_name=f"pending_notify_{key}_{group}.txt"
-                        )
-                    except Exception as e:
-                        print(f"[auto_notify_all_first_time] Error notifying {key} ({group}) for {report_folder}:", e)
-    except Exception as e:
-        print("[auto_notify_all_first_time] Error listing folders:", e)
-
-def auto_notify_all_repeat():
-    webhook_url = TEAMS_WEBHOOK_URL_COUNT
-    MAX_REPEAT = 3
-
-    def get_repeat_count(folder, file_name):
-        path = os.path.join(folder, file_name)
-        try:
-            if os.path.exists(path):
-                with open(path, "r", encoding="utf-8") as f:
-                    val = f.read().strip()
-                    return int(val) if val.isdigit() else 0
-        except Exception:
-            return 0
-        return 0
-
-    def increase_repeat_count(folder, file_name):
-        path = os.path.join(folder, file_name)
-        count = get_repeat_count(folder, file_name) + 1
-        try:
-            with open(path, "w", encoding="utf-8") as f:
-                f.write(str(count))
-        except Exception:
-            pass
-
-    for report_folder in os.listdir(UPLOAD_FOLDER):
-        folder = os.path.join(UPLOAD_FOLDER, report_folder)
-        if not os.path.isdir(folder):
-            continue
-
-        # --- LINE TEST ---
-        repeat_file_line = "repeat_notify_line.txt"
-        count_line = get_repeat_count(folder, repeat_file_line)
-        if count_line < MAX_REPEAT:
-            sent = notify_when_enough_time(
-                report=report_folder,
-                so_gio_test=SO_GIO_TEST,
-                tag_after="line_after",
-                time_file_name="before_upload_time.txt",
-                flag_file_name=None,
-                webhook_url=webhook_url,
-                notify_msg=f"✅ [TỰ ĐỘNG, NHẮC LẠI 1 TIẾNG] Line test của sản phẩm REPORT {report_folder} đã đủ {SO_GIO_TEST} tiếng! Vui lòng upload ảnh after.",
-                force_send=True,
-                pending_notify_name="pending_notify_line.txt"
-            )
-            # notify_when_enough_time nên trả về True nếu đã gửi notify lần này
-            if sent:
-                increase_repeat_count(folder, repeat_file_line)
-
-        # --- HOTCOLD TEST ---
-        for group in ["indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal"]:
-            for key in HOTCOLD_LIKE:
-                repeat_file = f"repeat_notify_{key}_{group}.txt"
-                count = get_repeat_count(folder, repeat_file)
-                if count < MAX_REPEAT:
-                    sent = notify_when_enough_time(
-                        report=report_folder,
-                        so_gio_test=SO_GIO_TEST,
-                        tag_after=f"{key}_after",
-                        time_file_name=f"{key}_{group}_before_time.txt",
-                        flag_file_name=None,
-                        webhook_url=webhook_url,
-                        notify_msg=(f"✅ [TỰ ĐỘNG, NHẮC LẠI 1 TIẾNG] {DISPLAY.get(key, key.title())} của REPORT "
-                                    f"{report_folder} ({group.upper()}) đã đủ {SO_GIO_TEST} tiếng! Vui lòng upload ảnh after."),
-                        force_send=True,
-                        pending_notify_name=f"pending_notify_{key}_{group}.txt"
-                    )
-                    if sent:
-                        increase_repeat_count(folder, repeat_file)
-
-def auto_notify_all_pending():
-    webhook_url = TEAMS_WEBHOOK_URL_COUNT
-    # Luôn dùng giờ VN để không bị lệch khi server ở nước ngoài
-    vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
-    now = datetime.now(vn_tz)
-    cur_hour = now.hour
-    if cur_hour < 8 or cur_hour >= 21:
-        return  # Chỉ gửi pending từ 8h tới 21h
-
-    for report_folder in os.listdir(UPLOAD_FOLDER):
-        folder = os.path.join(UPLOAD_FOLDER, report_folder)
-        if not os.path.isdir(folder): continue
-
-        # Line test
-        pending_path = os.path.join(folder, "pending_notify_line.txt")
-        if os.path.exists(pending_path):
-            with open(pending_path, "r", encoding="utf-8") as f:
-                msg = f.read()
-            send_teams_message(webhook_url, msg)
-            os.remove(pending_path)
-
-        # Hotcold test
-        for group in ["indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal"]:
-            for key in HOTCOLD_LIKE:
-                pending_path = os.path.join(folder, f"pending_notify_{key}_{group}.txt")
-                if os.path.exists(pending_path):
-                    with open(pending_path, "r", encoding="utf-8") as f:
-                        msg = f.read()
-                    send_teams_message(webhook_url, msg)
-                    os.remove(pending_path)
-
-# Khởi tạo scheduler
-scheduler = BackgroundScheduler()
-scheduler.add_job(func=auto_notify_all_first_time, trigger="interval", seconds=60)
-scheduler.add_job(func=auto_notify_all_repeat, trigger="interval", seconds=3600)
-scheduler.add_job(func=auto_notify_all_pending, trigger="interval", seconds=300)  # Kiểm tra pending mỗi 5 phút
-scheduler.start()
-
 @app.route("/set_pref", methods=["POST"])
 def set_pref():
-    key = request.json.get("key")
-    value = request.json.get("value")
-    if key in ("darkmode", "lang"):
-        session[key] = value
+    key = (request.json.get("key") or "").strip()
+    value = str(request.json.get("value") or "").strip()
+
+    if key == "darkmode":
+        # Chuẩn hóa về "0"/"1"
+        norm = "1" if value.lower() in ("1", "true", "on", "yes") else "0"
+        session["darkmode"] = norm
         return jsonify({"success": True})
+
+    if key == "lang":
+        # Giới hạn mã ngôn ngữ và độ dài
+        norm = value.lower()[:5]
+        if norm not in ("vi", "en"):
+            norm = "vi"
+        session["lang"] = norm
+        return jsonify({"success": True})
+
     return jsonify({"success": False}), 400
 
 KIOSK_TOKEN = os.environ.get("KIOSK_TOKEN") or ("kiosk-" + secrets.token_urlsafe(18))
