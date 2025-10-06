@@ -1,2 +1,0 @@
-gsample_weight: 321 kg
-sample_size: 3 x 3 x 22

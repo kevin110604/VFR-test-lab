@@ -1,6 +1,0 @@
-pencil: a
-adhesion: oooo
-default: oooojjjj
-sample_weight: 123 kg
-sample_size: 123 x 123.3 x 123
-standing_water: oooojjjj
