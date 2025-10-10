@@ -1,149 +1,303 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
-    <title>Thông tin lưu mẫu</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
-    <link href="https://fonts.googleapis.com/css?family=Inter:400,600&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            background: url('/static/bg_grass.png') repeat;
-            background-size: 420px 420px;
-            font-family: 'Open Sans', Arial, sans-serif;
-            color: #25312b;
-        }
-        .box {
-            background: #fffdfccf;
-            border-radius: 22px;
-            box-shadow: 0 4px 32px #4d665c44;
-            max-width: 560px;
-            margin: 40px auto 20px auto;
-            padding: 38px 32px 36px 32px;
-            animation: fadeGrow 0.7s;
-            position: relative;
-        }
-        @keyframes fadeGrow {0% {opacity:0;transform:scale(0.98);}100%{opacity:1;transform:scale(1);}}
-        h2 {
-            font-family: 'Merriweather', serif;
-            font-size: 28px;
-            color: #35523A;
-            text-align: center;
-            font-weight: bold;
-            margin-bottom: 14px;
-        }
-        .field-row {
-            display: flex; gap: 14px;
-            margin-bottom: 11px; align-items: flex-start;
-        }
-        .label {
-            min-width: 120px; font-weight: 600; color: #c49c48; letter-spacing: 0.06em;
-            font-size: 18px; flex-shrink:0;
-        }
-        .value {
-            font-size: 18px; font-family: 'Merriweather', serif; color: #35523a;
-            font-weight: 600; max-width:320px;
-        }
-        .hint {
-            color: #608476; font-size: 16px; margin-bottom: 14px; text-align: center;
-        }
-        .map-wrap {
-            width: 100%; max-width: 720px; margin: 26px auto 10px auto;
-            border-radius: 13px; overflow: hidden; background: #f9f8e5;
-            box-shadow: 0 4px 28px #c49c4840;
-        }
-        #svgLayout { width: 100%; min-height: 500px; background: #fff; }
-        .highlight-zone {
-            stroke: #FF3B00 !important;
-            stroke-width: 5px !important;
-            fill: #ffeb3b !important;
-            opacity: 0.82;
-            filter: drop-shadow(0 0 9px #ffcf00);
-        }
-        .btn-row {
-            display: flex; justify-content: center; gap: 13px; margin-top: 21px;
-        }
-        .main-btn {
-            background: #4d665c; color: #fff; font-size: 17px; padding: 11px 34px;
-            border-radius: 9px; border: none; cursor: pointer; font-weight: bold;
-            box-shadow: 0 2px 10px #4d665c24; transition: background 0.18s;
-            font-family: 'Inter', sans-serif; outline: none; position: relative; overflow: hidden;
-        }
-        .main-btn:hover {background:#c49c48;color:#fff;}
-        @media (max-width:700px) {.box{max-width:98vw;padding:16vw 3vw 12vw 3vw;}.map-wrap{max-width:99vw;}}
-    </style>
+  <meta charset="UTF-8" />
+  <title>Thông tin mẫu</title>
+  <!-- viewport-fit=cover để xử lý safe-area trên iPhone có notch -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+  /* ===== Reset nhẹ & biến màu ===== */
+  *,*::before,*::after{box-sizing:border-box}
+  :root{
+    --bg: #fffdfc;
+    --card: #ffffffcc;
+    --text: #333;
+    --accent: #c49c48;
+    --accent-2: #8b6b1e;
+    --green: #35523A;
+    --border: #e6d9b8;
+    --warn: #b88a20;
+    --danger: #d8453f;
+
+    /* độ rộng cột label (tự đổi theo breakpoint) */
+    --label-w: 160px;
+    --radius-lg: 22px;
+    --radius-md: 14px;
+  }
+  body.darkmode{
+    --bg:#1f2a2a;
+    --card:#293635;
+    --text:#f5f5ef;
+    --accent:#b9933a;
+    --accent-2:#d3b56a;
+    --green:#5b8d70;
+    --border:#3f4e4a;
+  }
+
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    font-family: system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh; min-height:100svh; min-height:100dvh;
+    transition:background .3s,color .3s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ===== Layout ===== */
+  .wrapper{
+    max-width: 920px;
+    margin: clamp(14px,3.5vw,40px) auto;
+    padding: clamp(10px,2.5vw,22px);
+  }
+  .card{
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 28px #00000022;
+    padding: clamp(18px,3.6vw,34px);
+  }
+
+  h2{
+    margin:0 0 4px 0;
+    text-align:center;
+    color: var(--green);
+    font-size: clamp(20px,3.8vw,28px);
+    letter-spacing:.2px;
+  }
+  .hint{
+    text-align:center;
+    color:#7f8d80;
+    margin-bottom: clamp(10px,2.4vw,18px);
+    font-size: clamp(12px,2.8vw,14px);
+  }
+
+  /* ===== Info grid (label | value) ===== */
+  .info-grid{
+    --gap-y: 10px;
+    display:grid;
+    grid-template-columns: minmax(110px,var(--label-w)) 1fr;
+    row-gap: var(--gap-y);
+    column-gap: 12px;
+    align-items: start;
+  }
+  .label{
+    font-weight: 700;
+    color: var(--accent-2);
+    line-height: 1.35;
+    white-space: nowrap;        /* giữ label gọn */
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .value{
+    font-weight: 500;
+    line-height: 1.4;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .value.mono{ font-variant-numeric: tabular-nums; }
+
+  /* ===== Chip mã box ===== */
+  .pill{
+    display:inline-block;
+    padding: 4px 12px;
+    border: 1.6px solid var(--accent);
+    border-radius: 999px;
+    background: #fffbe8;
+    color: #222;
+    font-weight: 700;
+    box-shadow: inset 0 0 0 1px #00000008;
+    transition: transform .12s ease, filter .12s ease;
+  }
+  .pill:hover{ filter: brightness(.97); transform: translateY(-1px); }
+  body.darkmode .pill{ background: var(--accent); color:#1a1a1a; border-color:#e6cf86; }
+
+  /* ===== Days left ===== */
+  #days_left{ font-weight:800; }
+  #days_left.warn{ color: var(--warn); }
+  #days_left.danger{ color: var(--danger); }
+
+  /* ===== Buttons ===== */
+  .btns{
+    margin-top: clamp(16px,3.2vw,28px);
+    display:flex; flex-wrap:wrap; justify-content:center; gap:12px;
+  }
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    background: var(--accent); color:#fff; border:none;
+    border-radius: 12px;
+    padding: 10px 18px;
+    font-weight:700; text-decoration:none; cursor:pointer;
+    transition: background .15s, transform .05s;
+  }
+  .btn:hover{ background: var(--green); color:#fff; }
+  .btn:active{ transform: translateY(1px); }
+
+  /* ===== Theme toggle ===== */
+  #theme-btn{
+    position: fixed; right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom,0px));
+    width: 46px; height: 46px; border:none; border-radius:50%;
+    cursor:pointer; background: var(--green); color:#fff; font-size:18px;
+    box-shadow: 0 6px 16px #0000002a;
+    transition: background .2s, transform .05s;
+    z-index: 10;
+  }
+  #theme-btn:hover{ background: var(--accent); }
+  #theme-btn:active{ transform: translateY(1px); }
+
+  /* ===== Breakpoints – tinh chỉnh từng kích cỡ mobile ===== */
+  /* 430px: iPhone 14/15/16 Pro Max */
+  @media (max-width: 430px){
+    :root{ --label-w: 128px; }
+    .card{ border-radius: 18px; }
+    .info-grid{ row-gap: 9px; }
+    .label{ font-size: 15px; }
+    .value{ font-size: 15px; }
+  }
+  /* 414px: XR/11/Plus cũ */
+  @media (max-width: 414px){
+    :root{ --label-w: 124px; }
+    .label,.value{ font-size: 14.5px; }
+  }
+  /* 390px: iPhone 12/13/14/15/16 */
+  @media (max-width: 390px){
+    :root{ --label-w: 118px; }
+    .wrapper{ padding: 12px; }
+    .card{ padding: 18px 14px; }
+    .label,.value{ font-size: 14px; }
+  }
+  /* 375px: iPhone X/XS/11 Pro/SE gen mới */
+  @media (max-width: 375px){
+    :root{ --label-w: 112px; }
+    .info-grid{ column-gap: 10px; row-gap: 8px; }
+    .label,.value{ font-size: 13.5px; }
+    #theme-btn{ right: 12px; }
+  }
+  /* 340px: màn siêu hẹp – đổi sang xếp dọc cho dễ đọc */
+  @media (max-width: 340px){
+    .info-grid{
+      grid-template-columns: 1fr;
+    }
+    .label{ color: var(--accent); }
+  }
+
+  /* Desktop rộng: tăng nhịp lưới & cỡ chữ */
+  @media (min-width: 992px){
+    :root{ --label-w: 190px; }
+    .value{ font-size: 16px; }
+  }
+
+  /* Tránh motion mạnh cho người dùng nhạy cảm */
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  }
+  </style>
 </head>
 <body>
-    <button id="theme-btn" title="Chuyển Dark/Light mode" style="position:fixed;right:24px;bottom:26px;z-index:1001;background:#c49c48;color:#fff;border-radius:100px;font-size:18px;padding:8px 12px;border:none;box-shadow:0 2px 10px #4d665c35;cursor:pointer;"> <i class="fa fa-moon"></i></button>
-    <div class="box animate__animated animate__fadeInDown">
-        <h2>THÔNG TIN MẪU LƯU KHO</h2>
-        <div class="hint"><i>Chi tiết vị trí và thông tin mẫu đang lưu trữ.</i></div>
-        <div class="field-row"><span class="label">Vị trí lưu:</span><span class="value">{{ location_id|upper }}</span></div>
-        {% if info %}
-            <div class="field-row"><span class="label">Report:</span><span class="value">{{ info.report }}</span></div>
-            <div class="field-row">
-                <span class="label">Item:</span>
-                <span class="value">{{ item_code }}</span>
-            </div>
-            <div class="field-row"><span class="label">Loại mẫu:</span><span class="value">{{ info.sample_type }}</span></div>
-            <div class="field-row"><span class="label">Lưu đến:</span>
-                <span class="value">
-                    {% if info.months %}{{ info.months }} tháng{% else %}--{% endif %}
-                </span>
-            </div>
-            <div class="field-row"><span class="label">Ghi chú:</span><span class="value">{{ info.note or '' }}</span></div>
-        {% else %}
-            <div class="field-row"><span class="label">Trạng thái:</span><span class="value" style="color:#e33;">Chưa có mẫu lưu ở vị trí này.</span></div>
-        {% endif %}
-        <div class="map-wrap">
-            <object id="svgLayout" type="image/svg+xml"
-                data="{{ url_for('static', filename='layout lab.drawio.svg') }}"></object>
-        </div>
-        <div style="text-align:center;color:#666;font-size:15px;margin:10px 0 0 0;">
-            Kệ/slot lưu mẫu bạn chọn được highlight vàng trên sơ đồ.
-        </div>
-        <div class="btn-row" style="margin-top:30px; display:flex; justify-content:center; gap:18px; flex-wrap:wrap;">
-            <a href="{{ url_for('update', report=report_id) }}" class="main-btn btn-green">
-                <i class="fa fa-arrow-left"></i> Quay lại thông tin sản phẩm
-            </a>
-            <a href="{{ url_for('list_samples', report=report_id) }}" class="main-btn btn-gold">
-                <i class="fa fa-list"></i> Quay lại danh sách mẫu lưu
-            </a>
-        </div>
-        <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            var svgObj = document.getElementById("svgLayout");
-            svgObj.addEventListener("load", function() {
-                var svgDoc = svgObj.contentDocument;
-                var targetId = "{{ location_id }}";
-                if (svgDoc && targetId) {
-                    var el = svgDoc.getElementById(targetId);
-                    if (el) {
-                        // Đẩy slot này lên trên cùng để không bị che
-                        el.parentNode.appendChild(el);
-                        // Đổi màu fill vàng sáng nhất, stroke vàng đậm, opacity cao
-                        el.style.fill = "#fff700";
-                        el.style.stroke = "#ffff00";
-                        el.style.strokeWidth = "8px";
-                        el.style.opacity = 0.85;
-                        el.style.filter = "drop-shadow(0 0 17px #ff0) brightness(1.3)";
-                    } else {
-                        // Nếu là SVG group phức tạp, thử lặp qua từng path/rect trong group
-                        var g = svgDoc.querySelector("#"+targetId);
-                        if (g && g.children) {
-                            for (var c of g.children) {
-                                c.style.fill = "#fff700";
-                                c.style.stroke = "#ffff00";
-                                c.style.strokeWidth = "8px";
-                                c.style.opacity = 0.83;
-                            }
-                        }
-                    }
-                }
-            });
-        });
-        </script>
+  <button id="theme-btn" title="Dark/Light"><i class="fa fa-moon"></i></button>
+
+  <div class="wrapper">
+    <div class="card">
+      <h2>THÔNG TIN MẪU</h2>
+      <div class="hint">Chi tiết mẫu đang được lưu trữ</div>
+
+      {% if info %}
+      <div class="info-grid">
+        <div class="label">Report:</div>
+        <div class="value mono">{{ info.report }}</div>
+
+        <div class="label">Item:</div>
+        <div class="value mono">{{ item_code }}</div>
+
+        <div class="label">Mã box:</div>
+        <div class="value"><span class="pill">{{ box_code or info.box_code }}</span></div>
+
+        <div class="label">Ngày lưu:</div>
+        <div class="value mono" id="save_date_view">{{ info.save_date or '--' }}</div>
+
+        <div class="label">Ngày hủy:</div>
+        <div class="value mono" id="discard_date_view">{{ info.discard_date or '--' }}</div>
+
+        <div class="label">Còn lại:</div>
+        <div class="value" id="days_left">--</div>
+
+        <div class="label">Loại mẫu:</div>
+        <div class="value">{{ info.sample_type or '--' }}</div>
+
+        <div class="label">Ghi chú:</div>
+        <div class="value">{{ info.note or '' }}</div>
+      </div>
+      {% else %}
+      <div class="info-grid">
+        <div class="label">Trạng thái:</div>
+        <div class="value" style="color:var(--danger);font-weight:700">Không có dữ liệu mẫu.</div>
+      </div>
+      {% endif %}
+
+      <div class="btns">
+        <a href="{{ url_for('list_samples', report=report_id) }}" class="btn"><i class="fa fa-arrow-left"></i> Quay lại</a>
+        <a href="/" class="btn"><i class="fa fa-home"></i> Trang chủ</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ===== Theme toggle =====
+  function setDark(on){
+    document.body.classList.toggle('darkmode', !!on);
+    localStorage.setItem('vfr-darkmode', on ? '1':'0');
+    document.getElementById('theme-btn').innerHTML = on ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
+  }
+
+  // Parse nhiều định dạng ngày → Date
+  function parseDateStr(s){
+    if(!s) return null;
+    const t = s.trim();
+    // ISO: YYYY-MM-DD
+    if(/^\d{4}-\d{2}-\d{2}$/.test(t)) return new Date(t+"T00:00:00");
+    // VN: DD/MM/YYYY
+    const m = t.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if(m){ return new Date(`${m[3]}-${m[2]}-${m[1]}T00:00:00`); }
+    return null;
+  }
+  function toVN(d){
+    return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
+  }
+
+  document.addEventListener('DOMContentLoaded', ()=>{
+    setDark(localStorage.getItem('vfr-darkmode')==='1');
+    document.getElementById('theme-btn').onclick = ()=> setDark(!document.body.classList.contains('darkmode'));
+
+    // Chuẩn hoá hiển thị ngày & tính "Còn lại"
+    const elSave = document.getElementById('save_date_view');
+    const elDiscard = document.getElementById('discard_date_view');
+    const elLeft = document.getElementById('days_left');
+
+    const dSave = parseDateStr(elSave?.textContent||'');
+    const dDiscard = parseDateStr(elDiscard?.textContent||'');
+
+    if(dSave){ elSave.textContent = toVN(dSave); }
+    if(dDiscard){
+      elDiscard.textContent = toVN(dDiscard);
+      const today = new Date(); today.setHours(0,0,0,0);
+      const diff = Math.ceil((dDiscard - today)/86400000);
+      if(diff < 0){ elLeft.textContent = `ĐÃ HẾT ${Math.abs(diff)} ngày`; elLeft.classList.add('danger'); }
+      else if(diff <= 7){ elLeft.textContent = diff + ' ngày'; elLeft.classList.add('warn'); }
+      else { elLeft.textContent = diff + ' ngày'; }
+    }else{
+      elLeft.textContent = '--';
+    }
+
+    // Nhẹ nhàng dịch nút theme theo thay đổi chiều cao bàn phím (iOS)
+    window.addEventListener('resize', ()=>{
+      const tb = document.getElementById('theme-btn');
+      const bottom = Math.max(12, Math.round(window.innerHeight*0.02));
+      tb.style.bottom = `calc(${bottom}px + env(safe-area-inset-bottom,0px))`;
+    });
+  });
+  </script>
 </body>
 </html>

@@ -388,7 +388,7 @@ df_out["__report_num__"] = pd.to_numeric(
     df_out[report_col_main].astype(str).str.extract(r'(\d+)$')[0],
     errors="coerce"
 )
-df_out = df_out[df_out["__report_num__"] >= 0000].drop(columns="__report_num__")
+df_out = df_out[df_out["__report_num__"] >= 4500].drop(columns="__report_num__")
 
 # KHÔNG gán rỗng 2 cột ngày nữa (bỏ 2 dòng cũ):
 # for col in ["Test Date", "Complete Date"]:

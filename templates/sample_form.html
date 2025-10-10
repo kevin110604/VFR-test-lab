@@ -1,288 +1,716 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
-    <title>Lưu mẫu vào kho</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
-    <link href="https://fonts.googleapis.com/css?family=Inter:400,600&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&display=swap" rel="stylesheet">
-    <style>
-        html, body {
-            font-family: 'Inter', Arial, sans-serif;
-            background: url('/static/bg_grass.png') repeat;
-            background-size: 420px 420px;
-            color: #25312b;
-            margin: 0;
-            transition: color 0.22s, background-color 0.21s;
-        }
-        .box {
-            background: #fffdfccf;
-            border-radius: 22px;
-            box-shadow: 0 4px 32px #4d665c44;
-            max-width: 460px;
-            margin: 38px auto 26px auto;
-            padding: 33px 26px 32px 26px;
-            animation: fadeGrow 0.7s;
-            transition: background 0.22s, color 0.16s;
-            text-align:center;
-        }
-        @keyframes fadeGrow {0% {opacity:0;transform:scale(0.98);}100%{opacity:1;transform:scale(1);}}
-        h2 {
-            font-family: 'Merriweather', serif;
-            font-size: 25px;
-            color: #35523A;
-            text-align: center;
-            font-weight: bold;
-            margin-bottom: 11px;
-            letter-spacing: 0.03em;
-            transition: color 0.21s;
-        }
-        .desc {
-            font-family: 'Inter', Arial, sans-serif;
-            color:#618476;
-            font-size:16px;
-            margin-bottom:15px;
-        }
-        .info-table {
-            width: 98%;
-            margin: 0 auto 14px auto;
-            border-collapse: separate;
-            border-spacing: 0 8px;
-        }
-        .info-table td.label {
-            font-weight: 600;
-            font-size: 16.5px;
-            background: #fbe6b8;
-            color: #b78e24;
-            border-radius: 9px 0 0 9px;
-            padding: 7px 10px 7px 17px;
-            text-align: left;
-            letter-spacing: 0.04em;
-            font-family: 'Inter', Arial, sans-serif;
-            min-width: 85px;
-            transition: background 0.16s, color 0.15s;
-        }
-        .info-table td.value {
-            font-size: 16.3px;
-            background: #fffefc;
-            color: #25312b;
-            border-radius: 0 9px 9px 0;
-            padding: 7px 17px 7px 10px;
-            text-align: left;
-            font-family: 'Inter', Arial, sans-serif;
-        }
-        form {
-            margin-top: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .form-row {
-            margin-bottom: 17px;
-            width: 92%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        label {
-            font-weight: 600;
-            color: #b78e24;
-            font-size: 16px;
-            margin-bottom: 3px;
-            letter-spacing: 0.04em;
-            font-family: 'Inter', Arial, sans-serif;
-            align-self:flex-start;
-            transition: color 0.16s;
-        }
-        input[type="text"], input[type="number"], select {
-            font-size: 17px;
-            padding: 8px 14px;
-            border-radius: 8px;
-            border: 1.3px solid #4d665c;
-            margin-bottom: 0;
-            background: #f9f8f1;
-            color: #25312b;
-            width: 100%;
-            font-family: 'Inter', Arial, sans-serif;
-            transition: background 0.16s, color 0.13s, border-color 0.16s;
-            text-align:center;
-        }
-        input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
-            border-color: #b78e24;
-            outline: none;
-            background: #fffbe4;
-            color: #25312b;
-        }
-        input[readonly] {
-            background: #eee !important;
-            color: #7d7d7d;
-            font-weight: 600;
-        }
-        .radio-row {
-            display: flex;
-            gap: 22px;
-            align-items: center;
-            justify-content:center;
-        }
-        .radio-row label {
-            font-weight: 500;
-            font-size:15px;
-            margin-bottom:0;
-            letter-spacing:0.01em;
-        }
-        .main-btn {
-            background: #c49c48;
-            color: #fff;
-            font-size: 18px;
-            padding: 11px 0;
-            border-radius: 10px;
-            border: none;
-            width: 96%;
-            font-weight: bold;
-            font-family: 'Inter', Arial, sans-serif;
-            box-shadow: 0 2px 10px #c49c4822;
-            cursor: pointer;
-            transition: background 0.14s, color 0.16s;
-            margin: 0 auto;
-            display: block;
-        }
-        .main-btn:hover { background: #35523A; color: #fff;}
-        .btn-row {text-align: center; margin-top: 22px;}
-        .link-home {
-            color: #4d665c;
-            font-size: 15.5px;
-            text-decoration: none;
-            border: 1px solid #c49c48;
-            border-radius: 7px;
-            padding: 7px 18px;
-            transition: background 0.13s, color 0.13s;
-            margin-top: 12px;
-            display: inline-block;
-            font-family: 'Inter', Arial, sans-serif;
-        }
-        .link-home:hover { background: #c49c48; color: #fff;}
-        textarea {
-            border-radius:8px; padding:8px 14px; font-size:16px; border:1.3px solid #4d665c; width:100%;
-            min-height:44px; max-width:370px; font-family: 'Inter', Arial, sans-serif;
-            background: #f9f8f1; color: #25312b; transition: background 0.13s, color 0.13s, border-color 0.13s;
-            text-align:center;
-        }
-        textarea:focus {background: #fffbe4;}
-        /* DARK MODE STYLE */
-        body.dark, .dark {
-            color: #f7f7ee !important;
-        }
-        body.dark .box {
-            background: #344833e8 !important;
-            color: #f7f7ee !important;
-            box-shadow: 0 4px 32px #000a;
-        }
-        body.dark h2 {color: #ffe082 !important;}
-        body.dark label {color: #ffe082 !important;}
-        body.dark .main-btn {background:#ffe082;color:#344833;}
-        body.dark .main-btn:hover {background:#b78e24;color:#fff;}
-        body.dark .link-home {border-color:#ffe082; color: #ffe082;}
-        body.dark .link-home:hover {background:#ffe082;color:#344833;}
-        body.dark input, body.dark textarea, body.dark select {
-            background: #223323 !important; color: #ffe082 !important; border-color: #ffe082 !important;
-        }
-        body.dark input[readonly] { background: #223323 !important; color: #d2cfa0;}
-        body.dark textarea:focus {background: #1d2520 !important;}
-        body.dark .info-table td.label {background:#574707;color:#ffe082;}
-        body.dark .info-table td.value {background: #222c25; color: #ffe082;}
-        ::selection {background: #ffe082; color: #222;}
-        body.dark ::selection {background: #c49c48; color: #25312b;}
-        #theme-btn {
-            position:fixed; right:19px; bottom:22px; z-index:1001;
-            background: #ece3cc; color: #b78e24;
-            border-radius: 50%; font-size: 21px; width: 39px; height: 39px;
-            display:flex; align-items:center; justify-content:center; border: none;
-            box-shadow:0 1px 7px #4d665c33; cursor:pointer;
-            transition: background 0.13s, color 0.15s;
-        }
-        #theme-btn:hover {background:#ffe082; color:#35523A;}
-        body.dark #theme-btn {background:#35523A; color:#ffe082;}
-        body.dark #theme-btn:hover {background:#b78e24; color:#fff;}
-        @media (max-width:650px) {.box{max-width:99vw;padding:5vw 2vw 9vw 2vw;}}
-    </style>
+  <meta charset="UTF-8" />
+  <title>Lưu mẫu vào kho</title>
+  <!-- UPDATED: viewport-fit=cover để an toàn với notch, chỉnh scale -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+  /* ================== RESET & BASE ================== */
+  /* UPDATED: Reset nhẹ + box-sizing để layout ổn định trên mobile */
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; } /* tránh Safari auto-zoom */
+  body {
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+    margin: 0;
+    color: var(--main-text);
+    background: var(--main-bg);
+    /* UPDATED: hỗ trợ chiều cao viewport động trên mobile */
+    min-height: 100vh;
+    min-height: 100svh; /* iOS 16+ */
+    min-height: 100dvh; /* spec mới */
+    transition: background .4s, color .4s;
+    -webkit-tap-highlight-color: transparent; /* bỏ màu nháy xanh khi chạm */
+  }
+
+  /* ================== THEME VARIABLES ================== */
+  :root {
+    --main-bg: #fffdfc;
+    --main-card: #fffdfccf;
+    --main-text: #333;
+    --main-th: #4d665c;
+    --main-border: #4d665c55;
+    --main-btn: #c49c48;
+    --main-btn-hover: #35523A;
+    --main-btn-text: #fff;
+    --main-btn-hover-text: #ffe082;
+    --popup-bg: #fffbe8;
+    --popup-text: #333;
+    --popup-border: #e5d38c;
+    --box-bg: linear-gradient(145deg,#fffdf4,#f8e8b0);
+    --box-hover: linear-gradient(145deg,#ffe693,#dfc86e);
+    --delete-color: #d04d3d;
+    --radius-lg: 22px;
+    --radius-md: 12px;
+    --radius-sm: 9px;
+  }
+  body.darkmode {
+    --main-bg: #2b3938;
+    --main-card: #374B4A;
+    --main-text: #f6f6ef;
+    --main-th: #ffe082;
+    --main-border: #263d3a;
+    --main-btn: #97722a;
+    --main-btn-hover: #35523A;
+    --main-btn-text: #fff;
+    --main-btn-hover-text: #ffe082;
+    --popup-bg: #3b3424;
+    --popup-text: #fff7cc;
+    --popup-border: #f1d57a;
+    --box-bg: linear-gradient(145deg,#61512d,#7b632c);
+    --box-hover: linear-gradient(145deg,#b6923b,#8a6b2d);
+    --delete-color: #ff9085;
+  }
+
+  /* ================== LAYOUT ================== */
+  .page-wrap {
+    display: grid;
+    place-items: center;
+    padding: clamp(16px, 3vw, 32px);
+  }
+  .center-form {
+    width: min(760px, 100%);
+    background: var(--main-card);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 4px 28px var(--main-border);
+    /* UPDATED: padding responsive */
+    padding: clamp(16px, 4vw, 40px) clamp(14px, 3.5vw, 28px) clamp(16px, 3.5vw, 32px);
+    position: relative;
+  }
+
+  /* ================== HEADER (title + gear) ================== */
+  /* UPDATED: đổi header thành flex để gear không đè tiêu đề trên mobile */
+  .form-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .form-header h2 {
+    margin: 0;
+    color: var(--main-th);
+    font-size: clamp(20px, 4.8vw, 28px);
+    line-height: 1.2;
+    flex: 1;
+    text-align: center;
+  }
+
+  /* ================== FORM ================== */
+  label {
+    font-weight: 600;
+    color: #b78e24;
+    margin-bottom: 6px;
+    display: block;
+    line-height: 1.25;
+  }
+  input, select, textarea {
+    font-size: 16px; /* giữ >=16 để tránh iOS zoom */
+    padding: 10px 12px; /* UPDATED: tăng hit area */
+    border-radius: var(--radius-sm);
+    border: 1.4px solid #c49c48;
+    width: 100%;
+    background: #fffbe8;
+    color: #333;
+    box-sizing: border-box;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--main-btn);
+    background: #fffef1;
+    box-shadow: 0 0 0 4px rgba(196,156,72,0.18);
+  }
+  .form-row { margin-bottom: clamp(12px, 2.6vw, 18px); }
+  .form-inline {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+.form-inline > .col {
+  flex: 1 1 48%;
+}
+
+/* --- ép 2 box bằng nhau tuyệt đối --- */
+#save_date,
+#discard_date_view {
+  width: 100%;
+  font-size: 15px;
+  text-align: center;
+  padding: 10px 12px;
+  line-height: 1.4;
+  border: 1.4px solid #c49c48;
+  border-radius: 8px;
+  background: #fffbe8;
+  box-sizing: border-box;
+  color: #333;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  height: 42px;              /* ép cùng chiều cao */
+  min-height: 42px;
+}
+
+/* --- Chrome/Safari fix: xoá icon lịch và padding nội bộ --- */
+#save_date::-webkit-calendar-picker-indicator,
+#save_date::-webkit-inner-spin-button {
+  display: none;
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+#save_date::-webkit-datetime-edit,
+#save_date::-webkit-datetime-edit-fields-wrapper,
+#save_date::-webkit-datetime-edit-text,
+#save_date::-webkit-datetime-edit-year-field,
+#save_date::-webkit-datetime-edit-month-field,
+#save_date::-webkit-datetime-edit-day-field {
+  padding: 0;
+  margin: 0;
+}
+
+/* --- Safari/iPhone: căn giữa và đồng bộ chiều cao --- */
+@supports (-webkit-touch-callout: none) {
+  #save_date {
+    font-size: 15px;
+    height: 42px;
+    line-height: 1.4;
+    padding: 10px 12px;
+    letter-spacing: -0.2px;
+  }
+  #save_date::-webkit-date-and-time-value {
+    text-align: center;
+  }
+}
+
+/* --- MOBILE (iPhone, Android) --- */
+@media (max-width: 480px) {
+  .form-inline {
+    gap: 8px;
+  }
+  .form-inline > .col {
+    flex: 1 1 48%;
+  }
+  #save_date,
+  #discard_date_view {
+    font-size: 14px;
+    height: 38px;
+    min-height: 38px;
+    padding: 8px 10px;
+  }
+}
+
+/* --- DESKTOP (>992px): đồng bộ hoàn toàn với input khác --- */
+@media (min-width: 992px) {
+  .form-inline > .col {
+    flex: 1 1 48%;
+  }
+  #save_date,
+  #discard_date_view {
+    font-size: 16px;
+    height: 44px;
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+}
+  textarea { min-height: 96px; resize: vertical; }
+
+  /* ================== BUTTONS ================== */
+  .main-btn {
+    background: var(--main-btn);
+    color: var(--main-btn-text);
+    border: none;
+    padding: 14px 0; /* UPDATED: lớn hơn cho ngón tay */
+    border-radius: 10px;
+    width: 100%;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .2s, color .2s, transform .05s;
+    touch-action: manipulation; /* bỏ delay 300ms */
+  }
+  .main-btn:active { transform: translateY(1px); }
+  .main-btn:hover { background: var(--main-btn-hover); color: var(--main-btn-hover-text); }
+
+  .btn-row { text-align: center; margin-top: 16px; }
+  .link-home {
+    display: inline-block;
+    text-decoration: none;
+    border: 1.4px solid #c49c48;
+    color: #4d665c;
+    padding: 10px 18px;
+    border-radius: 10px;
+    transition: background .13s, color .13s, transform .05s;
+    touch-action: manipulation;
+  }
+  .link-home:hover { background: #c49c48; color: #fff; }
+  .link-home:active { transform: translateY(1px); }
+
+  /* ================== HEADER ACTION BUTTONS ================== */
+  /* UPDATED: đưa gear vào header, theme-btn cố định có safe-area */
+  .action-btn {
+    appearance: none;
+    border: none;
+    background: #ffe082;
+    color: #35523A;
+    border-radius: 999px;
+    width: 40px; height: 40px;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    flex: none;
+    transition: background .15s, color .15s, transform .05s;
+  }
+  .action-btn:hover { background: #c49c48; color: #fff; }
+  .action-btn:active { transform: translateY(1px); }
+  body.darkmode .action-btn { background: var(--main-btn); color: #fff; }
+
+  #theme-btn {
+    position: fixed;
+    right: 16px;
+    /* UPDATED: tôn trọng gesture bar / notch */
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    z-index: 1000;
+  }
+
+  /* ================== POPUP MANAGE BOX ================== */
+  #box-popup {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(4px);
+    align-items: center; justify-content: center;
+    z-index: 2000;
+    padding: 16px; /* UPDATED: tránh sát mép trên mobile */
+  }
+  #box-popup .popup-card {
+    background: var(--popup-bg);
+    color: var(--popup-text);
+    border: 1.6px solid var(--popup-border);
+    border-radius: 18px;
+    width: min(640px, 100%);
+    max-height: min(86vh, 86svh);
+    overflow: auto; /* UPDATED: tránh tràn nội dung */
+    box-shadow: 0 10px 35px rgba(0,0,0,0.35);
+    display: flex; flex-direction: column;
+    align-items: stretch;
+    padding: clamp(16px, 4vw, 28px);
+    animation: slideUp .25s ease-out;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to   { transform: translateY(0);   opacity: 1; }
+  }
+  #box-popup h3 {
+    color: #b78e24;
+    text-align: center;
+    font-size: clamp(18px, 4.6vw, 22px);
+    margin: 0 0 12px 0;
+  }
+  .popup-input-row {
+    display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap;
+  }
+  .popup-input-row input {
+    flex: 1 1 220px;
+    border: 1.3px solid #c49c48;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 16px;
+    background: #fffef3;
+  }
+  body.darkmode .popup-input-row input {
+    background: #2f3a36;
+    color: #ffeebc;
+    border-color: #b58f3a;
+  }
+  .popup-input-row button {
+    background: var(--main-btn);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .popup-input-row button:hover {
+    background: var(--main-btn-hover);
+    color: var(--main-btn-hover-text);
+  }
+  .box-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .box-chip {
+    position: relative;
+    text-align: center;
+    border-radius: 12px;
+    border: 1.8px solid #c49c48;
+    background: var(--box-bg);
+    font-weight: 700;
+    font-size: 15px;
+    padding: 10px 26px 10px 10px;
+    color: #3a2c07;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: transform .15s ease, box-shadow .15s ease, background .25s ease;
+    user-select: none;
+  }
+  .box-chip:hover {
+    transform: translateY(-2px);
+    background: var(--box-hover);
+    color: #fff;
+    box-shadow: 0 5px 14px rgba(0,0,0,0.35);
+  }
+  .box-chip i {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: var(--delete-color);
+    cursor: pointer;
+    transition: transform .12s, color .12s;
+  }
+  .box-chip i:hover {
+    transform: translateY(-50%) scale(1.2);
+    color: #ff2d1e;
+  }
+  #close-popup {
+    margin-top: 16px;
+    background: var(--main-btn);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .2s ease;
+    touch-action: manipulation;
+  }
+  #close-popup:hover {
+    background: var(--main-btn-hover);
+    color: var(--main-btn-hover-text);
+  }
+
+  /* ================== MEDIA QUERIES (tối ưu iPhone X → 16 Pro Max) ================== */
+  /* 430px ~ iPhone 14/15/16 Pro Max (logic width 430) */
+  @media (max-width: 430px) {
+    .form-inline > .col { flex: 1 1 100%; } /* UPDATED: 2 ô ngày thành 1 cột xếp dọc */
+    .box-list { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .center-form { border-radius: 18px; }
+  }
+  /* 414px ~ iPhone XR/11/Plus/Pro Max cũ */
+  @media (max-width: 414px) {
+    .action-btn { width: 38px; height: 38px; }
+    .box-chip { font-size: 14px; padding: 8px 22px 8px 8px; }
+  }
+  /* 390px ~ iPhone 12/13/14/15/16 */
+  @media (max-width: 390px) {
+    .form-header h2 { font-size: 20px; }
+    .popup-input-row input { padding: 10px; }
+    .main-btn { padding: 13px 0; }
+  }
+  /* 375px ~ iPhone X/XS/11 Pro/SE gen mới */
+  @media (max-width: 375px) {
+    .page-wrap { padding: 12px; }
+    .center-form { padding: 14px; }
+    label { font-size: 14px; }
+    input, select, textarea { padding: 9px 10px; }
+    .link-home { padding: 9px 14px; }
+  }
+
+  /* ================== DESKTOP TWEAKS ================== */
+  @media (min-width: 992px) {
+    .center-form { width: min(820px, 100%); }
+    .form-inline > .col { flex: 1 1 320px; }
+    textarea { min-height: 120px; }
+  }
+
+  /* ================== ACCESSIBILITY ================== */
+  :focus-visible { outline: 3px solid #c49c48; outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  }
+  </style>
 </head>
+
 <body>
-    <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
-    <div class="box animate__animated animate__fadeInDown">
+  <!-- UPDATED: theme button cố định (tôn trọng safe-area) -->
+  <button id="theme-btn" class="action-btn" aria-label="Đổi giao diện">
+    <i class="fa fa-moon"></i>
+  </button>
+
+  <div class="page-wrap">
+    <div class="center-form">
+      <div class="form-header">
+        <!-- giữ chỗ bên trái để tiêu đề luôn giữa -->
+        <span style="width:40px;height:40px;display:inline-block;"></span>
         <h2>Lưu mẫu vào kho</h2>
-        <div class="desc">
-            <i>Điền đầy đủ thông tin để lưu mẫu</i>
+        <button id="option-btn" class="action-btn" title="Tùy chọn box" aria-haspopup="dialog" aria-controls="box-popup">
+          <i class="fa fa-gear"></i>
+        </button>
+      </div>
+
+      <form method="POST" autocomplete="off">
+        <div class="form-row">
+          <label for="report">Report:</label>
+          <input id="report" type="text" value="{{ report }}" readonly inputmode="text">
         </div>
-        <table class="info-table">
-            <tr>
-                <td class="label">Report:</td>
-                <td class="value">{{ report }}</td>
-            </tr>
-            <tr>
-                <td class="label">Item:</td>
-                <td class="value">{{ item_code }}</td>
-            </tr>
-        </table>
-        <form method="POST">
-            <div class="form-row">
-                <label for="sample_type">Loại mẫu:</label>
-                <select id="sample_type" name="sample_type" required>
-                    <option value="QA test">Test thường - QA test</option>
-                    <option value="Line test">Test chuyền - Line test</option>
-                </select>
-            </div>
-            <div class="form-row">
-                <label for="height">Chiều cao:</label>
-                <select id="height" name="height" required>
-                    <option value="nhỏ">&lt; 30 cm (nhỏ)</option>
-                    <option value="vừa">&lt; 45 cm (vừa)</option>
-                    <option value="lớn">&lt; 90 cm (lớn)</option>
-                </select>
-            </div>
-            <div class="form-row">
-                <label for="width">Chiều rộng (cm):</label>
-                <input type="number" id="width" name="width" min="1" step="0.1" required>
-            </div>
-            <div class="form-row">
-                <label for="months">Thời gian lưu:</label>
-                <div class="radio-row">
-                    <label><input type="radio" name="months" value="3" checked> 3 tháng</label>
-                    <label><input type="radio" name="months" value="6"> 6 tháng</label>
-                    <label><input type="radio" name="months" value="12"> 12 tháng</label>
-                </div>
-            </div>
-            <div class="form-row">
-                <label for="note">Ghi chú:</label>
-                <textarea id="note" name="note"></textarea>
-            </div>
-            <button type="submit" class="main-btn">
-                <i class="fa fa-save"></i> Lưu và chỉ vị trí lưu
-            </button>
-        </form>
-        <div class="btn-row">
-            <a href="{{ url_for('update', report=report) }}" class="link-home"><i class="fa fa-home"></i> Về trang thông tin</a>
+
+        <div class="form-row">
+          <label for="item_code">Item:</label>
+          <input id="item_code" type="text" value="{{ item_code }}" readonly inputmode="text">
         </div>
+
+        <div class="form-row">
+          <label for="sample_type">Loại mẫu:</label>
+          <select id="sample_type" name="sample_type" required>
+            <option value="QA test" {% if sample_type=='QA test' %}selected{% endif %}>QA test</option>
+            <option value="Line test" {% if sample_type=='Line test' %}selected{% endif %}>Line test</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label for="box_code">Mã box:</label>
+          <select id="box_code" name="box_code" required>
+            {% if box_code %}<option value="{{ box_code }}" selected>{{ box_code }}</option>{% endif %}
+          </select>
+        </div>
+
+        <div class="form-row form-inline">
+          <div class="col">
+            <label for="save_date">Ngày lưu:</label>
+            <input type="date" id="save_date" name="save_date" value="{{ save_date }}" required>
+          </div>
+          <div class="col">
+            <label for="discard_date_view">Ngày Hủy:</label>
+            <input type="text" id="discard_date_view" readonly>
+            <input type="hidden" id="discard_date" name="discard_date" value="{{ discard_date }}">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label for="note">Ghi chú:</label>
+          <textarea id="note" name="note" placeholder="Ghi chú (không bắt buộc)">{{ note }}</textarea>
+        </div>
+
+        <button type="submit" class="main-btn">
+          <i class="fa fa-save"></i> Lưu mẫu
+        </button>
+      </form>
+
+      <div class="btn-row">
+        <a href="{{ url_for('update', report=report) }}" class="link-home">
+          <i class="fa fa-home"></i> Về trang thông tin
+        </a>
+      </div>
     </div>
-    <script>
-    // Dark/Light mode toggle mượt
-    document.addEventListener("DOMContentLoaded", function() {
-        var themeBtn = document.getElementById('theme-btn');
-        function syncDarkModeBtn() {
-            var dark = document.body.classList.contains('dark');
-            themeBtn.innerHTML = dark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
-        }
-        themeBtn.onclick = function() {
-            var d = document.body.classList.toggle('dark');
-            document.documentElement.classList.toggle('dark');
-            localStorage.setItem("darkmode", d ? "true" : "false");
-            syncDarkModeBtn();
-        };
-        if (localStorage.getItem("darkmode") === "true") {
-            document.documentElement.classList.add('dark');
-            document.body.classList.add('dark');
-        }
-        syncDarkModeBtn();
+  </div>
+
+  <!-- Popup quản lý box -->
+  <div id="box-popup" role="dialog" aria-modal="true" aria-labelledby="popup-title">
+    <div class="popup-card">
+      <h3 id="popup-title">Quản lý Mã Box</h3>
+
+      <div class="popup-input-row">
+        <!-- UPDATED: pattern để lọc ký tự lạ, auto upper-case trong JS -->
+        <input type="text" id="new_box_code" placeholder="Nhập mã mới (vd: B3-S2)" inputmode="latin" pattern="^[A-Za-z0-9\-_/\.]+$" />
+        <button id="btn_add_box"><i class="fa fa-plus"></i> Thêm</button>
+      </div>
+
+      <div id="box_list_panel" class="box-list"></div>
+
+      <button id="close-popup"><i class="fa fa-times-circle"></i> Đóng</button>
+    </div>
+  </div>
+
+  <script>
+  /* ========== DARK MODE ========== */
+  function setDark(on) {
+    document.body.classList.toggle('darkmode', !!on);
+    localStorage.setItem('vfr-darkmode', on ? '1' : '0');
+    const icon = on ? 'fa-sun' : 'fa-moon';
+    document.getElementById('theme-btn').innerHTML = `<i class="fa ${icon}"></i>`;
+  }
+
+  /* ========== UTILS ========== */
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m]));
+  }
+  function addMonths(d, m) {
+    const dd = new Date(d);
+    const day = dd.getDate();
+    dd.setMonth(dd.getMonth() + m);
+    if (dd.getDate() < day) dd.setDate(0);
+    return dd;
+  }
+  function toISO(d)   { return d.toISOString().split('T')[0]; }
+  function toVN(d)    { return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear(); }
+
+  /* ========== BOX LOGIC ========== */
+  async function loadBoxes() {
+    try {
+      const res = await fetch('/boxes', { credentials: 'same-origin' });
+      if (!res.ok) throw new Error('GET /boxes failed');
+      const data = await res.json();
+      if (!data || !Array.isArray(data.boxes)) throw new Error('Bad JSON shape');
+      fillBoxSelect(data.boxes);
+      renderBoxList(data.boxes);
+    } catch (err) {
+      console.warn('Không thể tải boxes, dùng mặc định.', err);
+      const def = ['B1-S1','B1-S2','B2-S1','B2-S2','B3-S1'];
+      fillBoxSelect(def);
+      renderBoxList(def);
+    }
+  }
+
+  function fillBoxSelect(list) {
+    const sel = document.getElementById('box_code');
+    if (!sel) return;
+    sel.innerHTML = '';
+    list.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      sel.appendChild(opt);
     });
-    </script>
+  }
+
+  function renderBoxList(list) {
+    const panel = document.getElementById('box_list_panel');
+    if (!panel) return;
+    panel.innerHTML = list.map(b => {
+      const safe = escapeHtml(b);
+      return `<div class="box-chip" data-code="${safe}">
+                ${safe}
+                <i class="fa fa-times" aria-label="Xóa ${safe}" title="Xóa" onclick="deleteBox('${safe}')"></i>
+              </div>`;
+    }).join('');
+  }
+
+  async function addBox() {
+    const inp = document.getElementById('new_box_code');
+    const raw = (inp.value || '').trim().toUpperCase();
+    if (!raw) return;
+    try {
+      const res = await fetch('/boxes', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        credentials: 'same-origin',
+        body: JSON.stringify({ code: raw })
+      });
+      if (!res.ok) throw new Error('POST /boxes failed');
+      const data = await res.json();
+      fillBoxSelect(data.boxes);
+      renderBoxList(data.boxes);
+      document.getElementById('box_code').value = raw;
+      inp.value = '';
+    } catch (err) {
+      console.error(err);
+      alert('Không thêm được box.');
+    }
+  }
+
+  async function deleteBox(code) {
+    if (!confirm('Xóa box ' + code + ' ?')) return;
+    try {
+      const res = await fetch('/boxes?code=' + encodeURIComponent(code), {
+        method:'DELETE',
+        credentials: 'same-origin'
+      });
+      if (!res.ok) throw new Error('DELETE /boxes failed');
+      const data = await res.json();
+      fillBoxSelect(data.boxes);
+      renderBoxList(data.boxes);
+    } catch (err) {
+      console.error(err);
+      alert('Không xóa được box.');
+    }
+  }
+  window.deleteBox = deleteBox; // giữ global cho onclick
+
+  /* ========== DATE LOGIC ========== */
+  function calcDiscard() {
+    const el = document.getElementById('save_date');
+    if (!el || !el.value) return;
+    const d = new Date(el.value + "T00:00:00");
+    if (isNaN(+d)) return;
+    const exp = addMonths(d, 3);
+    const iso = toISO(exp);
+    const vn  = toVN(exp);
+    const hidden = document.getElementById('discard_date');
+    const view   = document.getElementById('discard_date_view');
+    if (hidden) hidden.value = iso;
+    if (view)   view.value   = vn;
+  }
+
+  /* ========== POPUP ========== */
+  function openPopup() {
+    const popup = document.getElementById('box-popup');
+    if (!popup) return;
+    popup.style.display = 'flex';
+    // chặn scroll nền khi mở popup
+    document.documentElement.style.overflow = 'hidden';
+  }
+  function closePopup() {
+    const popup = document.getElementById('box-popup');
+    if (!popup) return;
+    popup.style.display = 'none';
+    document.documentElement.style.overflow = '';
+  }
+
+  /* ========== INIT ========== */
+  document.addEventListener('DOMContentLoaded', () => {
+    // Dark mode state
+    setDark(localStorage.getItem('vfr-darkmode') === '1');
+    document.getElementById('theme-btn')?.addEventListener('click', () => {
+      setDark(!document.body.classList.contains('darkmode'));
+    });
+
+    // Pre-fill date nếu chưa có
+    const saveDate = document.getElementById('save_date');
+    if (saveDate && !saveDate.value) {
+      const now = new Date();
+      saveDate.value = toISO(now);
+    }
+    calcDiscard();
+    saveDate?.addEventListener('change', calcDiscard);
+
+    // Box handlers
+    document.getElementById('btn_add_box')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      addBox();
+    });
+    loadBoxes();
+
+    // Popup handlers
+    document.getElementById('option-btn')?.addEventListener('click', openPopup);
+    document.getElementById('close-popup')?.addEventListener('click', closePopup);
+    document.getElementById('box-popup')?.addEventListener('click', (e) => {
+      // click nền để đóng
+      if (e.target.id === 'box-popup') closePopup();
+    });
+
+    // Auto uppercase cho ô nhập mã box
+    document.getElementById('new_box_code')?.addEventListener('input', (e) => {
+      e.target.value = e.target.value.toUpperCase();
+    });
+
+    // iOS keyboard: đẩy theme-btn lên 1 chút khi bàn phím mở (best effort)
+    window.addEventListener('resize', () => {
+      const tb = document.getElementById('theme-btn');
+      if (!tb) return;
+      // nếu chiều cao viewport giảm nhiều, tạm tăng khoảng cách
+      const bottom = Math.max(16, Math.round(window.innerHeight * 0.02));
+      tb.style.bottom = `calc(${bottom}px + env(safe-area-inset-bottom, 0px))`;
+    });
+  });
+  </script>
 </body>
 </html>

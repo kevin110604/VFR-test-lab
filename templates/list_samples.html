@@ -1,167 +1,326 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="utf-8">
-    <title>Danh sách mẫu đã lưu</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <style>
-        body {
-            font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
-            background: #faf6ea;
-            margin: 0;
-            color: #232323;
-        }
-        .container {
-            max-width: 900px;
-            margin: 35px auto 25px auto;
-            background: #fff;
-            border-radius: 16px;
-            box-shadow: 0 4px 24px #0001;
-            padding: 26px 19px 28px 19px;
-        }
-        h2 {
-            font-size: 2rem;
-            margin-top: 0;
-            margin-bottom: 23px;
-            font-weight: 600;
-            text-align: center;
-        }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-bottom: 23px;
-        }
-        th, td {
-            padding: 10px 10px;
-            text-align: center;
-        }
-        th {
-            background: #c49c48;
-            color: #fff;
-            font-size: 1.03em;
-            font-weight: 500;
-        }
-        tr:nth-child(even) { background: #f4ecd6; }
-        tr:hover { background: #fffbe2; }
-        .main-btn, .btn-update {
-            border: none;
-            outline: none;
-            border-radius: 7px;
-            text-decoration: none;
-            font-size: 15.5px;
-            font-family: inherit;
-            padding: 8px 16px;
-            margin: 0 3px;
-            box-shadow: 0 1px 7px #0002;
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            transition: background 0.13s, color 0.13s;
-            cursor: pointer;
-        }
-        .main-btn { background: #8B6B1E; color: #fff; }
-        .main-btn:hover { background: #c49c48; color: #222; }
-        .btn-update { background: #33A9DD; color: #fff; }
-        .btn-update:hover { background: #2680b7; color: #fff; }
-        .btn-gold { background: #c49c48; color: #fff; }
-        .btn-gold:hover { background: #f3e1a2; color: #382900; }
-        .btn-green { background: #35523A; color: #fff; }
-        .btn-green:hover { background: #53795d; color: #fff; }
-        .btn-row {
-            text-align: center;
-            margin: 18px 0 0 0;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 15px;
-        }
-        .input-inline {
-            width: 90px;
-            padding: 4px 7px;
-            border-radius: 5px;
-            border: 1px solid #bbb;
-            font-size: 14px;
-        }
-        .form-inline {
-            display: flex;
-            gap: 5px;
-            align-items: center;
-            justify-content: center;
-        }
-        .btn-cancel {
-            background: #aaa !important;
-            color: #fff !important;
-            margin-left: 5px;
-        }
-        @media (max-width: 650px) {
-            .container { padding: 8px 1vw 15px 1vw; }
-            th, td { padding: 6px 2px; font-size: 15px; }
-            .main-btn, .btn-update { font-size: 15px; padding: 10px 9px;}
-            .btn-row { flex-direction: column; gap: 12px;}
-            .input-inline { width: 85vw; }
-        }
-    </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <meta charset="utf-8">
+  <title>Danh sách mẫu đã lưu</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+  <style>
+  :root{
+    --bg:#fffdfc; --card:#ffffffcc; --text:#222;
+    --accent:#c49c48; --accent-hover:#35523A; --accent-text:#fff;
+    --border:#e1d7b8; --row-even:#f7f2e0; --row-hover:#fffbe2;
+    --warn:#fff4c4; --danger:#ffe3e3;
+  }
+  body.darkmode{
+    --bg:#222e2e; --card:#2d3b3b; --text:#f2f2ee;
+    --accent:#b9933a; --accent-hover:#476a55; --accent-text:#fff;
+    --border:#44524c; --row-even:#34403d; --row-hover:#3c4b48;
+    --warn:#665c2a; --danger:#6a2f2f;
+  }
+
+  body{
+    font-family:'Segoe UI',Arial,Helvetica,sans-serif;
+    background:var(--bg); color:var(--text); margin:0; transition:.3s;
+  }
+  .container{max-width:980px;margin:24px auto;padding:0 10px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 4px 24px #0002;padding:22px 14px 26px}
+  h2{margin:4px 0 16px;text-align:center;color:var(--accent-hover)}
+
+  /* ===== Toolbar (1 hàng cả mobile) ===== */
+  .toolbar{
+    display:flex; align-items:center; gap:8px; margin-bottom:14px;
+    flex-wrap:nowrap; justify-content:center;
+  }
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    border:none; border-radius:8px; padding:8px 12px;
+    background:var(--accent); color:var(--accent-text);
+    font-weight:600; text-decoration:none; cursor:pointer; transition:.2s;
+    flex-shrink:0;
+  }
+  .btn:hover{background:var(--accent-hover); color:var(--accent-text)}
+  .btn-home{
+    width:38px; height:38px; padding:0; border-radius:50%; font-size:16px;
+    box-shadow:0 2px 5px #0002;
+  }
+  .search{
+    flex:1; min-width:0; display:flex; align-items:center; gap:6px;
+  }
+  .search input{
+    flex:1; min-width:0;
+    padding:8px 10px; border:1.4px solid var(--accent); border-radius:8px;
+    background:#fffbe8; color:#333;
+  }
+  .btn-search{white-space:nowrap; padding:8px 12px}
+
+  /* ===== Box header ===== */
+  .groups{margin-top:8px}
+  .box-header{
+    display:flex; align-items:center; gap:10px; cursor:pointer;
+    background:#e8d7a1; border:1px solid var(--accent);
+    border-radius:10px; padding:10px 12px; margin-top:10px;
+  }
+  body.darkmode .box-header{background:#5b4e29; border-color:#b58f3a}
+  .box-title{font-weight:800}
+  .chev{transition:transform .18s}
+  .collapsed .chev{transform:rotate(-90deg)}
+  .tag{
+    display:inline-block; padding:3px 9px; border:1px solid var(--accent);
+    border-radius:999px; background:#fffbe8; font-weight:700;
+  }
+  body.darkmode .tag{background:var(--accent); color:#222}
+  .right{margin-left:auto; display:flex; gap:8px; align-items:center}
+  .badge{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:3px 8px; border-radius:999px; font-weight:700; font-size:12.5px;
+    border:1px solid #0000; background:#0000; color:#000;
+  }
+  .badge-total{border-color:#9b7a2a; background:#f3e3ad; color:#3b2b05}
+  .badge-warn{border-color:#d7b23b; background:#fff0b6; color:#6a5709}
+  .badge-danger{border-color:#e08787; background:#ffd2d2; color:#6a2020}
+
+  /* ===== Table (cuộn ngang mobile) ===== */
+  .table-wrapper{width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:10px}
+  table{min-width:680px; width:100%; border-collapse:collapse; margin-top:6px}
+  th,td{padding:9px 10px; text-align:center; white-space:nowrap}
+  th{background:var(--accent); color:#fff; font-weight:600; position:sticky; top:0}
+  tr:nth-child(even){background:var(--row-even)}
+  tr:hover{background:var(--row-hover)}
+  .status-warn{background:var(--warn)!important}
+  .status-danger{background:var(--danger)!important}
+
+  /* Actions */
+  .actions{display:flex; gap:6px; justify-content:center}
+  .btn-info{background:#35523A} .btn-edit{background:#33A9DD} .btn-del{background:#d04d3d}
+  .btn-info:hover,.btn-edit:hover,.btn-del:hover{filter:brightness(1.1)}
+
+  /* Darkmode toggle */
+  #theme-btn{
+    position:fixed; right:18px; bottom:18px; width:42px; height:42px;
+    border:none; border-radius:50%; background:var(--accent-hover); color:#fff;
+    cursor:pointer; box-shadow:0 2px 8px #0003;
+  }
+
+  .no-data{padding:14px; text-align:center; opacity:.8}
+
+  /* Mobile tweak */
+  @media (max-width:720px){
+    .btn-home{width:36px; height:36px; font-size:15px}
+    .search input{font-size:15px; padding:7px 10px}
+    .btn-search{font-size:15px; padding:7px 10px}
+    table,th,td{font-size:14px}
+    .box-header{font-size:15px}
+  }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Danh sách mẫu đã lưu</h2>
-        <table>
-            <tr>
-                <th>Vị trí</th>
-                <th>Report</th>
-                <th>Item#</th>
-                <th>Loại mẫu</th>
-                <th>Người mượn</th>
-                <th>Ghi chú</th>
-                <th>Chức năng</th>
-            </tr>
-            {% for row in rows %}
-            <tr>
-                <td>{{ row.loc }}</td>
-                <td>{{ row.report }}</td>
-                <td>{{ row.item_code }}</td>
-                <td>{{ row.sample_type }}</td>
-                {% if edit_loc == row.loc %}
-                <form method="POST" class="form-inline">
-                  <td>
-                    <input class="input-inline" type="text" name="borrower" value="{{ row.borrower or '' }}">
-                  </td>
-                  <td>
-                    <input class="input-inline" type="text" name="note" value="{{ row.note or '' }}">
-                  </td>
-                  <td>
-                    <input type="hidden" name="loc" value="{{ row.loc }}">
-                    <button type="submit" class="btn-update"><i class="fa fa-save"></i> Lưu</button>
-                    <a href="{{ url_for('list_samples') }}" class="main-btn btn-cancel">Hủy</a>
-                  </td>
-                </form>
-                {% else %}
-                <td>{{ row.borrower or '' }}</td>
-                <td>{{ row.note or '' }}</td>
-                <td>
-                    <a class="main-btn" href="{{ url_for('sample_map', location_id=row.loc) }}">
-                        <i class="fa fa-map-location-dot"></i> Xem info
-                    </a>
-                    <a class="btn-update" href="{{ url_for('list_samples', edit=row.loc) }}">
-                        <i class="fa fa-edit"></i> Cập nhật
-                    </a>
-                </td>
-                {% endif %}
-            </tr>
-            {% endfor %}
-        </table>
-        <div class="btn-row">
-            <a href="/store_sample" class="main-btn btn-gold">
-                <i class="fa fa-plus-circle"></i> Lưu mẫu mới
-            </a>
-            <a href="{{ url_for('update', report=report_id) }}" class="main-btn btn-green">
-                <i class="fa fa-arrow-left"></i> Quay lại thông tin sản phẩm
-            </a>
-            <a href="/" class="main-btn" style="background:#8B6B1E;">
-                <i class="fa fa-home"></i> Trang nhập mã report
-            </a>
+  <button id="theme-btn" title="Dark/Light"><i class="fa fa-moon"></i></button>
+
+  <div class="container">
+    <div class="card">
+      <h2>Danh sách mẫu đã lưu</h2>
+
+      <!-- Toolbar: Home bên trái + Search + Tìm cùng 1 hàng -->
+      <div class="toolbar">
+        <a class="btn btn-home" href="/" title="Trang chủ"><i class="fa fa-home"></i></a>
+        <div class="search">
+          <i class="fa fa-search"></i>
+          <input id="q" type="text" placeholder="Tìm report (vd: 25-4212 hoặc 4212)">
+          <button class="btn btn-search" id="btnSearch"><i class="fa fa-filter"></i> Tìm</button>
         </div>
+      </div>
+
+      <div id="groups" class="groups"></div>
+      <div id="empty" class="no-data" style="display:none;">Không có dữ liệu.</div>
     </div>
+  </div>
+
+  <script>
+  // ===== Darkmode =====
+  function setDark(d){
+    document.body.classList.toggle('darkmode', d);
+    localStorage.setItem('vfr-darkmode', d ? '1':'0');
+    document.getElementById('theme-btn').innerHTML = d ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
+  }
+  setDark(localStorage.getItem('vfr-darkmode')==='1');
+  document.getElementById('theme-btn').onclick=()=>setDark(!document.body.classList.contains('darkmode'));
+
+  // ===== Data từ server =====
+  const DATA = {{ samples_json | safe }};
+
+  // ===== Utils =====
+  const $ = s=>document.querySelector(s);
+  const normReport = s => (s||'').toString().replace(/[^0-9]/g,'');
+  function daysLeft(iso){
+    if(!iso) return null;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const d = new Date(iso + 'T00:00:00');
+    return Math.ceil((d - today)/(1000*60*60*24));
+  }
+
+  // Group by box
+  function groupByBox(items){
+    const g={};
+    items.forEach(it=>{
+      const key = it.box_code || 'NO-BOX';
+      (g[key] ||= []).push(it);
+    });
+    return Object.keys(g).sort().map(k=>({box:k, items:g[k]}));
+  }
+
+  // Đếm mẫu hết hạn / sắp hết hạn trong 1 nhóm
+  function countStatus(items){
+    let expired=0, soon=0;
+    items.forEach(it=>{
+      const left = daysLeft(it.discard_date);
+      if(left !== null){
+        if(left < 0) expired++;
+        else if(left <= 7) soon++;
+      }
+    });
+    return {expired, soon};
+  }
+
+  function render(items){
+    const root = $('#groups');
+    root.innerHTML='';
+    const groups = groupByBox(items);
+    $('#empty').style.display = groups.length ? 'none' : 'block';
+
+    groups.forEach(({box, items})=>{
+      const {expired, soon} = countStatus(items);
+
+      const header = document.createElement('div');
+      header.className='box-header collapsed';
+      header.innerHTML = `
+        <i class="fa fa-chevron-down chev"></i>
+        <div class="box-title">Box <span class="tag">${box}</span></div>
+        <div class="right">
+          <span class="badge badge-total"><i class="fa fa-box-archive"></i> ${items.length} mẫu</span>
+          <span class="badge badge-danger"><i class="fa fa-triangle-exclamation"></i> ${expired}</span>
+          <span class="badge badge-warn"><i class="fa fa-hourglass-end"></i> ${soon}</span>
+        </div>
+      `;
+
+      const wrap = document.createElement('div');
+      wrap.className='table-wrapper';
+      wrap.style.display='none';
+
+      const table = document.createElement('table');
+      table.innerHTML = `
+        <thead><tr>
+          <th>Report</th>
+          <th>Item</th>
+          <th>Loại mẫu</th>
+          <th>Ngày hủy</th>
+          <th>Còn lại</th>
+          <th>Thao tác</th>
+        </tr></thead>
+        <tbody></tbody>
+      `;
+      const tb = table.querySelector('tbody');
+
+      items
+        .sort((a,b)=>(a.report||'').localeCompare(b.report||''))
+        .forEach(it=>{
+          const tr = document.createElement('tr');
+          const left = daysLeft(it.discard_date);
+          if(left !== null){
+            if(left < 0) tr.classList.add('status-danger');
+            else if(left <= 7) tr.classList.add('status-warn');
+          }
+          tr.innerHTML = `
+            <td>${it.report || ''}</td>
+            <td>${it.item_code || ''}</td>
+            <td>${it.sample_type || ''}</td>
+            <td>${it.discard_date || ''}</td>
+            <td>${left===null?'--':(left>=0? left+' ngày':'HẾT '+Math.abs(left)+' ngày')}</td>
+            <td class="actions">
+              <a class="btn btn-info" href="/report/${encodeURIComponent(it.report)}/sample/info/${encodeURIComponent(it.box_code)}" title="Thông tin"><i class="fa fa-circle-info"></i></a>
+              <a class="btn btn-edit" href="/report/${encodeURIComponent(it.report)}/sample/edit/${encodeURIComponent(it.box_code)}" title="Chỉnh sửa"><i class="fa fa-pen"></i></a>
+              <button class="btn btn-del" data-box="${it.box_code}" data-report="${it.report}" title="Xóa"><i class="fa fa-trash"></i></button>
+            </td>
+          `;
+          tb.appendChild(tr);
+        });
+
+      wrap.appendChild(table);
+
+      // Toggle group
+      header.addEventListener('click', ()=>{
+        const open = wrap.style.display === 'block';
+        wrap.style.display = open ? 'none' : 'block';
+        header.classList.toggle('collapsed', open);
+      });
+
+      root.appendChild(header);
+      root.appendChild(wrap);
+    });
+
+    // Xóa đúng mẫu
+    root.querySelectorAll('.btn-del').forEach(btn=>{
+      btn.addEventListener('click', async (e)=>{
+        e.stopPropagation();
+        const box = btn.dataset.box;
+        const rep = btn.dataset.report;
+        if(!confirm(`Xóa mẫu ${rep} trong box ${box}?`)) return;
+        try{
+          const res = await fetch(`/samples?box_code=${encodeURIComponent(box)}&report=${encodeURIComponent(rep)}`, {method:'DELETE'});
+          if(!res.ok) throw new Error('DELETE /samples failed');
+          allData = allData.filter(x=> !(x.box_code===box && x.report===rep));
+          render(allData);
+        }catch(err){
+          console.error(err);
+          alert('Không thể xóa mẫu.');
+        }
+      });
+    });
+  }
+
+  // Boot
+  let allData = Array.isArray(DATA) ? DATA : [];
+  render(allData);
+
+  // Tìm nhanh theo report (nhập 25-4212 hoặc 4212 đều được)
+  function doSearch(){
+    const q = $('#q').value.trim();
+    if(!q){
+        render(allData);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+    }
+    const nq = normReport(q);
+    const filtered = allData.filter(it => normReport(it.report||'').includes(nq));
+    render(filtered);
+
+    // === Mở box chứa mẫu trùng ===
+    setTimeout(()=>{
+        document.querySelectorAll('.box-header + .table-wrapper').forEach((wrap)=>{
+        const hasMatch = wrap.querySelector('td:first-child')?.textContent?.replace(/\D/g,'').includes(nq);
+        if(hasMatch){
+            wrap.style.display = 'block';
+            wrap.previousElementSibling.classList.remove('collapsed');
+            // Cuộn đến box này
+            wrap.previousElementSibling.scrollIntoView({ behavior:'smooth', block:'center' });
+            // Highlight tạm thời mẫu trùng
+            wrap.querySelectorAll('tr').forEach(tr=>{
+            if((tr.children[0].textContent||'').replace(/\D/g,'').includes(nq)){
+                tr.style.transition='background 0.3s';
+                tr.style.background='#fff19c';
+                setTimeout(()=>{ tr.style.background=''; },3000);
+            }
+            });
+        }
+        });
+    }, 50);
+    }
+
+    document.getElementById('btnSearch').addEventListener('click', doSearch);
+    document.getElementById('q').addEventListener('keydown', e=>{
+    if(e.key==='Enter'){ e.preventDefault(); doSearch(); }
+    });
+  </script>
 </body>
 </html>

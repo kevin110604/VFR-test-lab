@@ -7,7 +7,7 @@ from test_logic import load_group_notes, get_group_test_status, is_drop_test, is
 from test_logic import IMPACT_ZONES, IMPACT_LABELS, ROT_LABELS, ROT_ZONES, RH_IMPACT_ZONES, RH_VIB_ZONES, RH_SECOND_IMPACT_ZONES, RH_STEP12_ZONES, update_group_note_file, get_group_note_value, F2057_TEST_TITLES
 from notify_utils import send_teams_message
 from counter_utils import update_counter, check_and_reset_counter, log_report_complete
-from docx_utils import approve_request_fill_docx_pdf, fill_cover_from_excel_generic
+from docx_utils import approve_request_fill_docx_pdf, fill_cover_from_excel_generic, try_convert_to_pdf
 from file_utils import (
     safe_write_json, safe_read_json, safe_save_excel, safe_load_excel,
     safe_write_text, safe_read_text, safe_append_backup_json   # <— thêm hàm này
@@ -27,6 +27,11 @@ from qr_print import qr_bp
 from testlab_dashboard import dashboard_bp
 from flask_session import Session
 from collections import OrderedDict
+from markupsafe import Markup
+from dateutil.relativedelta import relativedelta
+from datetime import datetime, date
+from uuid import uuid4
+
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
@@ -52,8 +57,20 @@ HOTCOLD_LIKE = set(["hot_cold", "standing_water", "stain", "corrosion"])
 INDOOR_GROUPS = {"indoor_chuyen", "indoor_thuong", "indoor_stone", "indoor_metal","outdoor_finishing"}
 REPORT_NO_LOCK = Lock()
 BLANK_TOKENS = {"", "-", "—"}
+BOXES_FILE = os.path.join(os.path.dirname(__file__), "boxes.json")
 
 _LAST_TEST_LRU_LIMIT = 50  # lưu tối đa 50 report gần nhất
+
+def read_boxes():
+    data = safe_read_json(BOXES_FILE)
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict) and isinstance(data.get("boxes"), list):
+        return data["boxes"]
+    return ["B1-S1","B1-S2","B2-S1","B2-S2","B3-S1"]
+
+def write_boxes(boxes):
+    safe_write_json(BOXES_FILE, {"boxes": boxes})
 
 def _set_limited_mapping(session_key: str, subkey: str, value, limit: int = _LAST_TEST_LRU_LIMIT):
     """
@@ -1295,7 +1312,6 @@ def approve_all_one(req):
 
         try:
             if not os.path.exists(output_pdf):
-                from docx_utils import try_convert_to_pdf
                 try_convert_to_pdf(output_docx, output_pdf)
         except Exception as _pdf_e:
             print("PDF convert failed, fallback to DOCX:", _pdf_e)
@@ -1400,7 +1416,6 @@ def approve_all_stream():
       3) Không còn final write "ghi đè cả file" theo snapshot cũ nữa.
     """
     def gen():
-        from uuid import uuid4
         run_id = str(uuid4())
         CANCEL_FLAGS[run_id] = False
 
@@ -1520,10 +1535,6 @@ def approve_all_cancel():
 
 @app.route("/tfr_request_status", methods=["GET", "POST"])
 def tfr_request_status():
-    import os
-    import re
-    from datetime import datetime
-    # Nếu bạn đã import sẵn pandas ở đầu file, có thể bỏ try/except này
     try:
         import pandas as pd
     except Exception:
@@ -1717,7 +1728,6 @@ def tfr_request_status():
                 try:
                     edit_idx = int(edit_idx)
                     deleted_req = current.pop(edit_idx)
-                    from notify_utils import send_teams_message
                     send_teams_message(
                         TEAMS_WEBHOOK_URL_TRF,
                         f"🗑️ [TRF] Đã có yêu cầu bị xóa!\n- TRQ-ID: {deleted_req.get('trq_id')}\n- Người thao tác: {session.get('staff_id', 'Không rõ')}"
@@ -1728,7 +1738,6 @@ def tfr_request_status():
                 for i, req in enumerate(current):
                     if req.get("trq_id") == trq_id:
                         deleted_req = current.pop(i)
-                        from notify_utils import send_teams_message
                         send_teams_message(
                             TEAMS_WEBHOOK_URL_TRF,
                             f"🗑️ [TRF] Đã có yêu cầu bị xóa!\n- TRQ-ID: {deleted_req.get('trq_id')}\n- Người thao tác: {session.get('staff_id', 'Không rõ')}"
@@ -1839,20 +1848,8 @@ def tfr_request_status():
     def _find_local_main_path():
         candidates = []
         try:
-            # Ưu tiên biến đúng tên trong config
-            from config import local_main  # có thể là chuỗi đường dẫn
             if local_main:
                 candidates.append(local_main)
-            # Thêm vài gợi ý phổ biến khác trong config (không bắt buộc có)
-            try:
-                from config import DATA_DIR  # nếu có
-                if DATA_DIR:
-                    candidates += [
-                        os.path.join(DATA_DIR, "local_main.xlsx"),
-                        os.path.join(DATA_DIR, "local_main.xlsm"),
-                    ]
-            except Exception:
-                pass
         except Exception:
             pass
 
@@ -2144,7 +2141,6 @@ def tfr_request_archive():
                               "Completed Date", "completed date")
 
         if col_report:
-            from datetime import datetime, date
 
             for r in range(2, ws.max_row + 1):
                 key_raw = ws.cell(row=r, column=col_report).value
@@ -2325,7 +2321,6 @@ def update():
     valid = False
 
     # ==== helpers cho comment file ====
-    import os, re
     def _ensure_dir(p):
         os.makedirs(p, exist_ok=True)
 
@@ -2884,11 +2879,14 @@ def api_report_create():
 
     try:
         # Generic fill for ALL types with auto mapping
+        generated_by = session.get('staff_id') or session.get('user_type') or "VFR User"
+
         bio = fill_cover_from_excel_generic(
             template_docx_path=tpl_path,
             excel_path_or_name=excel_path,
             report_id=report_id,
             template_key=rtype,
+            generated_by=generated_by,   # NEW
         )
         return send_file(
             bio,
@@ -3867,140 +3865,288 @@ def get_line_test_elapsed(report):
             return None
     return None
 
-SAMPLE_STORAGE_FILE = "sample_storage.json"
+SAMPLE_STORAGE_FILE = os.path.join(BASE_DIR, "sample_storage.json")
 
 @app.route("/store_sample", methods=["GET", "POST"])
 def store_sample():
+    """
+    Route lưu mẫu theo format mới (box_code, save_date, discard_date...),
+    cho phép nhiều mẫu trong cùng 1 box (list dạng).
+    """
     report = request.args.get("report")
     item_code = get_item_code(report)
-    auto_sample_name = f"{report} - {item_code}" if report and item_code else ""
     error_msg = ""
 
-    # Đọc sample storage an toàn
+    # --- Đọc dữ liệu an toàn ---
     SAMPLE_STORAGE = safe_read_json(SAMPLE_STORAGE_FILE)
     if not isinstance(SAMPLE_STORAGE, dict):
         SAMPLE_STORAGE = {}
 
-    # Kiểm tra đã có mẫu lưu với report+item_code này chưa
-    found_location = None
-    for loc, info in SAMPLE_STORAGE.items():
-        if info.get("report") == report and info.get("item_code") == item_code:
-            found_location = loc
+    # --- Kiểm tra xem mẫu đã tồn tại chưa (theo report + item_code) ---
+    existing_box = None
+    for box, info in SAMPLE_STORAGE.items():
+        if isinstance(info, list):
+            # box chứa nhiều mẫu
+            for entry in info:
+                if entry.get("report") == report and entry.get("item_code") == item_code:
+                    existing_box = box
+                    break
+        elif isinstance(info, dict):
+            # dữ liệu cũ chỉ có 1 mẫu
+            if info.get("report") == report and info.get("item_code") == item_code:
+                existing_box = box
+        if existing_box:
             break
 
-    if found_location:
-        # Đã có mẫu => chuyển sang trang info mẫu đó
-        return redirect(url_for("sample_map", location_id=found_location))
+    # Nếu đã tồn tại mẫu => chuyển sang trang info
+    if existing_box:
+        return redirect(url_for("sample_infor", report=report, box_code=existing_box))
 
-    # Nếu chưa có thì xử lý như cũ
+    # --- Nếu chưa có mẫu => xử lý form POST ---
     if request.method == "POST":
-        sample_name = request.form.get("sample_name")
-        sample_type = request.form.get("sample_type")
-        height = request.form.get("height")
-        width = request.form.get("width")
-        months = request.form.get("months")
-        note = request.form.get("note")
-        used_slots = set(SAMPLE_STORAGE.keys())
+        sample_type = request.form.get("sample_type", "").strip()
+        box_code = request.form.get("box_code", "").strip().upper()
+        note = request.form.get("note", "").strip()
 
-        # Lọc slot phù hợp
-        if months == "3":
-            possible_slots = [slot for slot in ALL_SLOTS if "-B" in slot]
-        else:
-            possible_slots = [slot for slot in ALL_SLOTS if "-A" in slot]
-        free_slots = [slot for slot in possible_slots if slot not in used_slots]
+        save_date_str = request.form.get("save_date")
+        discard_date_str = request.form.get("discard_date")
 
-        if not free_slots:
-            return "<h3>Hết chỗ lưu mẫu phù hợp!</h3><a href='/'>Quay về</a>"
-        location_id = free_slots[0]
-        # --- Đọc lại (tránh ghi đè khi có nhiều người thao tác đồng thời) ---
-        SAMPLE_STORAGE = safe_read_json(SAMPLE_STORAGE_FILE)
-        if not isinstance(SAMPLE_STORAGE, dict):
-            SAMPLE_STORAGE = {}
-        SAMPLE_STORAGE[location_id] = {
-            'report': report,
-            'item_code': item_code,
-            'sample_name': sample_name,
-            'sample_type': sample_type,
-            'height': height,
-            'width': width,
-            'months': months,
-            'note': note
-        }
+        from datetime import datetime, date
+        from dateutil.relativedelta import relativedelta
+
+        try:
+            save_date = datetime.strptime(save_date_str, "%Y-%m-%d").date() if save_date_str else date.today()
+        except:
+            save_date = date.today()
+
+        try:
+            discard_date = datetime.strptime(discard_date_str, "%Y-%m-%d").date() if discard_date_str else (save_date + relativedelta(months=3))
+        except:
+            discard_date = save_date + relativedelta(months=3)
+
+        # --- Ghi dữ liệu ---
+        if box_code not in SAMPLE_STORAGE:
+            SAMPLE_STORAGE[box_code] = []
+        elif isinstance(SAMPLE_STORAGE[box_code], dict):
+            # nếu dữ liệu cũ chỉ có 1 mẫu thì chuyển thành list
+            SAMPLE_STORAGE[box_code] = [SAMPLE_STORAGE[box_code]]
+
+        # thêm mẫu mới vào danh sách trong box
+        SAMPLE_STORAGE[box_code].append({
+            "report": report,
+            "item_code": item_code,
+            "sample_type": sample_type,
+            "box_code": box_code,
+            "save_date": save_date.isoformat(),
+            "discard_date": discard_date.isoformat(),
+            "note": note
+        })
+
         safe_write_json(SAMPLE_STORAGE_FILE, SAMPLE_STORAGE)
-        return redirect(url_for("sample_map", location_id=location_id))
+        return redirect(url_for("sample_infor", report=report, box_code=box_code))
 
+    # --- GET request: render form ---
     return render_template(
         "sample_form.html",
         report=report,
-        item_code=item_code,
-        auto_sample_name=auto_sample_name
+        item_code=item_code
     )
 
-@app.route('/sample_map')
-def sample_map():
-    location_id = request.args.get('location_id')
-    # Luôn đọc dữ liệu từ file, không dùng biến toàn cục
+@app.route("/report/<report>/sample/edit/<box_code>", methods=["GET", "POST"])
+def edit_sample(report, box_code):
+    """Chỉnh sửa mẫu có sẵn trong box (tương thích nhiều mẫu)."""
     SAMPLE_STORAGE = safe_read_json(SAMPLE_STORAGE_FILE)
     if not isinstance(SAMPLE_STORAGE, dict):
         SAMPLE_STORAGE = {}
 
-    sample = SAMPLE_STORAGE.get(location_id)
-    if not sample:
-        return "Không tìm thấy mẫu", 404
+    data = None
+    if box_code in SAMPLE_STORAGE:
+        box_data = SAMPLE_STORAGE[box_code]
+        if isinstance(box_data, list):
+            for entry in box_data:
+                if entry.get("report") == report:
+                    data = entry
+                    break
+        elif isinstance(box_data, dict):
+            data = box_data
 
-    report = sample['report']
-    item_code = sample['item_code']
+    if not data:
+        return f"Không tìm thấy mẫu trong box {box_code}", 404
+
+    from datetime import datetime, date
+    from dateutil.relativedelta import relativedelta
+
+    if request.method == "POST":
+        sample_type = request.form.get("sample_type")
+        note = request.form.get("note", "")
+        save_date_str = request.form.get("save_date")
+        discard_date_str = request.form.get("discard_date")
+
+        try:
+            save_date = datetime.strptime(save_date_str, "%Y-%m-%d").date()
+        except:
+            save_date = date.today()
+
+        try:
+            discard_date = datetime.strptime(discard_date_str, "%Y-%m-%d").date()
+        except:
+            discard_date = save_date + relativedelta(months=3)
+
+        # cập nhật dữ liệu trong list đúng mẫu đó
+        if isinstance(SAMPLE_STORAGE[box_code], list):
+            for i, entry in enumerate(SAMPLE_STORAGE[box_code]):
+                if entry.get("report") == report:
+                    SAMPLE_STORAGE[box_code][i].update({
+                        "sample_type": sample_type,
+                        "note": note,
+                        "save_date": save_date.isoformat(),
+                        "discard_date": discard_date.isoformat()
+                    })
+                    break
+        elif isinstance(SAMPLE_STORAGE[box_code], dict):
+            SAMPLE_STORAGE[box_code].update({
+                "sample_type": sample_type,
+                "note": note,
+                "save_date": save_date.isoformat(),
+                "discard_date": discard_date.isoformat()
+            })
+
+        safe_write_json(SAMPLE_STORAGE_FILE, SAMPLE_STORAGE)
+        return redirect(url_for("list_samples", report=report))
+
+    # --- GET request: render form ---
+    return render_template(
+        "sample_form.html",
+        report=report,
+        item_code=data.get("item_code", ""),
+        box_code=box_code,
+        sample_type=data.get("sample_type", ""),
+        note=data.get("note", ""),
+        save_date=data.get("save_date", ""),
+        discard_date=data.get("discard_date", "")
+    )
+
+@app.route("/boxes", methods=["GET","POST","DELETE"])
+def boxes_api():
+    boxes = read_boxes()
+
+    if request.method == "GET":
+        return jsonify({"boxes": boxes})
+
+    if request.method == "POST":
+        payload = request.get_json(silent=True) or {}
+        code = (payload.get("code") or "").strip().upper()
+        if code and code not in boxes:
+            boxes.append(code)
+            boxes = sorted(set(boxes))
+            write_boxes(boxes)
+        return jsonify({"boxes": boxes})
+
+    if request.method == "DELETE":
+        code = (request.args.get("code") or "").strip().upper()
+        if code in boxes:
+            boxes = [b for b in boxes if b != code]
+            write_boxes(boxes)
+        return jsonify({"boxes": boxes})
+    
+@app.route("/report/<report>/sample/info/<box_code>")
+def sample_infor(report, box_code):
+    SAMPLE_STORAGE = safe_read_json(SAMPLE_STORAGE_FILE)
+    info = None
+    if box_code in SAMPLE_STORAGE:
+        box_data = SAMPLE_STORAGE[box_code]
+        if isinstance(box_data, list):
+            # tìm mẫu đúng report trong box
+            for entry in box_data:
+                if entry.get("report") == report:
+                    info = entry
+                    break
+        elif isinstance(box_data, dict):
+            info = box_data
+    if not info:
+        return f"Không tìm thấy mẫu trong box {box_code}", 404
 
     return render_template(
         "sample_infor.html",
-        info=sample,
+        info=info,
         report_id=report,
-        item_code=item_code,
-        location_id=location_id
+        item_code=info.get("item_code", ""),
+        box_code=box_code
     )
 
-@app.route("/list_samples", methods=["GET", "POST"])
+@app.route("/list_samples", methods=["GET"])
 def list_samples():
-    # Luôn đọc file dữ liệu mẫu
     SAMPLE_STORAGE = safe_read_json(SAMPLE_STORAGE_FILE)
     if not isinstance(SAMPLE_STORAGE, dict):
         SAMPLE_STORAGE = {}
 
-    if request.method == "POST":
-        loc = request.form.get("loc")
-        borrower = request.form.get("borrower")
-        note = request.form.get("note")
-        if loc in SAMPLE_STORAGE:
-            SAMPLE_STORAGE[loc]['borrower'] = borrower
-            SAMPLE_STORAGE[loc]['note'] = note
-            # Ghi lại sau khi update
-            safe_write_json(SAMPLE_STORAGE_FILE, SAMPLE_STORAGE)
+    samples = []
 
-    edit_loc = request.args.get("edit")
-    report_id = request.args.get("report", "")
-    item_code = ""
+    for box_code, info in SAMPLE_STORAGE.items():
+        if isinstance(info, list):
+            # box có nhiều mẫu
+            for entry in info:
+                samples.append({
+                    "box_code": box_code,
+                    "report": entry.get("report", ""),
+                    "item_code": entry.get("item_code", ""),
+                    "sample_type": entry.get("sample_type", ""),
+                    "save_date": entry.get("save_date", ""),
+                    "discard_date": entry.get("discard_date", ""),
+                    "note": entry.get("note", "")
+                })
+        elif isinstance(info, dict):
+            # dữ liệu cũ chỉ có 1 mẫu
+            samples.append({
+                "box_code": box_code,
+                "report": info.get("report", ""),
+                "item_code": info.get("item_code", ""),
+                "sample_type": info.get("sample_type", ""),
+                "save_date": info.get("save_date", ""),
+                "discard_date": info.get("discard_date", ""),
+                "note": info.get("note", "")
+            })
 
-    table_rows = []
-    for loc, info in SAMPLE_STORAGE.items():
-        if not report_id and info.get('report', ''):
-            report_id = info.get('report', '')
-            item_code = info.get('item_code', '')
-        table_rows.append({
-            "loc": loc,
-            "report": info.get('report', ''),
-            "item_code": info.get('item_code', ''),
-            "sample_type": info.get('sample_type', ''),
-            "borrower": info.get('borrower', ''),
-            "note": info.get('note', '')
-        })
+    # Debug log (tùy chọn)
+    print(f"✅ Loaded {len(samples)} samples from {len(SAMPLE_STORAGE)} boxes")
+
+    # Truyền JSON vào template để render
+    from markupsafe import Markup
+    import json
+    samples_json = Markup(json.dumps(samples, ensure_ascii=False))
 
     return render_template(
         "list_samples.html",
-        rows=table_rows,
-        report_id=report_id,
-        item_code=item_code,
-        edit_loc=edit_loc
+        samples_json=samples_json,
+        report_id=request.args.get("report", "")
     )
+
+# ====== API: XÓA MẪU THEO BOX_CODE ======
+@app.route("/samples", methods=["DELETE"])
+def delete_sample():
+    box_code = (request.args.get("box_code") or "").strip().upper()
+    report = (request.args.get("report") or "").strip()
+
+    SAMPLE_STORAGE = safe_read_json(SAMPLE_STORAGE_FILE)
+    if not isinstance(SAMPLE_STORAGE, dict):
+        SAMPLE_STORAGE = {}
+
+    if box_code not in SAMPLE_STORAGE:
+        return {"ok": False, "error": "not found"}, 404
+
+    box_data = SAMPLE_STORAGE[box_code]
+
+    if isinstance(box_data, list) and report:
+        box_data = [r for r in box_data if r.get("report") != report]
+        if box_data:
+            SAMPLE_STORAGE[box_code] = box_data
+        else:
+            del SAMPLE_STORAGE[box_code]
+    else:
+        del SAMPLE_STORAGE[box_code]
+
+    safe_write_json(SAMPLE_STORAGE_FILE, SAMPLE_STORAGE)
+    return {"ok": True}
 
 @app.route('/images/<report>/imgs_<group>_<test_key>/<filename>')
 def serve_test_img(report, group, test_key, filename):
