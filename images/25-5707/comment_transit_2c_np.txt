@@ -1,2 +1,0 @@
-sample_weight: 12 kg
-sample_size: 2 x 2 x 3

@@ -127,9 +127,12 @@
         <a class="btn btn-home" href="/" title="Trang chủ"><i class="fa fa-home"></i></a>
         <div class="search">
           <i class="fa fa-search"></i>
-          <input id="q" type="text" placeholder="Tìm report (vd: 25-4212 hoặc 4212)">
+          <input id="q" type="text" placeholder="Tìm sample">
           <button class="btn btn-search" id="btnSearch"><i class="fa fa-filter"></i> Tìm</button>
         </div>
+
+        <!-- ✅ NEW: Nút xuất Excel -->
+        <button class="btn" id="btnExport"><i class="fa fa-file-excel"></i> Xuất Excel</button>
       </div>
 
       <div id="groups" class="groups"></div>
@@ -321,6 +324,31 @@
     document.getElementById('q').addEventListener('keydown', e=>{
     if(e.key==='Enter'){ e.preventDefault(); doSearch(); }
     });
+  document.getElementById('btnExport').addEventListener('click', ()=>{
+    fetch('/export_expired_samples', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(allData)   // gửi toàn bộ dữ liệu đang hiển thị
+    })
+    .then(res => {
+      if(!res.ok) throw new Error('Tải thất bại');
+      return res.blob();
+    })
+    .then(blob => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'expired_samples.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    })
+    .catch(err=>{
+      console.error(err);
+      alert('Xuất file Excel thất bại.');
+    });
+  });
   </script>
 </body>
 </html>

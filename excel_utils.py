@@ -6,6 +6,8 @@ from config import local_main
 from openpyxl import load_workbook, Workbook
 from copy import copy
 from openpyxl.utils import get_column_letter
+from openpyxl.styles import Alignment, Font, Border, Side, PatternFill
+from io import BytesIO
 
 # =========================
 # Helpers chuẩn hoá & utils
@@ -376,3 +378,46 @@ def append_row_to_trf(report_no, main_excel_path, trf_excel_path, trq_id=None):
     wb_trf.save(trf_excel_path)
     wb_trf.close()
     wb_main.close()
+
+def export_expired_samples_to_excel(rows):
+    """Tạo file Excel 3 cột: Report - Item - Loại mẫu (cho các mẫu hết hạn)."""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Mẫu hết hạn"
+
+    headers = ["Report", "Item", "Loại mẫu"]
+    ws.append(headers)
+
+    # Ghi dữ liệu
+    for r in rows:
+        ws.append([r.get('report',''), r.get('item_code',''), r.get('sample_type','')])
+
+    # Style
+    header_font = Font(bold=True)
+    center = Alignment(horizontal='center', vertical='center')
+    thin = Side(style='thin', color='999999')
+    border = Border(top=thin, bottom=thin, left=thin, right=thin)
+    fill = PatternFill('solid', fgColor='FFF2CC')
+
+    for cell in ws[1]:
+        cell.font = header_font
+        cell.alignment = center
+        cell.border = border
+        cell.fill = fill
+
+    # Auto width
+    for col in ws.columns:
+        max_len = max(len(str(c.value)) for c in col)
+        ws.column_dimensions[get_column_letter(col[0].column)].width = max_len + 4
+        for c in col:
+            c.alignment = center
+            c.border = border
+
+    # Freeze header + filter
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = "A1:C1"
+
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf.getvalue()

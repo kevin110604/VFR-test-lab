@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template, session, redirect, url_for, jsonify, flash, send_from_directory, Response, stream_with_context, abort, template_rendered, send_file
-from config import SECRET_KEY, local_main, SAMPLE_STORAGE, UPLOAD_FOLDER, TEST_GROUPS, local_complete, SO_GIO_TEST, ALL_SLOTS, TEAMS_WEBHOOK_URL_TRF, TEAMS_WEBHOOK_URL_RATE, TEAMS_WEBHOOK_URL_COUNT, TEMPLATE_MAP
-from excel_utils import get_item_code, get_col_idx, copy_row_with_style, write_tfr_to_excel, append_row_to_trf
+from config import SECRET_KEY, local_main, UPLOAD_FOLDER, TEST_GROUPS, local_complete, SO_GIO_TEST, TEAMS_WEBHOOK_URL_TRF, TEAMS_WEBHOOK_URL_RATE, TEMPLATE_MAP
+from excel_utils import get_item_code, get_col_idx, copy_row_with_style, write_tfr_to_excel, append_row_to_trf, export_expired_samples_to_excel
+
 from image_utils import allowed_file, get_img_urls
 from auth import login, get_user_type
 from test_logic import load_group_notes, get_group_test_status, is_drop_test, is_impact_test, is_rotational_test,  TEST_GROUP_TITLES, TEST_TYPE_VI, DROP_ZONES, DROP_LABELS, GT68_FACE_LABELS, GT68_FACE_ZONES
@@ -31,7 +32,7 @@ from markupsafe import Markup
 from dateutil.relativedelta import relativedelta
 from datetime import datetime, date
 from uuid import uuid4
-
+from io import BytesIO
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
@@ -4147,6 +4148,22 @@ def delete_sample():
 
     safe_write_json(SAMPLE_STORAGE_FILE, SAMPLE_STORAGE)
     return {"ok": True}
+
+@app.post('/export_expired_samples')
+def export_expired_samples():
+    """Nhận list mẫu từ client, lọc các mẫu hết hạn (đang có status-danger) để xuất Excel."""
+    data = request.get_json(force=True) or []
+    # lọc những mẫu có ngày hủy < hôm nay
+    today = datetime.now().date()
+    expired = [r for r in data if r.get('discard_date') and r.get('discard_date') < str(today)]
+
+    wb_bytes = export_expired_samples_to_excel(expired)
+    return send_file(
+        BytesIO(wb_bytes),
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name='expired_samples.xlsx'
+    )
 
 @app.route('/images/<report>/imgs_<group>_<test_key>/<filename>')
 def serve_test_img(report, group, test_key, filename):

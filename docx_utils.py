@@ -912,50 +912,157 @@ def _aggregate_results(values):
     return "PASS"
 
 def _update_exec_summary_results_from_status(doc: Document, report_id: str, template_key: str) -> bool:
-    """Gom kết quả chi tiết (Sec.x) để điền vào dòng Executive Summary (Sec major)."""
+    """
+    MỚI: Điền EXECUTIVE SUMMARY theo ưu tiên:
+      (1) Map Description của Summary với Description/Test property của bảng chi tiết
+          - Dùng biến thể tên từ test_logic (nếu có) + so khớp trực tiếp theo normalize
+      (2) Nếu (1) không khớp -> fallback: gộp kết quả các mục con (Sec. x.y) để suy ra mục cha (Sec. x)
+    Chú ý: Chỉ ghi vào ô Result của Summary nếu ô đó hiện đang là dấu "-" (không ghi đè N/A, N/T hoặc ô trống).
+    """
     changed = False
+
     exec_tbl = _find_exec_summary_table(doc)
     detail_tbl = _find_detail_table(doc)
     if not exec_tbl or not detail_tbl:
         return False
+
+    # giữ nguyên style Result trong Summary
     fname, fsize, fbold, fitalic, align = _detect_result_style(exec_tbl)
 
-    det_prop_idx, det_res_idx = 0, _find_result_col(detail_tbl)
-    exec_prop_idx, exec_res_idx = 0, _find_result_col(exec_tbl)
+    # ---- helper kiểm tra có được phép ghi vào ô hiện tại hay không (chỉ khi là "-") ----
+    def _is_dash_only(val: str) -> bool:
+        if val is None:
+            return False
+        s = val.strip()
+        if not s:
+            return False  # ô trống: KHÔNG ghi đè
+        return s in {"-", "—", "–"}  # chỉ ghi khi là các biến thể dấu gạch
 
-    # --- Gom nhóm theo major Sec ---
-    sec_data = {}
-    for row in detail_tbl.rows[1:]:
-        cells = row.cells
-        if len(cells) <= det_res_idx:
+    # --- xác định cột linh hoạt cho 2 bảng ---
+    def _hdr_idx(tbl, wanted):
+        hdr = [_norm(c.text) for c in tbl.rows[0].cells]
+        for i, h in enumerate(hdr):
+            if h in wanted:
+                return i
+        return None
+
+    # EXECUTIVE SUMMARY
+    exec_prop_idx = _hdr_idx(exec_tbl, {"clause", "test property"})
+    exec_desc_idx = _hdr_idx(exec_tbl, {"description"})
+    exec_res_idx  = _find_result_col(exec_tbl)
+    if exec_prop_idx is None: exec_prop_idx = 0
+    if exec_desc_idx is None: exec_desc_idx = 1
+
+    # DETAIL TABLE
+    det_prop_idx = _hdr_idx(detail_tbl, {"clause", "test property"})
+    det_desc_idx = _hdr_idx(detail_tbl, {"description"})
+    det_res_idx  = _find_result_col(detail_tbl)
+    if det_prop_idx is None: det_prop_idx = 0
+    if det_desc_idx is None: det_desc_idx = 1
+
+    # --- chuẩn bị candidates từ test_logic (nếu có) ---
+    try:
+        muc_candidates = _prep_title_candidates(template_key)  # { "muc6.4": {"Mục 6.4", "Seat static...", ...}, ... }
+    except Exception:
+        muc_candidates = {}
+
+    # --- index nhanh: description chi tiết -> (raw_desc, result) ---
+    detail_desc_to_result = {}
+    detail_rows = []
+    for r in detail_tbl.rows[1:]:
+        cells = r.cells
+        if len(cells) <= max(det_desc_idx, det_res_idx):
             continue
-        prop, res = cells[det_prop_idx].text.strip(), cells[det_res_idx].text.strip()
-        full, major = _clean_sec(prop)
+        dprop = cells[det_prop_idx].text if det_prop_idx < len(cells) else ""
+        ddesc = cells[det_desc_idx].text if det_desc_idx < len(cells) else ""
+        dres  = cells[det_res_idx].text
+        nd = _norm(ddesc)
+        if nd:
+            detail_desc_to_result.setdefault(nd, (ddesc, (dres or "").strip()))
+        detail_rows.append((dprop, ddesc, dres))
+
+    # helper: match theo danh sách biến thể (ưu tiên exact normalize)
+    def _match_detail_by_variants(variants: set[str]) -> str | None:
+        for v in variants:
+            nv = _norm(v)
+            if nv in detail_desc_to_result:
+                _, r = detail_desc_to_result[nv]
+                r = (r or "").strip()
+                # không dùng placeholder từ bảng dưới
+                if r and not _is_result_placeholder(r):
+                    return r
+        return None
+
+    # helper: sinh biến thể tên từ summary description + test_logic
+    def _summary_variants(desc_text: str) -> set[str]:
+        out = set()
+        s = (desc_text or "").strip()
+        if s:
+            out.add(s)  # giữ nguyên bản gốc
+        ns = _norm(s)
+        if ns:
+            out.add(s)
+        # nếu desc gần giống 1 "mục" trong test_logic -> thêm toàn bộ biến thể của mục đó
+        for _, patterns in muc_candidates.items():
+            for p in patterns:
+                np = _norm(p)
+                if np == ns or np in ns or ns in np:
+                    out.update(patterns)
+        return out
+
+    # --- dữ liệu phục vụ fallback: gộp con -> cha ---
+    major_to_results = {}
+    for dprop, ddesc, dres in detail_rows:
+        full, major = _clean_sec(dprop or "")
         if not major:
             continue
-        res_norm = res.strip().upper()
-        if res_norm in {"", "-", "—", "–"}:
+        ru = (dres or "").strip().upper()
+        if ru in {"", "-", "—", "–"}:
             continue
-        sec_data.setdefault(major, []).append(res_norm)
+        major_to_results.setdefault(major, []).append(ru)
 
-    # --- Cập nhật vào Exec Summary ---
+    # --- đi từng dòng summary ---
     for row in exec_tbl.rows[1:]:
         cells = row.cells
         if len(cells) <= exec_res_idx:
             continue
-        prop = cells[exec_prop_idx].text.strip()
-        res_cell = cells[exec_res_idx]
-        cur_val = (res_cell.text or "").strip().upper()
-        full, major = _clean_sec(prop)
-        if not major or not _is_exec_placeholder(cur_val):
+
+        prop_text = cells[exec_prop_idx].text if exec_prop_idx < len(cells) else ""
+        desc_text = cells[exec_desc_idx].text if exec_desc_idx < len(cells) else ""
+        res_cell  = cells[exec_res_idx]
+
+        # chỉ xử lý nếu ô hiện đang là dấu "-"
+        current_text = (res_cell.text or "").strip()
+        if not _is_dash_only(current_text):
+            # đang là N/A, N/T, trống, hoặc đã có PASS/FAIL => bỏ qua, không ghi đè
             continue
-        if major not in sec_data:
-            continue
-        agg = _aggregate_results(sec_data[major])
-        if not agg:
-            continue
-        _apply_text_with_font(res_cell, agg, fname, fsize, fbold, fitalic, align=align)
-        changed = True
+
+        filled = False
+
+        # (1) MAP DESCRIPTION TRƯỚC
+        variants = _summary_variants(desc_text)
+        r1 = _match_detail_by_variants(variants)
+        if not r1:
+            # thử match trực tiếp 1-1 theo description normalize
+            nd = _norm(desc_text)
+            if nd in detail_desc_to_result:
+                _, r_direct = detail_desc_to_result[nd]
+                if r_direct and not _is_result_placeholder(r_direct):
+                    r1 = r_direct
+
+        if r1:
+            _apply_text_with_font(res_cell, r1, fname, fsize, fbold, fitalic, align=align)
+            changed = True
+            filled = True
+
+        # (2) FALLBACK: GỘP CON -> CHA THEO MAJOR SEC
+        if not filled:
+            _, major = _clean_sec(prop_text or "")
+            if major and major in major_to_results:
+                agg = _aggregate_results(major_to_results[major])
+                if agg:
+                    _apply_text_with_font(res_cell, agg, fname, fsize, fbold, fitalic, align=align)
+                    changed = True
 
     return changed
 

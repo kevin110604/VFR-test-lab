@@ -1,3 +1,0 @@
-muc4.3: PASS
-muc4.2: PASS
-muc4.4: PASS
