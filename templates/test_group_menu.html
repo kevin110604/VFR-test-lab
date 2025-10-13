@@ -8,10 +8,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
     <style>
-    /* -- GIỮ NGUYÊN TOÀN BỘ CSS BẠN ĐÃ CÓ -- */
     :root {
         --main-bg: #fffdfc;
-        --main-card: #fffdfccf;
+        --main-card: #fffdfc;
         --main-text: #25312b;
         --main-th: #c49c48;
         --main-border: #d8d8cc;
@@ -28,186 +27,221 @@
         --shadow-light: rgba(0,0,0,0.12);
         --warn-bg-dark: #f3d5d5;
         --warn-text-dark: #db4545;
+
+        /* UI nâng cấp */
+        --btn-radius: 14px;
+        --card-radius: 16px;
+        --card-shadow: 0 6px 24px rgba(0,0,0,.12);
+        --card-shadow-dark: 0 6px 24px rgba(0,0,0,.35);
+        --muted: #7a8a86;
     }
     body.dark, .dark {
-        --main-bg: #2b3938;
-        --main-card: #374B4A;
+        --main-bg: #1f2a29;      /* đậm hơn để dark full screen */
+        --main-card: #2b3938;
         --main-text: #f6f6ef;
         --main-th: #ffe082;
-        --main-border: #263d3a;
-        --color-green: #91b8a2;
+        --main-border: #243432;
+        --color-green: #9ec7b6;
         --color-bronze: #ffc970;
         --color-brown: #bfa87b;
-        --color-na: #aaa;
+        --color-na: #b5bcbc;
         --color-text-dark: #f6f6ef;
         --color-text-light: #f6f6ef;
+        --muted: #c9d0cf;
     }
     html, body {
-        height: 100%; margin: 0; padding: 0;
+        height: 100%; min-height: 100vh; margin: 0; padding: 0;
         background: var(--main-bg);
         color: var(--main-text);
         font-family: 'Open Sans', Arial, sans-serif;
         transition: color 0.2s, background 0.22s;
     }
     body.dark, .dark { color: var(--color-text-light); }
+
     .report-banner {
-        color: #d6c49d; font-size: 21px; font-weight: bold;
-        text-align: center; margin-top: 6px; margin-bottom: 14px;
-        letter-spacing: 1px; text-shadow: 0 2px 14px #c49c484a;
+        color: var(--main-th); font-size: 21px; font-weight: bold;
+        text-align: center; margin: 12px 0 14px;
+        letter-spacing: .06em; text-shadow: 0 2px 14px #c49c484a;
         font-family: 'Merriweather', serif;
     }
-    .f2057-panel > div {
-        margin-bottom: 12px;
-    }
+
     .box {
         background: var(--main-card); color: var(--main-text);
-        max-width: 540px; margin: 10px auto 0 auto;
-        padding: 28px 20px 30px 20px; border-radius: 16px;
-        box-shadow: 0 4px 24px var(--shadow-light); position: relative;
-        transition: background 0.22s, color 0.2s;
+        max-width: min(1280px, 94vw); margin: 10px auto 28px auto;
+        padding: 28px 24px 34px; border-radius: var(--card-radius);
+        box-shadow: var(--card-shadow); position: relative;
+        transition: background 0.22s, color 0.2s, box-shadow .2s;
         font-family: 'Open Sans', Arial, sans-serif;
     }
-    body.dark .box { background: var(--main-card); box-shadow: 0 4px 24px var(--shadow-dark); color: var(--main-text); }
+    body.dark .box { box-shadow: var(--card-shadow-dark); }
+
     h2 {
         font-family: 'Merriweather', serif; color: var(--color-green);
-        text-align: center; margin-bottom: 32px; font-size: 26px; font-weight: 700;
-        letter-spacing: 0.12em; transition: color 0.21s; text-shadow: none;
+        text-align: center; margin-bottom: 22px; font-size: 26px; font-weight: 700;
+        letter-spacing: 0.12em; transition: color 0.21s;
     }
-    body.dark h2 { color: var(--main-th); text-shadow: 1px 1px 5px rgba(0,0,0,0.6); }
-    .back-btn-container {
-        text-align: left;
-        margin-bottom: 6px;
-        margin-top: 0;
-    }
+    body.dark h2 { color: var(--main-th); }
+
+    .back-btn-container { text-align: left; margin-bottom: 10px; margin-top: 0; }
     .back-btn {
-        background: #faf7ec;
-        color: #73592c !important;
-        border: 1px solid #d5c69d;
-        border-radius: 11px;
-        font-family: 'Inter', 'Open Sans', Arial, sans-serif;
-        font-size: 13.3px;
-        font-weight: 600;
-        letter-spacing: 0.03em;
-        padding: 4px 12px 4px 11px;
-        min-width: 0;
-        box-shadow: 0 1px 6px #d4c8942a;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
+        background: #faf7ec; color: #73592c !important; border: 1px solid #d5c69d; border-radius: 11px;
+        font-family: 'Inter', 'Open Sans', Arial, sans-serif; font-size: 13.3px; font-weight: 600;
+        letter-spacing: 0.03em; padding: 6px 12px; min-width: 0;
+        box-shadow: 0 1px 6px #d4c8942a; text-decoration: none; display: inline-flex; align-items: center; gap: 7px;
         transition: background 0.13s, color 0.13s, border-color 0.13s;
     }
-    .back-btn:hover {
-        background: #ffe082;
-        color: #25312b !important;
-        border-color: #ffe082;
+    .back-btn:hover { background: #ffe082; color: #25312b !important; border-color: #ffe082; }
+
+    /* ========== LAYOUT TEST BUTTONS ========== */
+    /* Desktop: grid đều, nút cùng size; Mobile: dọc như cũ */
+    .test-group-menu {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(220px, 1fr));
+        gap: 18px 18px;
+        align-items: start;
     }
-    .back-btn svg {
-        margin: 0 !important;
+    @media (max-width: 1200px) {
+        .test-group-menu { grid-template-columns: repeat(3, minmax(220px, 1fr)); }
     }
-    .test-group-menu { display: flex; flex-direction: column; gap: 16px; margin: 0 0 16px 0; }
-    .test-group-menu > div { width: 100%; }
-    .test-btn {
-        background: var(--color-green); color: #fff8b0; border: none; border-radius: 12px;
-        font-size: 17px; font-weight: 600; text-align: left; padding: 14px 20px;
-        box-shadow: 0 2px 10px var(--shadow-light); cursor: pointer;
-        transition: background 0.22s, color 0.15s, transform 0.15s;
-        margin: 0; min-height: 58px; display: flex; align-items: center; justify-content: flex-start;
-        outline: none; position: relative; overflow: hidden; letter-spacing: 0.3px; line-height: 1.35;
-        word-break: break-word; word-wrap: break-word; text-decoration: none;
-        font-family: 'Inter', sans-serif;
+    @media (max-width: 992px) {
+        .test-group-menu { grid-template-columns: repeat(2, minmax(220px, 1fr)); }
+    }
+    @media (max-width: 768px) {
+        .test-group-menu { display: flex; flex-direction: column; gap: 16px; }
     }
 
-    /* nút đã có status -> xám nhạt */
-    .test-btn.done {
-        background: #cccccc !important;
-        color: #555 !important;
-        cursor: default;
-        box-shadow: none;
+    .test-group-menu > div { width: 100%; display: flex; flex-direction: column; align-items: stretch; }
+
+    .test-btn {
+        background: var(--color-green); color: #fff; border: none; border-radius: var(--btn-radius);
+        font-size: 16px; font-weight: 700; text-align: center; padding: 16px 18px;
+        box-shadow: 0 3px 12px rgba(0,0,0,.12); cursor: pointer;
+        transition: background 0.22s, color 0.15s, transform 0.15s, box-shadow .2s;
+        margin: 0; min-height: 78px; display: flex; align-items: center; justify-content: center;
+        outline: none; overflow: hidden; letter-spacing: .2px; line-height: 1.35;
+        text-decoration: none;  /* không gạch chân */
+        font-family: 'Inter', sans-serif;
     }
-    body.dark .test-btn.done {
-        background: #555 !important;
-        color: #ddd !important;
-    }
-    body.dark .test-btn { background: var(--color-green); color: #25312b; box-shadow: 0 2px 10px var(--shadow-dark); }
-    .test-btn:hover { background: var(--color-bronze); }
-    .test-btn b {
-        font-weight: 700; margin-right: 8px; white-space: nowrap;
-        font-family: 'Merriweather', serif; color: #fff8b0; transition: color 0.22s;
-    }
-    body.dark .test-btn b { color: #25312b; }
+    .test-btn:hover { background: var(--color-bronze); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.16); }
+    .test-btn:focus-visible { outline: 2px solid var(--main-th); outline-offset: 2px; }
+
+    .test-btn.done { background: #cfd8d6 !important; color: #42524f !important; cursor: default; box-shadow: none; }
+    body.dark .test-btn { color: #17302a; }
+    body.dark .test-btn.done { background: #536260 !important; color: #e7efe9 !important; }
+
     .status-block {
-        font-size: 14px; text-align: left; padding-left: 12px; color: var(--color-green);
-        user-select: none; margin-top: 6px; font-family: 'Open Sans', Arial, sans-serif;
-        font-weight: 500; font-style: italic;
+        font-size: 13.5px; text-align: center; color: var(--muted);
+        user-select: none; margin-top: 8px; font-family: 'Open Sans', Arial, sans-serif;
+        font-weight: 600;
     }
-    body.dark .status-block { color: var(--main-th); }
+    body.dark .status-block { color: var(--muted); }
+
     .result-pass, .result-fail, .result-na, .comment {
-        padding: 4px 8px; border-radius: 10px; box-shadow: 0 3px 7px var(--shadow-light);
-        display: inline-block; max-width: 95%; word-break: break-word; font-weight: 700;
+        padding: 5px 10px; border-radius: 999px; box-shadow: 0 2px 6px var(--shadow-light);
+        display: inline-block; max-width: 95%; word-break: break-word; font-weight: 800;
         transition: background 0.22s, color 0.22s; font-family: 'Inter', sans-serif;
+        margin: 4px 0;
     }
-    body.dark .result-pass, body.dark .result-fail, body.dark .result-na, body.dark .comment {
-        box-shadow: 0 3px 8px var(--shadow-dark);
-    }
-    .result-pass { background: var(--color-green); border: 1.6px solid var(--color-pass); color: #fff; }
-    body.dark .result-pass { background: var(--color-green); border-color: var(--color-green); color: var(--main-th); }
-    .result-fail { color: var(--color-beige-bg); border: 1.6px solid var(--color-fail); background: var(--color-fail); font-weight: 800; }
-    body.dark .result-fail { background: #712626; border-color: #712626; color: var(--color-beige-bg); }
-    .result-na { color: var(--color-na); border: 1.6px solid var(--color-na); background: #e6e6e6; }
-    body.dark .result-na { background: #4a6151; border-color: #4a6151; color: var(--color-beige-bg); }
-    .comment { color: #2276a7; background: #eaf4fb; border: 1.5px solid #6ca7ce; font-size: 13px; margin-top: 4px; }
-    body.dark .comment { border-color: #9ac4e7; background: #425a70; color: #c7d7ff; }
+    .result-pass { background: #2e7d32; color: #fff; }
+    .result-fail { background: #c62828; color: #fff; }
+    .result-na { background: #e6e6e6; color: #333; }
+    .comment { border-radius: 10px; background: #eaf4fb; color: #1e5a82; font-weight: 700; box-shadow: none; border: 1px solid #cfe4f5; display: block; }
+    body.dark .comment { background: #3b4b58; color: #e6f3ff; border-color: #587286; }
+
     .img-warn {
-        color: var(--color-fail); font-size: 13px; font-weight: 900; margin-top: 6px; padding: 2px 8px;
-        border-radius: 8px; background: var(--warn-bg-dark); border: 1.5px solid var(--color-fail);
-        box-shadow: 0 0 8px var(--color-fail); display: inline-block; user-select: none; font-family: 'Open Sans', Arial, sans-serif;
+        color: #fff; font-size: 12.8px; font-weight: 800; margin-top: 6px; padding: 4px 10px;
+        border-radius: 999px; background: #d84343; border: 0;
+        box-shadow: 0 0 10px rgba(216,67,67,.35); display: inline-block; user-select: none;
     }
-    body:not(.dark) .img-warn { background: #fbdcdc; border-color: #db6e6e; box-shadow: 0 0 6px #db6e6eaa; color: #b61e1e; }
+
     .update-status {
-        font-size: 13px; padding: 5px 12px; border-radius: 10px; background: var(--color-light-gray);
-        color: var(--color-brown); box-shadow: 0 1px 5px var(--shadow-light); user-select: none; font-weight: 600; font-style: italic; letter-spacing: 0.05em; margin-top: 6px; transition: background 0.2s, color 0.2s; font-family: 'Open Sans', Arial, sans-serif;
+        font-size: 13px; padding: 6px 12px; border-radius: 10px; background: #edf1f0;
+        color: #6b4f1a; box-shadow: 0 1px 5px var(--shadow-light); user-select: none; font-weight: 700; letter-spacing: .02em; margin-top: 8px;
     }
-    body.dark .update-status { background: #3b4a3f; color: var(--color-beige-bg); box-shadow: 0 1px 5px var(--shadow-dark); }
+    body.dark .update-status { background: #354543; color: #f1eada; }
+
     .ripple { position: absolute; border-radius: 50%; transform: scale(0); animation: ripple 0.33s cubic-bezier(0.39, 0.58, 0.57, 1); background: rgba(255,255,255,0.27); pointer-events: none; z-index: 10; opacity: 0.76; }
     @keyframes ripple { to { transform: scale(1.5); opacity: 0; } }
+
     #theme-btn {
       position: fixed; right: 24px; bottom: 26px; z-index: 11001; background: var(--color-bronze); color: #fff;
       border-radius: 100px; font-size: 17px; padding: 6px 11px; border:none;
-      box-shadow: 0 2px 10px var(--shadow-light); cursor:pointer; transition: background 0.16s;
+      box-shadow: 0 2px 10px var(--shadow-light); cursor:pointer; transition: background 0.16s, transform .1s;
       height: 38px; width: 38px; min-width:36px; display:flex;align-items:center;justify-content:center; opacity:0.96;
     }
-    #theme-btn:hover { background: var(--color-brown); color: #fff; opacity:1; }
+    #theme-btn:hover { background: var(--color-brown); transform: translateY(-1px); }
     body.dark #theme-btn { background: #6c837f; color: #ffe082; }
     body.dark #theme-btn:hover { background: #b78e24; color: #fff; }
-    /* Accordion style cho F2057 */
+
+    /* ========== F2057 ========== */
     .f2057-panel { margin: 0 0 12px 0; padding-left: 0; display: none; }
     .f2057-btn {
         background: #ffe082 !important; color: #885c00 !important;
-        font-size: 19px !important; font-weight: 900 !important;
-        text-align: center; letter-spacing: 1px;
+        font-size: 18px !important; font-weight: 900 !important;
+        text-align: center; letter-spacing: .6px;
         box-shadow: 0 4px 18px #ffe08269;
         border: 2.5px solid #b8860b; margin-bottom: 6px;
         cursor: pointer; transition: background 0.18s, color 0.12s, border 0.18s;
+        border-radius: var(--btn-radius);
+        width: 100%;
+        min-height: 56px;
+        display: flex; align-items: center; justify-content: center; gap: 10px;
     }
     .f2057-btn.open { border-radius: 12px 12px 0 0; }
+    .f2057-btn i.fa-angle-down { transition: transform .18s; }
+    .f2057-btn.open i.fa-angle-down { transform: rotate(180deg); }
+
+    /* ========== Compression Card ========== */
+    .compress-wrapper { margin: 10px auto 18px; max-width: 700px; }
+    .compress-card {
+        background: var(--main-card);
+        border: 1px solid var(--main-border);
+        border-radius: var(--card-radius);
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+    }
+    .compress-head {
+        background: linear-gradient(0deg, rgba(0,0,0,.03), rgba(0,0,0,0));
+        padding: 10px 14px; text-align: center; color: var(--color-green);
+        font-weight: 800; letter-spacing: .4px;
+    }
+    body.dark .compress-head { color: var(--main-th); }
+    .compress-table { width: 100%; border-collapse: collapse; }
+    .compress-table th {
+        background: var(--color-bronze); color: #fff; padding: 10px; font-family: 'Inter', sans-serif; font-size: 14px;
+    }
+    .compress-table td {
+        padding: 10px; text-align: center; border-top: 1px solid var(--main-border); font-weight: 700;
+    }
+    body.dark .compress-table th { background: #bfa87b; color: #25312b; }
+    .compress-note { color: var(--muted); font-size: 12.8px; padding: 8px 12px 14px; text-align: center; }
     </style>
 </head>
 <body>
     <button id="theme-btn" title="Chuyển Dark/Light mode"><i class="fa fa-moon"></i></button>
-    <div class="report-banner">
-        📝 MÃ REPORT: {{ report }}
-    </div>
+    <div class="report-banner">📝 MÃ REPORT: {{ report }}</div>
+
     <div class="box">
-        <div style="text-align: left;">
-            <a href="{{ url_for('update', report=report) }}" class="back-btn" tabindex="0"
-                aria-label="Quay lại chọn mục kiểm tra">
-            <i class="fa fa-arrow-left"></i> 
-                Quay lại trang sản phẩm
+        <div class="back-btn-container">
+            <a href="{{ url_for('update', report=report) }}" class="back-btn" tabindex="0" aria-label="Quay lại chọn mục kiểm tra">
+                <i class="fa fa-arrow-left"></i> Quay lại trang sản phẩm
             </a>
         </div>
+
         <h2>CHỌN MỤC KIỂM TRA</h2>
-        <div style="text-align:center;font-size:17px;margin-bottom:14px;color:#c49c48;font-weight:600;">
+
+        <!-- BẢNG LỰC NÉN: chỉ hiển thị cho transit -->
+        {% if group.startswith('transit') %}
+        <div id="compression-table-container" class="compress-wrapper" style="display:none;">
+            <div class="compress-card">
+                <div class="compress-head"><b>Bảng tính lực nén trên 1 mặt</b></div>
+                <div id="compression-table-content"></div>
+                <div id="compression-formula" class="compress-note"></div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div style="text-align:center;font-size:17px;margin-bottom:14px;color:var(--main-th);font-weight:700;">
             {% if group == "ban_us" %}BÀN US
             {% elif group == "ban_eu" %}BÀN EU
             {% elif group == "ghe_us" %}GHẾ US
@@ -220,53 +254,47 @@
             {% else %}{{ group|upper }}
             {% endif %}
         </div>
+
         <div class="test-group-menu">
             {% for key, value in test_titles.items() %}
                 {% if group == 'tu_us' and key == 'f2057' %}
                     <div>
-                        <!-- Accordion F2057 -->
+                        <!-- F2057 ẩn mặc định, bấm mới mở -->
                         <button class="test-btn f2057-btn" type="button" onclick="toggleF2057(this)">
-                            <i class="fa fa-flag" style="margin-right:8px; color:#b8860b;"></i>
-                            <span style="font-size: 18px; font-weight: 700; letter-spacing: 1px;">{{ value.full }}</span>
-                            <i class="fa fa-angle-down" style="margin-left: auto; color: #b8860b;"></i>
+                            <i class="fa fa-flag"></i>
+                            <span style="font-size: 18px; font-weight: 800; letter-spacing: .4px;">{{ value.full }}</span>
+                            <i class="fa fa-angle-down" aria-hidden="true"></i>
                         </button>
                         <div class="f2057-panel">
                             {% for fkey, fval in F2057_TEST_TITLES.items() %}
-                            <div style="margin-bottom: 12px;">
+                            <div>
                                 {% set s = f2057_status.get(fkey, {}) %}
                                 <a class="test-btn {% if s.status %}done{% endif %}"
-                                href="{{ url_for('test_group_item_dynamic', report=report, group=group, test_key=fkey) }}">
+                                   href="{{ url_for('test_group_item_dynamic', report=report, group=group, test_key=fkey) }}">
                                     {% if fval.full %}
-                                        <b>{{ fval.full.split(':')[0] }}:</b> {{ fval.full.split(':', 1)[1]|default('', true) }}
+                                        <b style="margin-right:6px;">{{ fval.full.split(':')[0] }}:</b> {{ fval.full.split(':', 1)[1]|default('', true) }}
                                     {% else %}
                                         {{ fval.full }}
                                     {% endif %}
                                 </a>
                                 {% if s.status or s.comment or not s.status %}
-                                <div>
+                                <div class="status-block">
                                     {% if s.status %}
-                                    <div class="status-block">
-                                        <span>
-                                            Trạng thái:
-                                            {% if s.status == 'PASS' %}
-                                                <span class="result-pass">PASS</span>
-                                            {% elif s.status == 'FAIL' %}
-                                                <span class="result-fail">FAIL</span>
-                                            {% elif s.status == 'N/A' %}
-                                                <span class="result-na">N/A</span>
-                                            {% else %}
-                                                {{ s.status }}
-                                            {% endif %}
-                                        </span><br>
+                                        {% if s.status == 'PASS' %}
+                                            <span class="result-pass">PASS</span>
+                                        {% elif s.status == 'FAIL' %}
+                                            <span class="result-fail">FAIL</span>
+                                        {% elif s.status == 'N/A' %}
+                                            <span class="result-na">N/A</span>
+                                        {% else %}{{ s.status }}{% endif %}
                                         {% if s.comment %}
-                                            <span class="comment">Ghi chú: {{ s.comment }}</span><br>
+                                            <div class="comment">Ghi chú: {{ s.comment }}</div>
                                         {% endif %}
                                         {% if s.status in ['PASS','FAIL'] and not s.has_img %}
-                                            <span class="img-warn"><b>Chưa upload ảnh kiểm thử!</b></span>
+                                            <span class="img-warn">Chưa upload ảnh kiểm thử!</span>
                                         {% endif %}
-                                    </div>
-                                    {% elif not s.status %}
-                                    <div class="update-status">Chưa cập nhật</div>
+                                    {% else %}
+                                        <div class="update-status">Chưa cập nhật</div>
                                     {% endif %}
                                 </div>
                                 {% endif %}
@@ -274,43 +302,35 @@
                             {% endfor %}
                         </div>
                     </div>
-                {% elif not (group == 'tu_us' and key == 'f2057') %}
-                    <!-- Các nút bình thường -->
+                {% else %}
                     <div>
                         {% set s = test_status.get(key, {}) %}
                         <a class="test-btn {% if s.status %}done{% endif %}"
-                        href="{{ url_for('test_group_item_dynamic', report=report, group=group, test_key=key) }}">
+                           href="{{ url_for('test_group_item_dynamic', report=report, group=group, test_key=key) }}">
                             {% if value.full %}
-                                <b>{{ value.full.split(':')[0] }}:</b> {{ value.full.split(':', 1)[1]|default('', true) }}
+                                <b style="margin-right:6px;">{{ value.full.split(':')[0] }}:</b> {{ value.full.split(':', 1)[1]|default('', true) }}
                             {% else %}
                                 {{ value.full }}
                             {% endif %}
                         </a>
                         {% if s.status or s.comment or not s.status %}
-                        <div>
+                        <div class="status-block">
                             {% if s.status %}
-                            <div class="status-block">
-                                <span>
-                                    Trạng thái:
-                                    {% if s.status == 'PASS' %}
-                                        <span class="result-pass">PASS</span>
-                                    {% elif s.status == 'FAIL' %}
-                                        <span class="result-fail">FAIL</span>
-                                    {% elif s.status == 'N/A' %}
-                                        <span class="result-na">N/A</span>
-                                    {% else %}
-                                        {{ s.status }}
-                                    {% endif %}
-                                </span><br>
+                                {% if s.status == 'PASS' %}
+                                    <span class="result-pass">PASS</span>
+                                {% elif s.status == 'FAIL' %}
+                                    <span class="result-fail">FAIL</span>
+                                {% elif s.status == 'N/A' %}
+                                    <span class="result-na">N/A</span>
+                                {% else %}{{ s.status }}{% endif %}
                                 {% if s.comment %}
-                                    <span class="comment">Ghi chú: {{ s.comment }}</span><br>
+                                    <div class="comment">Ghi chú: {{ s.comment }}</div>
                                 {% endif %}
                                 {% if s.status in ['PASS','FAIL'] and not s.has_img %}
-                                    <span class="img-warn"><b>Chưa upload ảnh kiểm thử!</b></span>
+                                    <span class="img-warn">Chưa upload ảnh kiểm thử!</span>
                                 {% endif %}
-                            </div>
-                            {% elif not s.status %}
-                            <div class="update-status">Chưa cập nhật</div>
+                            {% else %}
+                                <div class="update-status">Chưa cập nhật</div>
                             {% endif %}
                         </div>
                         {% endif %}
@@ -319,48 +339,114 @@
             {% endfor %}
         </div>
     </div>
+
     <script>
-        // Accordion xổ F2057
-        function toggleF2057(btn) {
-            let panel = btn.nextElementSibling;
-            btn.classList.toggle('open');
-            if (panel.style.display === "none" || !panel.style.display)
-                panel.style.display = "block";
-            else
-                panel.style.display = "none";
+    // Toggle F2057 chính xác (ẩn/hiện panel kế bên nút)
+    function toggleF2057(btn) {
+        let panel = btn.nextElementSibling;
+        btn.classList.toggle('open');
+        if (panel) panel.style.display = (panel.style.display === "block") ? "none" : "block";
+    }
+
+    // UI effects + dark mode (giữ nguyên chức năng cũ)
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.test-btn, .back-btn, #theme-btn').forEach(function(btn) {
+            btn.addEventListener('click', function (e) {
+                var circle = document.createElement("span");
+                circle.className = "ripple";
+                var rect = btn.getBoundingClientRect();
+                var size = Math.max(rect.width, rect.height) * 0.58;
+                circle.style.width = circle.style.height = size + 'px';
+                circle.style.left = (e.clientX - rect.left - size/2) + 'px';
+                circle.style.top = (e.clientY - rect.top - size/2) + 'px';
+                btn.appendChild(circle);
+                setTimeout(()=>circle.remove(), 340);
+            });
+        });
+        if (localStorage.getItem("darkmode") === "true") {
+            document.documentElement.classList.add('dark');
+            document.body.classList.add('dark');
+        }
+        var themeBtn = document.getElementById('theme-btn');
+        function syncDarkModeBtn() {
+            var dark = document.body.classList.contains('dark');
+            themeBtn.innerHTML = dark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
+        }
+        themeBtn.onclick = function() {
+            var d = document.body.classList.toggle('dark');
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem("darkmode", d ? "true" : "false");
+            syncDarkModeBtn();
+        };
+        syncDarkModeBtn();
+    });
+
+    // ====== BẢNG LỰC NÉN cho TRANSIT (giữ logic, chỉ đổi render UI) ======
+    document.addEventListener('DOMContentLoaded', function() {
+        const group = "{{ group }}";
+        if (!group.startsWith("transit")) return;
+
+        const wrapper = document.getElementById("compression-table-container");
+        const content = document.getElementById("compression-table-content");
+        const formula = document.getElementById("compression-formula");
+        if (!wrapper || !content) return;
+
+        const s = {{ test_status | tojson }};
+        let commentText = null;
+        for (let k in s) {
+            if (s[k] && typeof s[k].comment === 'string' && s[k].comment.match(/sample_(size|weight)/i)) {
+                commentText = s[k].comment;
+                break;
+            }
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.test-btn, .back-btn, #theme-btn').forEach(function(btn) {
-                btn.addEventListener('click', function (e) {
-                    var circle = document.createElement("span");
-                    circle.className = "ripple";
-                    var rect = btn.getBoundingClientRect();
-                    var size = Math.max(rect.width, rect.height) * 0.58;
-                    circle.style.width = circle.style.height = size + 'px';
-                    circle.style.left = (e.clientX - rect.left - size/2) + 'px';
-                    circle.style.top = (e.clientY - rect.top - size/2) + 'px';
-                    btn.appendChild(circle);
-                    setTimeout(()=>circle.remove(), 340);
-                });
-            });
-            if (localStorage.getItem("darkmode") === "true") {
-                document.documentElement.classList.add('dark');
-                document.body.classList.add('dark');
-            }
-            var themeBtn = document.getElementById('theme-btn');
-            function syncDarkModeBtn() {
-                var dark = document.body.classList.contains('dark');
-                themeBtn.innerHTML = dark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
-            }
-            themeBtn.onclick = function() {
-                var d = document.body.classList.toggle('dark');
-                document.documentElement.classList.toggle('dark');
-                localStorage.setItem("darkmode", d ? "true" : "false");
-                syncDarkModeBtn();
-            };
-            syncDarkModeBtn();
-        });
+        function renderCard(text) {
+            if (!text) return; // không hiển thị gì nếu thiếu dữ liệu
+
+            const weightMatch = text.match(/sample[_\s]*weight\s*:\s*([\d.,]+)\s*kg/i);
+            const sizeMatch   = text.match(/sample[_\s]*size\s*:\s*([\d.,]+)\s*x\s*([\d.,]+)\s*x\s*([\d.,]+)/i);
+            if (!weightMatch || !sizeMatch) return;
+
+            const toNum = (s)=> parseFloat(String(s).replace(',', '.'));
+            const weight = toNum(weightMatch[1]);
+            const L = toNum(sizeMatch[1]);
+            const W = toNum(sizeMatch[2]);
+            const H = toNum(sizeMatch[3]);
+
+            let F = (weight >= 14) ? 0.006 * (108 - H) * L * W
+                                   : 0.006 * (54  - H) * L * W;
+            F = Math.round(F * 100) / 100;
+
+            content.innerHTML = `
+                <table class="compress-table">
+                    <thead>
+                        <tr>
+                            <th>Trọng lượng (kg)</th>
+                            <th>Kích thước (L × W × H)</th>
+                            <th>Lực nén (F)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>${weight}</td>
+                            <td>${L} × ${W} × ${H}</td>
+                            <td>${F.toLocaleString()} N</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+            wrapper.style.display = 'block';
+        }
+
+        if (commentText) {
+            renderCard(commentText);
+        } else {
+            const url = `/api/report_comment?report=${encodeURIComponent("{{report}}")}`;
+            fetch(url).then(r => r.ok ? r.json() : null)
+                      .then(data => renderCard(data && data.comment ? data.comment : null))
+                      .catch(() => {/* im lặng nếu lỗi, không hiển thị card */});
+        }
+    });
     </script>
 </body>
 </html>

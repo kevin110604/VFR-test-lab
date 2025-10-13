@@ -4156,6 +4156,52 @@ def serve_test_img(report, group, test_key, filename):
         return "Không tìm thấy thư mục ảnh!", 404
     return send_from_directory(folder, filename)
 
+@app.route("/api/report_comment")
+def api_report_comment():
+    report = (request.args.get("report") or "").strip()
+    if not report:
+        return jsonify({"comment": ""})
+
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    rep_dir = os.path.join(base_dir, "images", report)
+    if not os.path.isdir(rep_dir):
+        return jsonify({"comment": ""})
+
+    # Ưu tiên file có chữ "comment" và đuôi .txt/.md/.json/.log; fallback các .txt khác
+    patterns = ["comment*.txt", "comment*.md", "comment*.json", "comment*.log",
+                "*.txt", "*.md", "*.json"]
+    candidates = []
+    for pat in patterns:
+        candidates.extend(glob.glob(os.path.join(rep_dir, pat)))
+
+    # Sắp theo ưu tiên 'comment' rồi mới đến thời gian mới nhất
+    candidates.sort(key=lambda p: (0 if "comment" in os.path.basename(p).lower() else 1, -os.path.getmtime(p)))
+
+    text = ""
+    for p in candidates:
+        try:
+            if p.lower().endswith(".json"):
+                import json
+                with open(p, "r", encoding="utf-8", errors="ignore") as f:
+                    obj = json.load(f)
+                # chấp nhận khóa 'comment' hoặc toàn bộ nội dung là chuỗi
+                if isinstance(obj, dict) and "comment" in obj:
+                    text = str(obj["comment"])
+                elif isinstance(obj, str):
+                    text = obj
+                else:
+                    # gộp các value thành text
+                    text = "\n".join(f"{k}: {v}" for k, v in obj.items())
+            else:
+                with open(p, "r", encoding="utf-8", errors="ignore") as f:
+                    text = f.read()
+            if text.strip():
+                break
+        except Exception:
+            continue
+
+    return jsonify({"comment": text})
+
 @app.route("/view_counter_log")
 def view_counter_log():
 

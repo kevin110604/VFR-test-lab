@@ -344,7 +344,7 @@ GHE_US_TEST_TITLES = {
         "img": ["/static/images/buoc 13 ghe us.png"]
     },
     "muc28": {
-        "full": "VFR Drop Test",
+        "full": "Visual check: VFR Drop Test",
         "short": "VFR Drop test (Mod)",
         "img": ["/static/images/buoc 14 ghe us.png"]
     },

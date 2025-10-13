@@ -656,14 +656,21 @@ def _read_sample_info(report_id: str) -> tuple[str, str]:
     weight, size = "", ""
     with open(fp, "r", encoding="utf-8", errors="ignore") as f:
         for line in f:
-            line = line.strip()
-            if not line:
+            raw = line.strip()
+            if not raw:
                 continue
-            low = line.lower()
-            if low.startswith("sample weight"):
-                weight = line.split(":", 1)[-1].strip()
-            elif low.startswith("sample size"):
-                size = line.split(":", 1)[-1].strip()
+
+            # tách key:value an toàn
+            if ":" not in raw:
+                continue
+            k_raw, v_raw = raw.split(":", 1)
+            k_norm = re.sub(r"[^a-z0-9]+", " ", k_raw.lower()).strip()   # "sample_weight" -> "sample weight"
+            v = v_raw.strip()
+
+            if k_norm == "sample weight":
+                weight = v
+            elif k_norm == "sample size":
+                size = v
     return weight, size
 
 # --------- Resolve TEST_GROUP_TITLES key from template_key (auto-mapping) ---------

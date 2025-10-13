@@ -433,13 +433,26 @@
             <button name="status" value="N/A" type="submit"
                 class="state-btn na {% if _st == 'N/A' %}selected{% endif %}" aria-pressed="{{ 'true' if _st == 'N/A' else 'false' }}">N/A</button>
         </form>
-        <form method="POST" enctype="multipart/form-data" style="margin-bottom:13px;text-align:center;" aria-label="Upload ảnh kiểm thử">
+        <form method="POST" enctype="multipart/form-data" style="margin-bottom:13px;text-align:center;position:relative;" aria-label="Upload ảnh kiểm thử">
             <input type="file" name="test_imgs" multiple accept="image/*" style="display:none;" id="test-imgs-upload"
-                   onchange="submitTestImgs(this, 'test-imgs-fake-btn')">
+                onchange="submitTestImgs(this, 'test-imgs-fake-btn')">
+
+            <!-- Nút chọn ảnh -->
             <button type="button" class="gold-upload-btn" onclick="triggerUpload('test-imgs-upload')">
-                Chọn và tải ảnh
+                <i class="fa fa-upload"></i> Chọn và tải ảnh
                 <span id="test-imgs-fake-btn">Chưa chọn file</span>
             </button>
+
+            <!-- ✅ VÙNG KÉO THẢ MỚI -->
+            {% if session.get('role') in ['stl', 'superadmin'] %}
+            <div id="drop-zone"
+                style="border: 2px dashed #c49c48; border-radius: 12px; margin-top:12px; padding:26px 14px;
+                        color:#7a6a3f; font-weight:600; font-size:15px; background:#fffdf3;
+                        transition: background 0.22s, border-color 0.22s; cursor:pointer;">
+                <i class="fa fa-cloud-upload" style="font-size:22px;color:#c49c48;margin-bottom:6px;"></i><br>
+                Kéo và thả hình vào đây để tải lên
+            </div>
+            {% endif %}
         </form>
         <div class="img-grid" aria-live="polite" aria-atomic="true">
         {% if imgs %}
@@ -468,8 +481,12 @@
         <img id="img-popup-inner" src="" alt="Ảnh kiểm thử lớn"/>
     </div>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('button, .test-btn, .gold-upload-btn, .back-btn, .del-btn, #theme-btn').forEach(function(btn) {
+    /* ============================================
+    1️⃣ Hiệu ứng Ripple cho tất cả các nút
+    ============================================ */
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('button, .test-btn, .gold-upload-btn, .back-btn, .del-btn, #theme-btn')
+            .forEach(function(btn) {
                 btn.addEventListener('click', function (e) {
                     var circle = document.createElement("span");
                     circle.className = "ripple";
@@ -482,75 +499,136 @@
                     setTimeout(()=>circle.remove(), 340);
                 });
             });
-            if (localStorage.getItem("darkmode") === "true") {
-                document.documentElement.classList.add('dark');
-                document.body.classList.add('dark');
-            }
-            var themeBtn = document.getElementById('theme-btn');
-            function syncDarkModeBtn() {
-                var dark = document.body.classList.contains('dark');
-                themeBtn.innerHTML = dark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
-            }
-            themeBtn.onclick = function() {
-                var d = document.body.classList.toggle('dark');
-                document.documentElement.classList.toggle('dark');
-                localStorage.setItem("darkmode", d ? "true" : "false");
-                syncDarkModeBtn();
-            };
-            syncDarkModeBtn();
-        });
+    });
 
-        function showPopup(img) {
-            var popup = document.getElementById('img-popup');
-            var popupImg = document.getElementById('img-popup-inner');
-            popupImg.src = img.src;
-            popup.classList.add('show');
+    /* ============================================
+    2️⃣ Dark / Light Mode
+    ============================================ */
+    document.addEventListener('DOMContentLoaded', function() {
+        if (localStorage.getItem("darkmode") === "true") {
+            document.documentElement.classList.add('dark');
+            document.body.classList.add('dark');
         }
-        document.getElementById('img-popup-close').onclick = function(e) {
+        var themeBtn = document.getElementById('theme-btn');
+        function syncDarkModeBtn() {
+            var dark = document.body.classList.contains('dark');
+            themeBtn.innerHTML = dark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
+        }
+        themeBtn.onclick = function() {
+            var d = document.body.classList.toggle('dark');
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem("darkmode", d ? "true" : "false");
+            syncDarkModeBtn();
+        };
+        syncDarkModeBtn();
+    });
+
+    /* ============================================
+    3️⃣ Phóng to / Thu nhỏ ảnh kiểm thử
+    ============================================ */
+    function showPopup(img) {
+        var popup = document.getElementById('img-popup');
+        var popupImg = document.getElementById('img-popup-inner');
+        popupImg.src = img.src;
+        popup.classList.add('show');
+    }
+    document.getElementById('img-popup-close').onclick = function(e) {
+        var popup = document.getElementById('img-popup');
+        popup.classList.remove('show');
+        document.getElementById('img-popup-inner').src = '';
+        e.stopPropagation();
+    };
+    document.getElementById('img-popup').onclick = function(e) {
+        if (e.target === this) {
+            this.classList.remove('show');
+            document.getElementById('img-popup-inner').src = '';
+        }
+    };
+    document.addEventListener('keydown', function(e) {
+        if (e.key === "Escape") {
             var popup = document.getElementById('img-popup');
-            var popupImg = document.getElementById('img-popup-inner');
             popup.classList.remove('show');
-            popupImg.src = '';
+            document.getElementById('img-popup-inner').src = '';
+        }
+    });
+
+    /* ============================================
+    4️⃣ Upload ảnh (Click chọn file)
+    ============================================ */
+    function triggerUpload(inputId) {
+        document.getElementById(inputId).click();
+    }
+
+    function submitTestImgs(input, spanId) {
+        var btn = document.getElementById(spanId);
+        if(input.files && input.files.length > 0) {
+            btn.innerText = Array.from(input.files).map(f=>f.name).join(', ');
+            var form = input.closest('form');
+            if(form) setTimeout(()=>form.submit(), 200);
+        } else {
+            btn.innerText = "Chưa chọn file";
+        }
+    }
+
+    /* ============================================
+    5️⃣ Upload ảnh (Kéo – Thả)
+    ============================================ */
+    document.addEventListener('DOMContentLoaded', function() {
+        const dropZone = document.getElementById('drop-zone');
+        const input = document.getElementById('test-imgs-upload');
+
+        if (!dropZone || !input) return;
+
+        // Khi kéo file vào
+        function highlight(e) {
+            e.preventDefault();
             e.stopPropagation();
-        };
-        document.getElementById('img-popup').onclick = function(e) {
-            if (e.target === this) {
-                this.classList.remove('show');
-                document.getElementById('img-popup-inner').src = '';
-            }
-        };
-        document.addEventListener('keydown', function(e) {
-            if (e.key === "Escape") {
-                var popup = document.getElementById('img-popup');
-                popup.classList.remove('show');
-                document.getElementById('img-popup-inner').src = '';
-            }
-        });
-        function triggerUpload(inputId) {
-            document.getElementById(inputId).click();
+            dropZone.style.background = '#fff8dc';
+            dropZone.style.borderColor = '#a68c2c';
         }
-        function submitTestImgs(input, spanId) {
-            var btn = document.getElementById(spanId);
-            if(input.files && input.files.length > 0) {
-                btn.innerText = Array.from(input.files).map(f=>f.name).join(', ');
-                var form = input.closest('form');
-                if(form) setTimeout(()=>form.submit(), 200);
-            } else {
-                btn.innerText = "Chưa chọn file";
-            }
+
+        // Khi rời hoặc thả file
+        function unhighlight(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.style.background = '#fffdf3';
+            dropZone.style.borderColor = '#c49c48';
         }
-        document.querySelectorAll("form").forEach(form => {
-            form.addEventListener("submit", function() {
-                localStorage.setItem("scrollTop", window.scrollY);
-            });
-        });
-        window.addEventListener("DOMContentLoaded", function() {
-            let scroll = localStorage.getItem("scrollTop");
-            if (scroll !== null) {
-                window.scrollTo(0, parseInt(scroll));
-                localStorage.removeItem("scrollTop");
+
+        // Sự kiện kéo/thả
+        ['dragenter', 'dragover'].forEach(ev => dropZone.addEventListener(ev, highlight));
+        ['dragleave', 'drop'].forEach(ev => dropZone.addEventListener(ev, unhighlight));
+
+        // Khi thả file
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const files = e.dataTransfer.files;
+            if (files && files.length > 0) {
+                input.files = files;
+                document.getElementById('test-imgs-fake-btn').innerText =
+                    Array.from(files).map(f => f.name).join(', ');
+                submitTestImgs(input, 'test-imgs-fake-btn');
             }
         });
+    });
+
+    /* ============================================
+    6️⃣ Lưu vị trí cuộn trang (Scroll Position)
+    ============================================ */
+    document.querySelectorAll("form").forEach(form => {
+        form.addEventListener("submit", function() {
+            localStorage.setItem("scrollTop", window.scrollY);
+        });
+    });
+    window.addEventListener("DOMContentLoaded", function() {
+        let scroll = localStorage.getItem("scrollTop");
+        if (scroll !== null) {
+            window.scrollTo(0, parseInt(scroll));
+            localStorage.removeItem("scrollTop");
+        }
+    });
     </script>
 </body>
 </html>
