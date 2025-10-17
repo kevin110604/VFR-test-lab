@@ -113,6 +113,13 @@
     table,th,td{font-size:14px}
     .box-header{font-size:15px}
   }
+  .btn-delbox{
+    background:#d04d3d;
+    padding:6px 9px;
+    font-size:14px;
+    border-radius:8px;
+  }
+  .btn-delbox:hover{filter:brightness(1.15);}
   </style>
 </head>
 <body>
@@ -204,6 +211,10 @@
           <span class="badge badge-total"><i class="fa fa-box-archive"></i> ${items.length} mẫu</span>
           <span class="badge badge-danger"><i class="fa fa-triangle-exclamation"></i> ${expired}</span>
           <span class="badge badge-warn"><i class="fa fa-hourglass-end"></i> ${soon}</span>
+          <!-- ✅ NEW: nút xóa box -->
+          <button class="btn btn-delbox" data-box="${box}" title="Xóa các mẫu hết hạn trong box">
+            <i class="fa fa-trash"></i>
+          </button>
         </div>
       `;
 
@@ -277,6 +288,35 @@
         }catch(err){
           console.error(err);
           alert('Không thể xóa mẫu.');
+        }
+      });
+    });
+    // ===== XÓA BOX (chỉ các mẫu hết hạn) =====
+    root.querySelectorAll('.btn-delbox').forEach(btn=>{
+      btn.addEventListener('click', async (e)=>{
+        e.stopPropagation();
+        const box = btn.dataset.box;
+        const today = new Date(); today.setHours(0,0,0,0);
+        const toDelete = allData.filter(it=>{
+          return it.box_code === box && it.discard_date && new Date(it.discard_date) < today;
+        });
+        if(toDelete.length === 0){
+          alert(`Box ${box} không có mẫu hết hạn.`);
+          return;
+        }
+        if(!confirm(`Xóa ${toDelete.length} mẫu đã hết hạn trong box ${box}?`)) return;
+        try{
+          for(const it of toDelete){
+            const res = await fetch(`/samples?box_code=${encodeURIComponent(box)}&report=${encodeURIComponent(it.report)}`, {method:'DELETE'});
+            if(!res.ok) console.warn(`Không thể xóa ${it.report}`);
+            // Cập nhật dữ liệu trong giao diện
+            allData = allData.filter(x=> !(x.box_code===box && x.report===it.report));
+          }
+          render(allData);
+          alert(`Đã xóa ${toDelete.length} mẫu hết hạn trong box ${box}.`);
+        }catch(err){
+          console.error(err);
+          alert('Lỗi khi xóa box.');
         }
       });
     });

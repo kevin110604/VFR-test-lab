@@ -1406,7 +1406,13 @@ def _fill_header_fields(doc: Document, data_row: dict, overwrite_any: bool = Fal
     received_date = data_row.get("Log in date", "")
     if received_date and pd is not None:
         try:
-            received_date = pd.to_datetime(received_date).strftime("%b %d, %Y").upper()
+            received_date = (
+                pd.to_datetime(received_date, dayfirst=True, errors="coerce")
+                .strftime("%b %d, %Y")
+                .upper()
+                if not pd.isna(pd.to_datetime(received_date, dayfirst=True, errors="coerce"))
+                else str(received_date)
+            )
         except Exception:
             received_date = str(received_date)
     else:
