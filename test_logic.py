@@ -1197,12 +1197,12 @@ TEST_TYPE_VI = {
 
 # Định nghĩa mapping cho 10 vùng drop test
 DROP_LABELS = [
-    "Góc 2-3-5", "Cạnh 2-3", "Cạnh 3-5", "Cạnh 2-5",
+    "Hình máy","Góc 2-3-5", "Cạnh 2-3", "Cạnh 3-5", "Cạnh 2-5",
     "Mặt 1", "Mặt 2", "Mặt 3", "Mặt 4", "Mặt 5", "Mặt 6"
 ]
 
 DROP_ZONES = [
-    "corner_235", "edge_23", "edge_35", "edge_25",
+    "machine","corner_235", "edge_23", "edge_35", "edge_25",
     "face_1", "face_2", "face_3", "face_4", "face_5", "face_6"
 ]
 
@@ -1243,6 +1243,11 @@ RH_SECOND_IMPACT_ZONES = [
 RH_STEP12_ZONES = [
     ("lan1", "Lần 1"),
     ("lan2", "Lần 2"),
+]
+
+TWO_C_NP_STEP5_ZONES = [
+    ("machine", "Hình máy"),
+    ("vibration", "Hình rung")
 ]
 
 GT68_FACE_LABELS = [

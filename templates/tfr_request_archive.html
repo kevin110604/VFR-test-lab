@@ -208,7 +208,6 @@
         <table id="archive-table">
             <tr>
                 <th>TRQ-ID</th>
-                <th>Report No</th>
                 <th>Employee ID</th>
                 <th>Requestor</th>
                 <th>Dept.</th>
@@ -222,7 +221,6 @@
             {# gắn data-items ẩn cho phép lọc theo Item Code (không thêm cột) #}
             <tr data-items="{{ (r.item_codes_text or (r.item_codes|join(', ') if r.item_codes else '') or r.item_code or '') | e }}">
                 <td>{{ r.trq_id }}</td>
-                <td>{{ r.report_no }}</td>
                 <td class="col-emp">{{ r.employee_id or "N/A" }}</td>
                 <td>{{ r.requestor }}</td>
                 <td>{{ r.department }}</td>

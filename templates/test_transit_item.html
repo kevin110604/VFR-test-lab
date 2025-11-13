@@ -621,9 +621,9 @@
                         </div>
                     {% endfor %}
                 </div>
-             {% elif is_drop %}
+            {% elif is_drop %}
                 <div class="drop-upload-group" style="display:grid;grid-template-columns:1fr 1fr;gap:18px 24px;justify-content:center;">
-                    {% for i in range(10) %}
+                    {% for i in range(11) %}
                         <div class="drop-upload-zone" style="border:1px solid #c49c48;padding:8px 14px 11px 14px;border-radius:10px;margin-bottom:8px;">
                             <label class="drop-upload-label">{{ drop_labels[i] }}</label>
                             <input type="file" name="drop_img_{{ drop_zones[i] }}" multiple accept="image/*" style="display:none;" id="drop-upload-{{i}}" onchange="uploadSpecialImgsAjax(this, 'drop', {{i}})">

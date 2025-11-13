@@ -5,7 +5,7 @@ from excel_utils import get_item_code, get_col_idx, copy_row_with_style, write_t
 from image_utils import allowed_file, get_img_urls
 from auth import login, get_user_type
 from test_logic import load_group_notes, get_group_test_status, is_drop_test, is_impact_test, is_rotational_test,  TEST_GROUP_TITLES, TEST_TYPE_VI, DROP_ZONES, DROP_LABELS, GT68_FACE_LABELS, GT68_FACE_ZONES
-from test_logic import IMPACT_ZONES, IMPACT_LABELS, ROT_LABELS, ROT_ZONES, RH_IMPACT_ZONES, RH_VIB_ZONES, RH_SECOND_IMPACT_ZONES, RH_STEP12_ZONES, update_group_note_file, get_group_note_value, F2057_TEST_TITLES
+from test_logic import IMPACT_ZONES, IMPACT_LABELS, ROT_LABELS, ROT_ZONES, RH_IMPACT_ZONES, RH_VIB_ZONES, RH_SECOND_IMPACT_ZONES, RH_STEP12_ZONES, TWO_C_NP_STEP5_ZONES, update_group_note_file, get_group_note_value, F2057_TEST_TITLES
 from notify_utils import send_teams_message
 from counter_utils import update_counter, check_and_reset_counter, log_report_complete
 from docx_utils import approve_request_fill_docx_pdf, fill_cover_from_excel_generic, try_convert_to_pdf
