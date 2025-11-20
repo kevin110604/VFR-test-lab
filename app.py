@@ -13,7 +13,7 @@ from file_utils import (
     safe_write_json, safe_read_json, safe_save_excel, safe_load_excel,
     safe_write_text, safe_read_text, safe_append_backup_json   # <— thêm hàm này
 )
-import re, os, pytz, json, openpyxl, random, subprocess, regex, traceback, calendar, time, tempfile, uuid, secrets, copy, glob
+import re, os, pytz, json, openpyxl, random, subprocess, regex, traceback, calendar, time, tempfile, uuid, secrets, copy, glob, zipfile, io
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from waitress import serve
@@ -2846,6 +2846,34 @@ def _has_images(report_folder: str, group: str, key: str, is_hotcold_like: bool)
         pref = f"test_{group}_{key}_"
         return any(allowed_file(fn) and fn.startswith(pref) for fn in files)
 
+@app.route("/download_images/<report>")
+def download_all_images(report):
+    base_dir = os.path.join("images", report)
+
+    if not os.path.exists(base_dir):
+        return f"Không tìm thấy thư mục hình cho report {report}", 404
+
+    # Tạo ZIP trong RAM
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(base_dir):
+            for file in files:
+                if file.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+                    full_path = os.path.join(root, file)
+
+                    # Đường dẫn bên trong ZIP giữ nguyên cấu trúc
+                    arcname = os.path.relpath(full_path, base_dir)
+
+                    zipf.write(full_path, arcname)
+
+    zip_buffer.seek(0)
+
+    return send_file(
+        zip_buffer,
+        as_attachment=True,
+        download_name=f"{report}_images.zip",
+        mimetype="application/zip"
+    )
 # >>> ADD
 @app.get('/api/report/detect')
 def api_report_detect():
