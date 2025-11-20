@@ -105,13 +105,12 @@
             padding: 4px 8px;
             border-radius: 8px;
 
-            /* --- CHỈNH SỬA Ở ĐÂY: dãn theo độ dài chữ --- */
-            display: inline-flex;          /* thu gọn theo nội dung */
+            display: inline-flex;
             align-items: center;
             gap: 6px;
-            width: auto;                   /* không chiếm full chiều ngang */
-            max-width: calc(100% - 40px);  /* an toàn trên màn nhỏ */
-            white-space: nowrap;           /* giữ một dòng gọn */
+            width: auto;
+            max-width: calc(100% - 40px);
+            white-space: nowrap;
             text-align: center;
             line-height: 1.3;
         }
@@ -136,7 +135,24 @@
             box-shadow: 0 2px 12px #bca96b18;
             table-layout: fixed;
         }
-        th, td { padding: 9px 7px; text-align: center; vertical-align: middle; white-space: nowrap; word-break: break-word; width: calc(100% / 9); }
+        th, td {
+            padding: 9px 7px;
+            text-align: center;
+            vertical-align: middle;
+            white-space: nowrap;
+            word-break: break-word;
+            width: calc(100% / 9);
+        }
+
+        /* === Cột checkbox chọn === */
+        th.select-col, td.select-col {
+            width: 32px;
+        }
+        .select-col input[type="checkbox"]{
+            transform: scale(1.05);
+            cursor: pointer;
+        }
+
         th { background: var(--main-th); color: #25312b; font-weight: 700; font-size: 1rem; letter-spacing: 0.04em; border: none; }
         tr:first-child th:first-child { border-radius: 12px 0 0 0; }
         tr:first-child th:last-child { border-radius: 0 12px 0 0; }
@@ -187,7 +203,6 @@
             table { max-width: 98vw; min-width: 680px; }
             th, td { font-size: 11.8px; padding: 7px 3px; }
             .legend-mini{ font-size:12px; }
-            /* --- CHỈNH LIÊN QUAN .ds-report-info (giữ dãn theo chữ trên màn nhỏ) --- */
             .ds-report-info{ width: auto; max-width: calc(100% - 32px); }
         }
         @media (max-width: 900px) {
@@ -406,6 +421,11 @@
         <div class="table-wrap">
         <table id="req-table">
             <tr>
+                <th class="select-col">
+                    {% if is_admin %}
+                    <input type="checkbox" id="chk-all" title="Chọn tất cả request đã tick">
+                    {% endif %}
+                </th>
                 <th>No.</th>
                 <th>TRQ-ID</th>
                 <th>Type of Test</th>
@@ -420,11 +440,9 @@
             {% for r in requests %}
             {# --- GROUP & RANK --- #}
             {% set grp = (r._group_norm or r.group or r.test_group or r.type_of_test or '')|upper %}
-            {# ưu tiên _rank_color (đếm theo TRQ duy nhất). fallback _rank_in_day_group nếu backend chưa update #}
             {% set rk  = r._rank_color if r._rank_color is not none else (r._rank_in_day_group or 0) %}
             {% set row_class = '' %}
 
-            {# --- COLORING RULES BY GROUP --- #}
             {% if is_admin or is_stl %}
             {% if grp in ['CONSTRUCTION', 'TRANSIT'] %}
                 {% if 6 <= rk and rk <= 10 %}
@@ -445,6 +463,14 @@
                 data-type="{{ (r.type_of_test or r.test_group or '') | replace(' TEST', '') }}"
                 data-date="{{ r.request_date or '' }}"
                 data-idx="{{ real_indices[loop.index0] }}">
+                <td class="select-col">
+                    {% if is_admin and r.status == "Submitted" %}
+                    <input type="checkbox"
+                           class="row-check"
+                           data-idx="{{ real_indices[loop.index0] }}"
+                           title="Chọn request này để duyệt trong Approve all">
+                    {% endif %}
+                </td>
                 <td>{{ loop.index }}</td>
                 <td class="col-trq">{{ r.trq_id }}</td>
                 <td class="col-type">{{ r.test_group | replace(' TEST', '') }}</td>
@@ -481,7 +507,6 @@
                     {% endif %}
                 </td>
                 <td>
-                    <!-- Luôn có nút 'mắt' để xem ảnh + chi tiết -->
                     <button class="btn-details" onclick="showDetail({{ loop.index0 }})" title="Chi tiết & ảnh"><i class="fa fa-eye"></i></button>
 
                     {% if is_admin
@@ -531,7 +556,7 @@
             </div>
         </div>
 
-        <!-- Modal xem PDF (giữ nguyên nếu cần dùng) -->
+        <!-- Modal xem PDF -->
         <div id="modal-pdf" style="display:none; position:fixed; inset:0; background:rgba(44,50,36,0.33); align-items:center; justify-content:center; z-index:99999;">
             <div style="background:#222; border-radius:14px; max-width:94vw; width:98vw; height:92vh; box-shadow:0 6px 28px #4d665c88; position:relative; display:flex; flex-direction:column;">
                 <button onclick="hidePDF()" style="position:absolute;right:18px;top:11px; border:none; background:none; font-size:1.7em; color:#ffe082; cursor:pointer; z-index:2;"><i class="fa fa-times"></i></button>
@@ -553,7 +578,6 @@
     <script>
         let cancelRequested = false;
 
-        // ===== helpers =====
         const STATIC_PREFIX = "{{ url_for('static', filename='') }}";
         function toStaticURL(p){
             if(!p) return null;
@@ -577,17 +601,15 @@
             .then(res => res.json())
             .then(data => { if (!data.success) alert('Không lưu được ETD: ' + (data.message || 'Lỗi không xác định!')); });
         }
-        // Darkmode toggle
+
         let dark = localStorage.getItem("vfr-darkmode") === "1";
         function applyDark(b) { document.body.classList.toggle("dark", b); localStorage.setItem("vfr-darkmode", b ? "1" : "0"); }
         applyDark(dark);
         document.getElementById('theme-btn').onclick = () => { dark = !dark; applyDark(dark); };
 
-        // Decline form toggle
         function showDecline(idx) { document.getElementById("form-decline-" + idx).style.display = "inline-block"; }
         function hideDecline(idx) { document.getElementById("form-decline-" + idx).style.display = "none"; }
 
-        // ===== Detail modal (ảnh + json info) =====
         const requests = {{ requests | tojson }};
         function collectImages(obj){
             const imgs = [];
@@ -596,14 +618,10 @@
                 if(Array.isArray(v)) v.forEach(x=>push(x));
                 else if(typeof v === 'string') imgs.push(v);
             };
-            // Ưu tiên key chuẩn nếu backend đã normalize
             push(obj.initial_images);
-            // Fallback các key khác (ĐÃ THÊM initial_img)
             ['initial_img','initial_image','initial_image_url','form_image','form_images','uploaded_images','product_images','images']
             .forEach(k=>push(obj[k]));
-            // loại trùng
             const uniq = Array.from(new Set(imgs.map(s=>s.trim()).filter(Boolean)));
-            // map về URL có thể hiển thị
             return uniq.map(toStaticURL).filter(Boolean);
         }
 
@@ -618,13 +636,11 @@
                 html += '</div>';
             }
 
-            // Thông tin (bỏ status/decline_reason và TẤT CẢ key ảnh)
             html += '<div class="detail-info">';
             for (let k in data) {
                 if (!Object.prototype.hasOwnProperty.call(data,k)) continue;
                 if ([
                     'status','decline_reason',
-                    // Bỏ qua các key ảnh (ĐÃ THÊM initial_img)
                     'initial_images','initial_img','initial_image','initial_image_url',
                     'form_image','form_images','uploaded_images','product_images','images'
                 ].includes(k)) continue;
@@ -642,7 +658,6 @@
         }
         function hideDetail() { document.getElementById("modal-detail-backdrop").style.display = "none"; }
 
-        // Phóng to ảnh
         function openImg(src){
             const img = document.getElementById('img-big');
             img.src = src;
@@ -653,7 +668,6 @@
             document.getElementById('modal-img').style.display = 'none';
         }
 
-        // PDF modal (nếu dùng)
         function showPDF(link) { document.getElementById("pdf-frame").src = link; document.getElementById("modal-pdf").style.display = "flex"; }
         function hidePDF() { document.getElementById("pdf-frame").src = ""; document.getElementById("modal-pdf").style.display = "none"; }
 
@@ -667,7 +681,6 @@
             }
         }
 
-        // ====== Sort toggle ======
         const sortBtn = document.getElementById("sort-toggle");
         sortBtn?.addEventListener("click", () => {
             const url = new URL(location.href);
@@ -676,7 +689,18 @@
             location.href = url.toString();
         });
 
-        // ====== APPROVE ALL (giữ nguyên code gốc) ======
+        /* ==== Chọn tất cả checkbox trong bảng ==== */
+        const chkAll = document.getElementById("chk-all");
+        if (chkAll){
+            chkAll.addEventListener("change", ()=>{
+                const checks = document.querySelectorAll("#req-table .row-check");
+                checks.forEach(cb=>{
+                    if (!cb.disabled) cb.checked = chkAll.checked;
+                });
+            });
+        }
+
+        // ====== APPROVE ALL (chỉ duyệt những request đã tick) ======
         function formatRangeSecToText(minSec, maxSec) {
             function fmt(s){
                 const m = Math.floor(s/60), r = s%60;
@@ -712,7 +736,7 @@
                     if (e.target === confirmModal) confirmModal.style.display = 'none';
                 });
             }
-            const perMin = 15, perMax = 30; // giây / request
+            const perMin = 15, perMax = 30;
             const minSec = count * perMin;
             const maxSec = count * perMax;
             const summary = `
@@ -731,10 +755,15 @@
         function openConfirmApproveAll(){
             const rows = Array.from(document.querySelectorAll("#req-table tr[data-type]"));
             const items = [];
+
             for (const tr of rows) {
+                const cb = tr.querySelector(".row-check");
+                if (!cb || !cb.checked) continue;  // chỉ lấy dòng đã tick
+
                 const status = tr.querySelector(".status")?.textContent?.trim();
                 const etdInp = tr.querySelector('input[type="date"][name="etd"]');
-                const etdVal = etdInp ? etdInp.value : (tr.querySelector("td:nth-child(8)")?.textContent?.trim() || "");
+                const etdVal = etdInp ? etdInp.value : (tr.querySelector("td:nth-child(9)")?.textContent?.trim() || "");
+
                 if (status === "Submitted" && etdVal) {
                     const trq = tr.querySelector(".col-trq")?.textContent?.trim();
                     const type = (tr.getAttribute("data-type") || "").trim();
@@ -743,6 +772,11 @@
                     const idx = idxAttr ? parseInt(idxAttr, 10) : null;
                     if (trq) items.push({ trq_id: trq, etd: etdVal, type, date, idx });
                 }
+            }
+
+            if (!items.length){
+                alert("Hãy tick ít nhất 1 request (và có ETD) trước khi Approve all.");
+                return;
             }
 
             function parseDate(s){
@@ -766,7 +800,6 @@
             showConfirmModal(items.length, ()=> startApproveAll(items));
         }
 
-        // ====== Progress modal (giữ nguyên logic cũ) ======
         const modalProgress = document.createElement("div");
         modalProgress.id = "modal-progress";
         modalProgress.style.cssText = "display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:100000; align-items:center; justify-content:center;";
@@ -862,7 +895,6 @@
             }
         }
 
-        // ===== Giữ scroll & sort =====
         document.querySelectorAll('form.js-remember').forEach(f=>{
             f.addEventListener('submit', ()=>{
                 sessionStorage.setItem('tfr_scroll', window.scrollY);
