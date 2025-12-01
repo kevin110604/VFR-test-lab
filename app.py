@@ -5,7 +5,7 @@ from excel_utils import get_item_code, get_col_idx, copy_row_with_style, write_t
 from image_utils import allowed_file, get_img_urls
 from auth import login, get_user_type
 from test_logic import load_group_notes, get_group_test_status, is_drop_test, is_impact_test, is_rotational_test,  TEST_GROUP_TITLES, TEST_TYPE_VI, DROP_ZONES, DROP_LABELS, GT68_FACE_LABELS, GT68_FACE_ZONES
-from test_logic import IMPACT_ZONES, IMPACT_LABELS, ROT_LABELS, ROT_ZONES, RH_IMPACT_ZONES, RH_VIB_ZONES, RH_SECOND_IMPACT_ZONES, RH_STEP12_ZONES, TWO_C_NP_STEP5_ZONES, update_group_note_file, get_group_note_value, F2057_TEST_TITLES
+from test_logic import IMPACT_ZONES, IMPACT_LABELS, ROT_LABELS, ROT_ZONES, RH_IMPACT_ZONES, RH_VIB_ZONES, RH_SECOND_IMPACT_ZONES, RH_STEP12_ZONES, update_group_note_file, get_group_note_value, F2057_TEST_TITLES
 from notify_utils import send_teams_message
 from counter_utils import update_counter, check_and_reset_counter, log_report_complete
 from docx_utils import approve_request_fill_docx_pdf, fill_cover_from_excel_generic, try_convert_to_pdf
@@ -930,6 +930,11 @@ def tfr_request_form():
 
                 abs_idx = matches[sel]
                 form_data = tfr_requests[abs_idx].copy()
+                # --- ensure LINE TEST fields exist when editing ---
+                form_data["line_wo"] = form_data.get("line_wo", "")
+                form_data["line_sheen"] = form_data.get("line_sheen", "")
+                form_data["line_dft"] = form_data.get("line_dft", "")
+                form_data["line_finished_date"] = form_data.get("line_finished_date", "")
                 editing = True
                 # Đảm bảo hidden edit_idx là "chỉ số tuyệt đối" để các lần submit sau không lệch
                 form_data["edit_idx"] = str(abs_idx)
@@ -973,6 +978,10 @@ def tfr_request_form():
         form_data["remark"] = form.get("remark", "").strip()
         form_data["finishing_type"] = finishing_type
         form_data["material_type"] = material_type
+        form_data["line_wo"] = form.get("line_wo", "")
+        form_data["line_sheen"] = form.get("line_sheen", "")
+        form_data["line_dft"] = form.get("line_dft", "")
+        form_data["line_finished_date"] = form.get("line_finished_date", "")
 
         # giữ lại edit_idx qua POST nếu có
         if edit_idx is not None:
@@ -1029,9 +1038,38 @@ def tfr_request_form():
             nth = form.get("test_status_nth", "").strip()
             test_status = nth + "th" if nth.isdigit() else "nth"
 
-        remark = form.get("remark", "").strip()
-        if test_group == "FINISHING TEST" and finishing_type:
-            remark = f"{remark} ({finishing_type})" if remark else finishing_type
+        remark = (form.get("remark") or "").strip()
+
+        # Các field riêng cho LINE TEST (nếu có)
+        line_wo           = (form.get("line_wo") or "").strip()
+        line_sheen        = (form.get("line_sheen") or "").strip()
+        line_dft          = (form.get("line_dft") or "").strip()
+        line_finished_date = (form.get("line_finished_date") or "").strip()
+
+        if test_group == "FINISHING TEST":
+            parts = []
+            if remark:
+                parts.append(remark)
+
+            if finishing_type:
+                # Ghi rõ loại Finishing
+                parts.append(f"Finishing: {finishing_type}")
+
+            # Nếu là LINE TEST thì thêm 4 trường vào remark
+            if finishing_type == "LINE TEST":
+                extra = []
+                if line_wo:
+                    extra.append(f"WO: {line_wo}")
+                if line_sheen:
+                    extra.append(f"Sheen: {line_sheen}")
+                if line_dft:
+                    extra.append(f"DFT: {line_dft}")
+                if line_finished_date:
+                    extra.append(f"Date of finished: {line_finished_date}")
+                if extra:
+                    parts.append("; ".join(extra))
+
+            remark = " | ".join(parts) if parts else ""
 
         new_request = {
             "trq_id": form.get("trq_id", trq_id),
@@ -1048,6 +1086,10 @@ def tfr_request_form():
             "quantity": form.get("quantity"),
             "sample_return": form.get("sample_return", ""),
             "remark": remark,
+            "line_wo": line_wo,
+            "line_sheen": line_sheen,
+            "line_dft": line_dft,
+            "line_finished_date": line_finished_date,
             "test_group": test_group,
             "finishing_type": finishing_type,
             "material_type": material_type,
@@ -1360,7 +1402,22 @@ def approve_all_one(req):
                 set_val("furniture testing", req.get("furniture_testing", ""))
                 set_val("submiter in", req.get("requestor", ""))
                 set_val("submited", req.get("department", ""))
-                set_val("qa comment", req.get("remark", ""))
+                # QA comment: gộp Remark + Subcon (nếu có)
+                remark_val = (req.get("remark") or "").strip()
+                subcon_val = (req.get("subcon") or "").strip()
+
+                qa_comment = ""
+
+                if remark_val:
+                    qa_comment = remark_val
+
+                if subcon_val and subcon_val.upper() != "N/A":
+                    if qa_comment:
+                        qa_comment = f"{qa_comment} | SUBCON: {subcon_val}"
+                    else:
+                        qa_comment = f"SUBCON: {subcon_val}"
+
+                set_val("qa comment", qa_comment)
 
                 etd_val = req.get("etd", "")
                 set_val("etd", etd_val, is_date_col=True)  # <-- bỏ format_excel_date_short

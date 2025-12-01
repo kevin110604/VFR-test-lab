@@ -776,8 +776,42 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="text-remark">Ghi chú (nếu có)</label>
-                        <textarea name="remark" rows="3" placeholder="Ghi chú thêm nếu cần..." class="text-remark-placeholder">{{ form_data.get('remark', '') }}</textarea>
+                        <label class="text-remark">Ghi chú (Remark)</label>
+                        <textarea name="remark" rows="3" placeholder="Nhập ghi chú thêm..."
+                            style="width:100%;">{{ form_data.get('remark','') }}</textarea>
+
+                        <!-- EXTRA FIELDS: chỉ dùng cho FINISHING + LINE TEST -->
+                        <div id="line-test-extra" style="display:none; margin-top:8px;">
+                            <div class="form-row-2">
+                                <div class="form-group">
+                                    <label>WO <span style="color:red">*</span></label>
+                                    <input class="line-required" type="text" name="line_wo"
+                                        value="{{ form_data.get('line_wo','') }}"
+                                        style="width:100%;">
+                                </div>
+                                <div class="form-group">
+                                    <label>Sheen <span style="color:red">*</span></label>
+                                    <input class="line-required" type="text" name="line_sheen"
+                                        value="{{ form_data.get('line_sheen','') }}"
+                                        style="width:100%;">
+                                </div>
+                            </div>
+
+                            <div class="form-row-2">
+                                <div class="form-group">
+                                    <label>DFT <span style="color:red">*</span></label>
+                                    <input class="line-required" type="text" name="line_dft"
+                                        value="{{ form_data.get('line_dft','') }}"
+                                        style="width:100%;">
+                                </div>
+                                <div class="form-group">
+                                    <label>Date of finished <span style="color:red">*</span></label>
+                                    <input class="line-required" type="text" name="line_finished_date"
+                                        value="{{ form_data.get('line_finished_date','') }}"
+                                        style="width:100%;">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <button type="submit"><i class="fa fa-file-export"></i> <span class="text-export-btn">Xuất TFR</span></button>
                 </div>
@@ -1025,15 +1059,45 @@
 
         // =============== Hiện/ẩn lựa chọn Wood/Metal khi chọn QA/LINE TEST ===============
         function updateMaterialTypeRow() {
-            let finishingType = document.querySelector('input[name="finishing_type"]:checked');
-            let materialRow = document.getElementById('material-type-row');
-            if (finishingType && (finishingType.value === 'QA TEST' || finishingType.value === 'LINE TEST')) {
-                materialRow.style.display = '';
+            const testGroup    = document.querySelector('input[name="test_group"]:checked');
+            const finishingType = document.querySelector('input[name="finishing_type"]:checked');
+            const finishingRow = document.getElementById('finishing-detail-row');
+            const materialRow  = document.getElementById('material-type-row');
+            const lineExtra    = document.getElementById('line-test-extra');
+
+            if (testGroup && testGroup.value === 'FINISHING TEST') {
+                finishingRow.style.display = 'block';
+                if (finishingType) {
+                    materialRow.style.display = 'block';
+                } else {
+                    materialRow.style.display = 'none';
+                }
+
+                // 4 field bắt buộc khi LINE TEST
+                const requiredFields = document.querySelectorAll(".line-required");
+
+                if (finishingType && finishingType.value === "LINE TEST") {
+                    lineExtra.style.display = 'block';
+
+                    // Gán required
+                    requiredFields.forEach(f => f.setAttribute("required", "required"));
+
+                } else {
+                    lineExtra.style.display = 'none';
+
+                    // Bỏ required khi không dùng
+                    requiredFields.forEach(f => f.removeAttribute("required"));
+                }
+
             } else {
+                finishingRow.style.display = 'none';
                 materialRow.style.display = 'none';
-                let radios = materialRow.querySelectorAll('input[name="material_type"]');
-                radios.forEach(r => r.checked = false);
-                document.getElementById('material_type_error').style.display = 'none';
+
+                if (lineExtra) {
+                    lineExtra.style.display = 'none';
+                    document.querySelectorAll(".line-required")
+                        .forEach(f => f.removeAttribute("required"));
+                }
             }
         }
         let finishingTypeRadios = document.querySelectorAll('input[name="finishing_type"]');
@@ -1129,6 +1193,26 @@
 
             deptInput.addEventListener("input", checkDept);
             checkDept(); // chạy 1 lần khi load form
+        });
+        document.getElementById("tfr-form").addEventListener("submit", function (e) {
+            const testGroup = document.querySelector('input[name="test_group"]:checked');
+            const finishingType = document.querySelector('input[name="finishing_type"]:checked');
+
+            if (testGroup && testGroup.value === "FINISHING TEST" &&
+                finishingType && finishingType.value === "LINE TEST") {
+
+                const requiredFields = document.querySelectorAll(".line-required");
+                let missing = [];
+
+                requiredFields.forEach(f => {
+                    if (!f.value.trim()) missing.push(f.name);
+                });
+
+                if (missing.length > 0) {
+                    e.preventDefault();
+                    alert("Please fill all required fields for LINE TEST (WO, Sheen, DFT, Date of finished).");
+                }
+            }
         });
     </script>
 </body>

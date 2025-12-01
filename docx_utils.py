@@ -12,6 +12,7 @@ import unicodedata
 from io import BytesIO
 import unicodedata
 
+from PIL import Image, ExifTags
 from openpyxl import load_workbook
 from docx import Document
 from docx.shared import Inches, Pt
@@ -43,6 +44,44 @@ __all__ = [
 ]
 
 # ============================ Common helpers ============================
+
+def _load_oriented_and_resized_image(path, width_in, height_in):
+    """
+    Load ảnh, fix EXIF orientation, resize đúng kích thước (inch), 
+    trả về buffer BytesIO để add_picture()
+    """
+    try:
+        img = Image.open(path)
+
+        # ---- FIX EXIF ORIENTATION ----
+        try:
+            exif = img._getexif()
+            if exif:
+                for tag, value in exif.items():
+                    if ExifTags.TAGS.get(tag) == "Orientation":
+                        if value == 3:
+                            img = img.rotate(180, expand=True)
+                        elif value == 6:
+                            img = img.rotate(270, expand=True)
+                        elif value == 8:
+                            img = img.rotate(90, expand=True)
+                        break
+        except Exception:
+            pass
+
+        # ---- RESIZE EXACT SIZE ----
+        DPI = 96   # Word dùng ~96dpi
+        new_w = int(width_in * DPI)
+        new_h = int(height_in * DPI)
+        img = img.resize((new_w, new_h))
+
+        # ---- SAVE TO BUFFER ----
+        buf = BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+        return buf
+    except Exception:
+        return None
 
 def _normalize_to_check_blank(v):
     if v is None:
@@ -576,6 +615,7 @@ def fill_docx_and_export_pdf(data, fixed_report_no=None):
     # === NEW: auto fill Summary/Detail (status + comment + photo) for TRF too ===
     _update_exec_summary_results_from_status(doc, report_no, template_key)
     _update_detail_results_and_comments(doc, report_no, template_key)
+    _insert_transit_step_and_after_test_images(doc, report_no, template_key)
 
     # save
     if not os.path.exists(PDF_OUTPUT_FOLDER):
@@ -710,8 +750,8 @@ def _insert_overview_images_into_sample_picture(doc: Document, report_id: str) -
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         run = p.add_run()
         pic = run.add_picture(path)
-        pic.width = pic_w
-        pic.height = pic_h
+        pic.width  = Inches(3)     # ngang 3 inch
+        pic.height = Inches(2.5)
 
     return True
 
@@ -1421,6 +1461,246 @@ def _update_detail_results_and_comments(doc: Document, report_id: str, template_
 
     return changed
 
+def _normalize_step_label_tokens(text: str) -> list[str]:
+    """
+    Chuẩn hoá chuỗi label step (vd: "step6 machine", "step6 corner_235")
+    thành list token chữ thường, chỉ gồm [a-z0-9], tách theo khoảng trắng.
+    Dùng chung cho so khớp tên file hình.
+    """
+    if not text:
+        return []
+    txt = str(text).strip().lower()
+    # thay mọi ký tự không phải a-z0-9 thành khoảng trắng
+    txt = re.sub(r"[^a-z0-9\.]+", " ", txt)
+    tokens = [t for t in txt.split() if t]
+    return tokens
+
+
+def _find_images_for_step_label(report_id: str, label: str) -> list[str]:
+    """
+    Tìm các ảnh có tên "khớp chữ" với label step.
+    Ví dụ:
+      - label: "step4"            → khớp file có "step4"
+      - label: "step6 machine"    → khớp file có cả "step6" và "machine"
+      - label: "step6 corner_235" → khớp file có "step6", "corner", "235"
+    Chỉ xét các token đủ dài (>=3) hoặc bắt đầu bằng 'step'.
+    """
+    tokens = _normalize_step_label_tokens(label)
+    if not tokens:
+        return []
+
+    # chỉ giữ token "có nghĩa": 'step...' hoặc độ dài >= 3
+    key_tokens: list[str] = []
+    step_dot = re.compile(r"step\d+\.\d+")   # NEW: nhận step5.1
+
+    for tok in tokens:
+        # NEW: step có dấu chấm
+        if step_dot.match(tok):
+            key_tokens.append(tok)
+            continue
+
+        # Step bình thường: step5, step6
+        if tok.startswith("step"):
+            key_tokens.append(tok)
+            continue
+
+        # token >= 3 ký tự
+        if len(tok) >= 3:
+            key_tokens.append(tok)
+    if not key_tokens:
+        key_tokens = tokens
+
+    candidates = _all_candidate_images(report_id)
+    matched: list[str] = []
+    for path in candidates:
+        base = os.path.basename(path)
+        base_tokens = _normalize_step_label_tokens(base)
+        if all(tok in base_tokens for tok in key_tokens):
+            matched.append(path)
+    return matched
+
+
+def _find_transit_step_table(doc: Document):
+    """
+    Tìm bảng chứa các ô 'step4', 'step5', 'step6 machine', v.v. trong form Transit.
+    Heuristic:
+      - Bảng có chứa 'SAMPLE PICTURE'
+      - Đồng thời có ít nhất một ô có chữ 'step' + số (step4, step5, step6, ...)
+    """
+    for t in doc.tables:
+        has_sample = False
+        has_step   = False
+        for r in t.rows:
+            for c in r.cells:
+                txt_norm = _norm(c.text)
+                if "sample picture" in txt_norm:
+                    has_sample = True
+                if re.search(r"step\s*\d", txt_norm):
+                    has_step = True
+        if has_sample and has_step:
+            return t
+    return None
+
+
+def _insert_transit_step_images(doc: Document, report_id: str) -> bool:
+    """
+    Dán hình vào các ô 'step4', 'step5', 'step6 machine', 'step6 corner_235', ...
+    - Mỗi ô step lấy ảnh theo rule _find_images_for_step_label.
+    - Mặc định chỉ dán 1 ảnh/ô (ảnh đầu tiên).
+    - Kích thước ảnh: vừa trong 1/3 chiều rộng vùng in (không làm nở cột).
+    """
+    tbl = _find_transit_step_table(doc)
+    if not tbl:
+        return False
+
+    sect = doc.sections[0]
+    avail_w = int((sect.page_width - sect.left_margin - sect.right_margin) * 0.97)
+    cols = max(1, len(tbl.columns))
+    pic_w = int(avail_w / cols * 0.9)  # < chiều rộng cột 1 chút
+
+    changed = False
+    for r in tbl.rows:
+        for c in r.cells:
+            raw = (c.text or "").strip()
+            if not raw:
+                continue
+            if "step" not in raw.lower():
+                continue
+
+            img_paths = _find_images_for_step_label(report_id, raw)
+            if not img_paths:
+                continue
+
+            # chỉ lấy ảnh đầu tiên cho ô step
+            img_path = img_paths[0]
+
+            # xóa nội dung cũ nhưng giữ cell
+            _clear_cell(c)
+            c.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+            p = c.paragraphs[0] if c.paragraphs else c.add_paragraph("")
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = p.add_run()
+            try:
+                buf = _load_oriented_and_resized_image(img_path, 3, 2.5)
+                if buf:
+                    pic = run.add_picture(buf)
+                    pic.width  = Inches(3)
+                    pic.height = Inches(2.5)
+                else:
+                    pic = run.add_picture(img_path)
+                    pic.width  = Inches(3)
+                    pic.height = Inches(2.5)
+            except Exception:
+                continue
+            changed = True
+    return changed
+
+
+def _find_after_test_table(doc: Document):
+    """
+    Tìm bảng AFTER TEST (trang 7 trở đi).
+    - Dòng đầu tiên có các ô 'AFTER TEST'.
+    """
+    for t in doc.tables:
+        if not t.rows:
+            continue
+        first_row = t.rows[0]
+        headers = [_norm(c.text) for c in first_row.cells]
+        if headers and all(h in {"after test", ""} for h in headers):
+            # Ít nhất một ô thật sự là 'AFTER TEST'
+            if any(h == "after test" for h in headers):
+                return t
+    return None
+
+
+def _insert_after_test_step10_images(doc: Document, report_id: str) -> bool:
+    """
+    Dán hình AFTER TEST (step10):
+      - Lấy tất cả ảnh có 'step10' trong tên file.
+      - Dán lần lượt vào các ô trống dưới header AFTER TEST.
+      - Nếu > 12 ảnh (vượt số ô hiện tại), tự động add_row() thêm cho đủ,
+        giữ đúng style 3 cột.
+    """
+    tbl = _find_after_test_table(doc)
+    if not tbl:
+        return False
+
+    # Lọc ảnh có chứa 'step10'
+    candidates = _all_candidate_images(report_id)
+    step10_imgs = []
+    for p in candidates:
+        base = os.path.basename(p).lower()
+        base_compact = re.sub(r"[^a-z0-9]+", "", base)
+        if "step10" in base_compact:
+            step10_imgs.append(p)
+
+    if not step10_imgs:
+        return False
+
+    # Chuẩn bị danh sách ô (bỏ dòng header)
+    data_rows = list(tbl.rows)[1:]
+    cells_seq = []
+    for row in data_rows:
+        for c in row.cells:
+            cells_seq.append(c)
+
+    cols = max(1, len(tbl.columns))
+    needed = max(0, len(step10_imgs) - len(cells_seq))
+
+    # Nếu thiếu ô → thêm hàng mới với 3 cột, style giống hàng data cuối
+    while needed > 0:
+        new_row = tbl.add_row()
+        for c in new_row.cells:
+            c.text = ""
+            c.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+        for c in new_row.cells:
+            cells_seq.append(c)
+        needed -= cols
+
+    sect = doc.sections[0]
+    avail_w = int((sect.page_width - sect.left_margin - sect.right_margin) * 0.97)
+    pic_w = int(avail_w / cols * 0.9)
+
+    changed = False
+    for cell, img_path in zip(cells_seq, step10_imgs):
+        _clear_cell(cell)
+        cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+        p = cell.paragraphs[0] if cell.paragraphs else cell.add_paragraph("")
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = p.add_run()
+        try:
+            buf = _load_oriented_and_resized_image(img_path, 3, 2.5)
+            if buf:
+                pic = run.add_picture(buf)
+                pic.width  = Inches(3)
+                pic.height = Inches(2.5)
+            else:
+                pic = run.add_picture(img_path)
+                pic.width  = Inches(3)
+                pic.height = Inches(2.5)
+        except Exception:
+            continue
+        changed = True
+
+    return changed
+
+
+def _insert_transit_step_and_after_test_images(doc: Document, report_id: str, template_key: str | None) -> bool:
+    """
+    Hàm tổng cho Transit:
+      - Chỉ chạy khi template_key là nhóm transit (transit_2c_np, transit_3b_np, ...).
+      - Gọi cả:
+          + _insert_transit_step_images  (step4, step5, step6 machine, ...)
+          + _insert_after_test_step10_images (AFTER TEST, step10)
+    """
+    key = (template_key or "").lower()
+    if "transit" not in key:
+        return False
+
+    changed1 = _insert_transit_step_images(doc, report_id)
+    changed2 = _insert_after_test_step10_images(doc, report_id)
+    return changed1 or changed2
+
 # ======================= Cover table (from Excel) =======================
 
 def _find_result_table(doc: Document):
@@ -1525,7 +1805,7 @@ def _process_table(tbl, mapping: dict, overwrite_any: bool) -> bool:
     """
     Duyệt một bảng (và các bảng con trong cell) để điền giá trị theo mapping.
     mapping: keys UPPER như 'REPORT NO.', 'RECEIVED DATE', 'REPORT DATE'
-    overwrite_any: nếu True thì luôn ghi đè ô phải; nếu False thì chỉ ghi khi ô phải đang là '-'
+    overwrite_any hiện tại không dùng nữa, vì ta luôn muốn ghi 1 lần sạch sẽ.
     """
     changed = False
     for row in tbl.rows:
@@ -1538,15 +1818,21 @@ def _process_table(tbl, mapping: dict, overwrite_any: bool) -> bool:
                     # chọn ô bên phải ngay cạnh
                     if ci + 1 < n:
                         right = cells[ci + 1]
-                        # 1) thử thay trực tiếp run dấu '-' để giữ style
-                        replaced = _replace_dash_runs(right.paragraphs, str(val))
-                        # 2) fallback: nếu không có run '-' thì tuỳ chọn ghi đè
-                        if not replaced:
-                            if overwrite_any or _normalize(right.text) in BLANK_TOKENS :
-                                right.text = str(val)
-                                replaced = True
-                        if replaced:
-                            changed = True
+
+                        # XÓA sạch nội dung ô phải rồi ghi lại 1 lần duy nhất
+                        try:
+                            right.text = ""
+                            while right.paragraphs:
+                                p = right.paragraphs[0]
+                                p._element.getparent().remove(p._element)
+                        except Exception:
+                            pass
+
+                        # dùng style của ô label bên trái (cell) để giữ font/size/bold
+                        _set_cell_text_with_style(right, cell, str(val))
+
+                        changed = True
+
             # đệ quy các bảng con trong cell (nested tables)
             for inner in cell.tables:
                 if _process_table(inner, mapping, overwrite_any):
@@ -1593,9 +1879,17 @@ def _fill_header_fields(doc: Document, data_row: dict, overwrite_any: bool = Fal
             if hdr is None:
                 continue
             for tbl in hdr.tables:
+                # Bỏ qua các bảng header nhỏ/dummy (thường chỉ có 1 hàng, 1 cột)
+                if len(tbl.rows) < 2:
+                    continue
+                if len(tbl.columns) < 2:
+                    continue
+
                 if _process_table(tbl, mapping, overwrite_any):
                     changed = True
+
     return changed
+
 # ======================= Excel path resolution =======================
 
 def _smart_excel_path(path_or_name: str) -> str:
@@ -1834,6 +2128,10 @@ def fill_cover_from_excel_generic(
                         _set_cell_text_with_style(cells[3], cells[2], _val(row, cand))
 
     _insert_overview_images_into_sample_picture(doc, report_id)
+
+    # NEW: Transit – chèn hình step4/5/6 + AFTER TEST (step10)
+    _insert_transit_step_and_after_test_images(doc, report_id, template_key)
+
     _fill_header_fields(doc, row)
     _fill_generated_by_fields(doc, generated_by)
 
@@ -1844,6 +2142,7 @@ def fill_cover_from_excel_generic(
     doc.save(bio)
     bio.seek(0)
     return bio
+
 
 # ======================= Wrappers / Entrypoints =======================
 

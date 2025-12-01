@@ -945,17 +945,22 @@ TRANSIT_2C_NP_TEST_TITLES = {
         "short": "Chuẩn bị rung động (dynamic load)",
         "img": ["/static/images/buoc 3 2C std.png"]
     },
-    "step4": {
+    "step5.1": {
         "full": "Bước 5: Vibration Under Dynamic Load",
-        "short": "Rung động (dynamic load)",
+        "short": "Hình máy",
         "img": ["/static/images/buoc 5 2C std.png"]
     },
-    "step5": {
+    "step5.2": {
+        "full": "Bước 5: Vibration Under Dynamic Load",
+        "short": "Hình rung",
+        "img": ["/static/images/buoc 5 2C std.png"]
+    },
+    "step6": {
         "full": "Bước 6: Drop test",
         "short": "Thả rơi",
         "img": ["/static/images/buoc 6 2C std.png"]
     },
-    "step6": {
+    "step10": {
         "full": "Bước 10: Kiểm tra lại trong quá trình test",
         "short": "Kiểm tra lại sau test",
         "img": ["/static/images/buoc 10 2C std.png"]
@@ -978,22 +983,27 @@ TRANSIT_2C_PALLET_TEST_TITLES = {
         "short": "Chuẩn bị rung động (dynamic load)",
         "img": ["/static/images/buoc 3 2C std.png"]
     },
-    "step4": {
+    "step5.1": {
         "full": "Bước 5: Vibration Under Dynamic Load",
-        "short": "Rung động (dynamic load)",
+        "short": "Hình máy",
         "img": ["/static/images/buoc 5 2C std.png"]
     },
-    "step5": {
+    "step5.2": {
+        "full": "Bước 5: Vibration Under Dynamic Load",
+        "short": "Hình rung",
+        "img": ["/static/images/buoc 5 2C std.png"]
+    },
+    "step8": {
         "full": "Bước 8: Exception Two – Shock - Impact",
         "short": "Shock - Impact (Exception Two)",
         "img": ["/static/images/buoc 8 2C std.png"]
     },
-    "step6": {
+    "step9": {
         "full": "Bước 9: Exception Two – Rotational Edge Drop",
         "short": "Rotational Edge Drop",
         "img": ["/static/images/buoc 9 2C std.png"]
     },
-    "step7": {
+    "step10": {
         "full": "Bước 10: Kiểm tra lại trong quá trình test",
         "short": "Kiểm tra lại sau test",
         "img": ["/static/images/buoc 10 2C std.png"]
@@ -1206,10 +1216,10 @@ DROP_ZONES = [
     "face_1", "face_2", "face_3", "face_4", "face_5", "face_6"
 ]
 
-IMPACT_LABELS = ['Impact 1', 'Impact 2', 'Impact 3', 'Impact 4']
-IMPACT_ZONES = ['impact1', 'impact2', 'impact3', 'impact4']
-ROT_LABELS = ['Rotation 1', 'Rotation 2', 'Rotation 3', 'Rotation 4']
-ROT_ZONES = ['rotation1', 'rotation2', 'rotation3', 'rotation4']
+IMPACT_LABELS = ['Hình máy','Impact 1', 'Impact 2', 'Impact 3', 'Impact 4']
+IMPACT_ZONES = ['machine','impact1', 'impact2', 'impact3', 'impact4']
+ROT_LABELS = ['Hình máy','Rotation 1', 'Rotation 2', 'Rotation 3', 'Rotation 4']
+ROT_ZONES = ['machine','rotation1', 'rotation2', 'rotation3', 'rotation4']
 
 RH_IMPACT_ZONES = [
     ("canh_3_4", "Cạnh 3-4"),
@@ -1243,11 +1253,6 @@ RH_SECOND_IMPACT_ZONES = [
 RH_STEP12_ZONES = [
     ("lan1", "Lần 1"),
     ("lan2", "Lần 2"),
-]
-
-TWO_C_NP_STEP5_ZONES = [
-    ("machine", "Hình máy"),
-    ("vibration", "Hình rung")
 ]
 
 GT68_FACE_LABELS = [
