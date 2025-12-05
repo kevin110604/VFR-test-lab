@@ -120,6 +120,44 @@
     border-radius:8px;
   }
   .btn-delbox:hover{filter:brightness(1.15);}
+    /* --- NEW: popup darkmode --- */
+  .batch-backdrop{
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,0.45);
+    z-index:11000;
+  }
+  body.darkmode .batch-backdrop{
+    background:rgba(0,0,0,0.7);
+  }
+  .batch-card{
+    background:var(--card);
+    color:var(--text);
+    padding:18px 22px 20px;
+    border-radius:18px;
+    box-shadow:0 8px 30px var(--shadow-med);
+    max-width:900px;
+    width:min(95vw,960px);
+    max-height:80vh;
+    overflow:auto;
+    animation:fadeInScale .25s ease-out;
+  }
+  @keyframes fadeInScale{
+    from{opacity:0; transform:scale(.96) translateY(6px);}
+    to{opacity:1; transform:scale(1) translateY(0);}
+  }
+
+  /* --- NEW: hiệu ứng highlight khi kéo để dán --- */
+  .fill-highlight td{
+    background:#fff7c2 !important;
+    transition:background .35s;
+  }
+  body.darkmode .fill-highlight td{
+    background:#5b4a1fc2 !important;
+  }
   </style>
 </head>
 <body>
@@ -140,10 +178,59 @@
 
         <!-- ✅ NEW: Nút xuất Excel -->
         <button class="btn" id="btnExport"><i class="fa fa-file-excel"></i> Xuất Excel</button>
+        <button class="btn" id="btnBatchAdd">
+            <i class="fa fa-plus"></i> Add more
+        </button>
       </div>
 
       <div id="groups" class="groups"></div>
       <div id="empty" class="no-data" style="display:none;">Không có dữ liệu.</div>
+    </div>
+  </div>
+  <!-- ================= POPUP BATCH TABLE ================= -->
+  <div id="batchPopup" class="batch-backdrop" style="display:none;">
+    <div class="batch-card">
+      <h3 style="margin-top:0; margin-bottom:10px;">Thêm mẫu</h3>
+
+      <div class="batch-toolbar" style="margin-bottom:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <input id="batchRowCount" type="number" min="1" value="1"
+                style="width:70px; padding:6px 8px; border:1px solid var(--accent); border-radius:6px;">
+
+        <button type="button" class="btn" onclick="addRowsDynamic()">
+          Thêm dòng
+        </button>
+
+        <!-- NEW: nút import Excel -->
+        <label class="btn" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+          <i class="fa fa-file-excel"></i> Import từ Excel
+          <input id="excelUpload" type="file" accept=".xlsx,.xls"
+                style="display:none" onchange="importFromExcel(this)">
+        </label>
+      </div>
+
+      <div class="table-wrapper" style="max-height:55vh; overflow:auto; border-radius:12px; border:1px solid var(--border); background:var(--card);">
+        <table id="batchTable">
+          <thead>
+            <tr>
+              <th>Report</th>
+              <th>Loại mẫu</th>
+              <th>Box</th>
+              <th>Ngày lưu</th>
+              <th>Ngày huỷ</th>
+              <th>Ghi chú</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- các dòng sẽ được add bằng JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <div style="text-align:right; margin-top:14px;">
+        <button class="btn" type="button" onclick="closeBatch()">Hủy</button>
+        <button class="btn" type="button" onclick="submitBatchTable()">Lưu tất cả</button>
+      </div>
     </div>
   </div>
 
@@ -170,14 +257,37 @@
     return Math.ceil((d - today)/(1000*60*60*24));
   }
 
-  // Group by box
+  // --- NEW: parse box code dạng B1-S1 -> {b:1, s:1} ---
+  function parseBoxCode(code){
+    if(!code) return {b: 9999, s: 9999};
+    const m = String(code).match(/^B(\d+)-S(\d+)$/i);
+    if(!m) return {b: 9999, s: 9999};
+    return {b: parseInt(m[1], 10) || 0, s: parseInt(m[2], 10) || 0};
+  }
+
+  // --- NEW: sắp xếp box theo S trước, rồi tới B ---
+  function sortBoxCodes(a, b){
+    if(a === 'NO-BOX') return 1;
+    if(b === 'NO-BOX') return -1;
+
+    const A = parseBoxCode(a);
+    const B = parseBoxCode(b);
+
+    if(A.s !== B.s) return A.s - B.s;
+    if(A.b !== B.b) return A.b - B.b;
+    return String(a).localeCompare(String(b));
+  }
+
+  // Group by box (đã chỉnh: dùng sortBoxCodes)
   function groupByBox(items){
-    const g={};
+    const g = {};
     items.forEach(it=>{
       const key = it.box_code || 'NO-BOX';
       (g[key] ||= []).push(it);
     });
-    return Object.keys(g).sort().map(k=>({box:k, items:g[k]}));
+    return Object.keys(g)
+      .sort(sortBoxCodes)
+      .map(k=>({box:k, items:g[k]}));
   }
 
   // Đếm mẫu hết hạn / sắp hết hạn trong 1 nhóm
@@ -326,6 +436,10 @@
   let allData = Array.isArray(DATA) ? DATA : [];
   render(allData);
 
+  // Chuẩn bị popup batch
+  enableAutoFill();
+  loadBoxes();
+
   // Tìm nhanh theo report (nhập 25-4212 hoặc 4212 đều được)
   function doSearch(){
     const q = $('#q').value.trim();
@@ -379,7 +493,7 @@
       const a = document.createElement('a');
       a.href = url;
       a.download = 'expired_samples.xlsx';
-      document.body.appendChild(a);
+      document.body.appendChild(a);z
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
@@ -388,6 +502,267 @@
       console.error(err);
       alert('Xuất file Excel thất bại.');
     });
+  });
+    // --- NEW: danh sách box từ server ---
+  let BOX_OPTIONS = [];
+
+  function fillBoxSelect(select, selectedValue){
+    if(!select) return;
+    select.innerHTML = '<option value="">-- Chọn box --</option>';
+    const sorted = BOX_OPTIONS.slice().sort(sortBoxCodes);
+    sorted.forEach(code=>{
+      const opt = document.createElement('option');
+      opt.value = code;
+      opt.textContent = code;
+      if(selectedValue && selectedValue === code){
+        opt.selected = true;
+      }
+      select.appendChild(opt);
+    });
+  }
+
+  async function loadBoxes(){
+    try{
+      const res = await fetch('/boxes');
+      const data = await res.json();
+      BOX_OPTIONS = Array.isArray(data.boxes) ? data.boxes : [];
+      document.querySelectorAll('select.cell-box').forEach(sel=>{
+        fillBoxSelect(sel, sel.value || null);
+      });
+    }catch(err){
+      console.error('Không load được list box:', err);
+      BOX_OPTIONS = [];
+    }
+  }
+
+  // --- NEW: tạo 1 dòng batch với giá trị initial ---
+  function createBatchRow(initial={}){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input class="cell-report" value="${initial.report || ''}"></td>
+      <td>
+        <select class="cell-type">
+          <option value="">--Chọn--</option>
+          <option value="Line Test" ${initial.sample_type === "Line Test" ? "selected" : ""}>Line Test</option>
+          <option value="QA Test" ${initial.sample_type === "QA Test" ? "selected" : ""}>QA Test</option>
+        </select>
+      </td>
+      <td>
+        <select class="cell-box"></select>
+      </td>
+      <td><input type="date" class="cell-save" value="${initial.save_date || ''}"></td>
+      <td><input type="date" class="cell-discard" value="${initial.discard_date || ''}"></td>
+      <td><input class="cell-note" value="${initial.note || ''}"></td>
+      <td><button type="button" onclick="this.parentElement.parentElement.remove()">🗑</button></td>
+    `;
+    // fill box options cho select trong dòng này
+    const sel = tr.querySelector('select.cell-box');
+    fillBoxSelect(sel, initial.box_code || '');
+    return tr;
+  }
+
+  // --- NEW: thêm n dòng ---
+  function addBatchRow(n=1){
+    const tbody = document.querySelector("#batchTable tbody");
+    for(let i=0;i<n;i++){
+      const tr = createBatchRow();
+      tbody.appendChild(tr);
+    }
+    enableAutoFill();
+  }
+  // --- NEW: thêm số dòng theo giá trị người dùng nhập ---
+  function addRowsDynamic(){
+    const inp = document.getElementById("batchRowCount");
+    let n = parseInt(inp.value);
+
+    if(isNaN(n) || n <= 0){
+      alert("Vui lòng nhập số dòng hợp lệ!");
+      return;
+    }
+
+    addBatchRow(n);
+  }
+    // --- NEW: hàm tính ngày huỷ từ ngày lưu (+3 tháng) ---
+  function calcDiscardDate(saveStr){
+    if(!saveStr) return '';
+    const d = new Date(saveStr + "T00:00:00");
+    if(isNaN(+d)) return '';
+    const exp = new Date(d);
+    exp.setMonth(exp.getMonth() + 3);
+    return exp.toISOString().split("T")[0];
+  }
+
+  // Auto discard-date khi gõ ngày lưu
+  document.addEventListener("input", e => {
+    if (e.target.classList.contains("cell-save")) {
+      const disc = calcDiscardDate(e.target.value);
+      if(disc){
+        const row = e.target.closest('tr');
+        const discardInput = row && row.querySelector(".cell-discard");
+        if(discardInput) discardInput.value = disc;
+      }
+    }
+  });
+
+  // Excel-like autofill (khi kéo sẽ highlight và auto ngày huỷ nếu kéo cột ngày lưu)
+  function enableAutoFill() {
+    const tbody = document.querySelector("#batchTable tbody");
+    if(!tbody) return;
+    let startCell = null;
+
+    tbody.querySelectorAll("input,select").forEach(cell => {
+      cell.onmousedown = () => { startCell = cell; };
+
+      cell.onmouseup = e => {
+        if (!startCell || startCell === cell) {
+          startCell = null;
+          return;
+        }
+
+        const startRowEl = startCell.closest('tr');
+        const endRowEl   = cell.closest('tr');
+        if(!startRowEl || !endRowEl) { startCell = null; return; }
+
+        const rows = Array.from(tbody.querySelectorAll("tr"));
+        const startRow = rows.indexOf(startRowEl);
+        const endRow   = rows.indexOf(endRowEl);
+        if(startRow === -1 || endRow === -1){ startCell = null; return; }
+
+        const col = Array.from(startRowEl.children).indexOf(startCell.parentElement);
+        const min = Math.min(startRow, endRow);
+        const max = Math.max(startRow, endRow);
+        const isSaveCol = startCell.classList.contains('cell-save');
+
+        for (let r = min; r <= max; r++) {
+          const rowEl = rows[r];
+          const targetCell = rowEl.children[col].querySelector("input,select");
+          if(!targetCell) continue;
+          targetCell.value = startCell.value;
+
+          // highlight dòng được fill
+          rowEl.classList.add('fill-highlight');
+          setTimeout(()=> rowEl.classList.remove('fill-highlight'), 600);
+
+          // nếu đang kéo cột "ngày lưu" -> tự nhảy ngày huỷ
+          if(isSaveCol){
+            const discardInput = rowEl.querySelector('.cell-discard');
+            if(discardInput){
+              discardInput.value = calcDiscardDate(targetCell.value) || '';
+            }
+          }
+        }
+
+        startCell = null;
+      };
+    });
+  }
+    // --- NEW: Import report từ Excel ---
+  async function importFromExcel(input){
+    const file = input.files && input.files[0];
+    if(!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try{
+      const res = await fetch('/samples/import_excel_reports', {
+        method:'POST',
+        body: formData
+      });
+      const data = await res.json();
+
+      if(!res.ok){
+        alert(data.error || 'Lỗi đọc file Excel');
+        return;
+      }
+
+      const reports = Array.isArray(data.reports) ? data.reports : [];
+      if(!reports.length){
+        alert('Không tìm thấy cột report trong file Excel.');
+        return;
+      }
+
+      const tbody = document.querySelector("#batchTable tbody");
+      tbody.innerHTML = '';
+
+      reports.forEach(raw => {
+        let rep = String(raw).trim();
+
+        // Nếu chỉ là số, ví dụ "5555" → tự thêm 25-
+        if (/^\d+$/.test(rep)) {
+          rep = `25-${rep}`;
+        }
+
+        // Nếu Excel có dạng "25 5555" hoặc "25_5555" → chuẩn hóa về 25-5555
+        rep = rep.replace(/[^0-9]/g, match => (match === '-' ? '-' : ''));
+
+        // Nếu sau xử lý mà không có '-', thêm 25-
+        if (!rep.includes('-')) {
+          const digits = rep.replace(/\D/g, '');
+          rep = `25-${digits}`;
+        }
+
+        const tr = createBatchRow({ report: rep });
+        tbody.appendChild(tr);
+      });
+
+      enableAutoFill();
+    }catch(err){
+      console.error(err);
+      alert('Lỗi khi import Excel.');
+    }finally{
+      // reset input để lần sau chọn lại được cùng 1 file
+      input.value = '';
+    }
+  }
+  // ================= POPUP BATCH TABLE =================
+
+  // Mở popup
+  function openBatch() {
+    const popup = document.getElementById("batchPopup");
+    if (!popup) return;
+
+    popup.style.display = "flex";
+
+    // Nếu chưa có dòng nào trong bảng -> tự add 1 dòng
+    const tbody = document.querySelector("#batchTable tbody");
+    if (tbody && !tbody.querySelector("tr")) {
+      // HÀM NÀY ĐÃ CÓ SẴN Ở FILE MỚI: addBatchRow(count)
+      addBatchRow(1);
+    }
+  }
+
+  // Đóng popup
+  function closeBatch() {
+    const popup = document.getElementById("batchPopup");
+    if (popup) {
+      popup.style.display = "none";
+    }
+  }
+
+  // Gắn nút "Add more" ở list sample
+  const btnBatchAdd = document.getElementById("btnBatchAdd");
+  if (btnBatchAdd) {
+    btnBatchAdd.addEventListener("click", (e) => {
+      e.preventDefault();
+      openBatch();
+    });
+  }
+
+  // Click ra nền tối bên ngoài cũng đóng popup
+  const batchBackdrop = document.getElementById("batchPopup");
+  if (batchBackdrop) {
+    batchBackdrop.addEventListener("click", (e) => {
+      if (e.target === batchBackdrop) {
+        closeBatch();
+      }
+    });
+  }
+
+  // Esc để đóng nhanh
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeBatch();
+    }
   });
   </script>
 </body>

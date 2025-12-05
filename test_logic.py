@@ -1218,8 +1218,8 @@ DROP_ZONES = [
 
 IMPACT_LABELS = ['Hình máy','Impact 1', 'Impact 2', 'Impact 3', 'Impact 4']
 IMPACT_ZONES = ['machine','impact1', 'impact2', 'impact3', 'impact4']
-ROT_LABELS = ['Hình máy','Rotation 1', 'Rotation 2', 'Rotation 3', 'Rotation 4']
-ROT_ZONES = ['machine','rotation1', 'rotation2', 'rotation3', 'rotation4']
+ROT_LABELS = ['Rotation 1', 'Rotation 2', 'Rotation 3', 'Rotation 4']
+ROT_ZONES = ['rotation1', 'rotation2', 'rotation3', 'rotation4']
 
 RH_IMPACT_ZONES = [
     ("canh_3_4", "Cạnh 3-4"),

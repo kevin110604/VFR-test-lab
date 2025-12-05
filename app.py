@@ -4250,6 +4250,101 @@ def export_expired_samples():
         download_name='expired_samples.xlsx'
     )
 
+@app.route("/samples/batch_table_add", methods=["POST"])
+def samples_batch_table_add():
+    data = request.get_json()
+    rows = data.get("rows", [])
+
+    SAMPLE = safe_read_json(SAMPLE_STORAGE_FILE)
+    if not isinstance(SAMPLE, dict):
+        SAMPLE = {}
+
+    for r in rows:
+        # --- 1. Chuẩn hóa giá trị box ---
+        box = r.get("box_code", "").strip()
+        if not box:
+            box = "NO-BOX"       # tránh tạo key ""
+
+        box = str(box)           # ép về string cho chắc
+
+        # --- 2. Tạo box nếu chưa có ---
+        if box not in SAMPLE:
+            SAMPLE[box] = []
+
+        # --- 3. Loại duplicate (nếu report đã tồn tại trong box) ---
+        report = str(r["report"]).strip()
+        exists = any(it["report"] == report for it in SAMPLE[box])
+        if exists:
+            # bỏ qua dòng trùng report
+            continue
+
+        # --- 4. Thêm record mới ---
+        SAMPLE[box].append({
+            "report": report,
+            "item_code": get_item_code(report),
+            "sample_type": r.get("sample_type", ""),
+            "box_code": box,
+            "save_date": r.get("save_date", ""),
+            "discard_date": r.get("discard_date", ""),
+            "note": r.get("note", "")
+        })
+
+    safe_write_json(SAMPLE_STORAGE_FILE, SAMPLE)
+
+    return jsonify({"ok": True, "added": len(rows)})
+
+# --- NEW: Import danh sách report từ Excel để fill popup "Add more" ---
+@app.route("/samples/import_excel_reports", methods=["POST"])
+def import_excel_reports():
+
+    file = request.files.get("file")
+    if not file or file.filename == "":
+        return jsonify({"error": "Không có file được upload."}), 400
+
+    try:
+        # đọc file vào memory
+        content = file.read()
+        wb = load_workbook(io.BytesIO(content), data_only=True)
+        ws = wb.active
+
+        # dùng hàm _find_report_col đã có trong excel_utils
+        try:
+            from excel_utils import _find_report_col
+            report_col = _find_report_col(ws)
+        except Exception:
+            # fallback đơn giản: cột B
+            report_col = 2
+
+        reports = []
+        for r in range(2, ws.max_row + 1):
+            v = ws.cell(row=r, column=report_col).value
+            if v is None:
+                continue
+            s = str(v).strip()
+            if not s:
+                continue
+            reports.append(s)
+
+        # Loại trùng theo "phần số" của report (25-1234 và 1234 coi như 1 mã)
+        seen = set()
+        uniq = []
+        for rep in reports:
+            key = re.sub(r"[^0-9]", "", rep)
+            if not key:
+                continue
+            if key in seen:
+                continue
+            seen.add(key)
+            uniq.append(rep)
+
+        if not uniq:
+            return jsonify({"error": "Không tìm thấy mã report trong file Excel."}), 400
+
+        return jsonify({"reports": uniq})
+    except Exception as e:
+        print("import_excel_reports error:", e)
+        return jsonify({"error": "Lỗi xử lý file Excel.", "detail": str(e)}), 500
+
 @app.route('/images/<report>/imgs_<group>_<test_key>/<filename>')
 def serve_test_img(report, group, test_key, filename):
     folder = os.path.join(UPLOAD_FOLDER, report, f"imgs_{group}_{test_key}")

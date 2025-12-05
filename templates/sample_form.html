@@ -555,19 +555,44 @@
   function toVN(d)    { return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear(); }
 
   /* ========== BOX LOGIC ========== */
+
+  // NEW: Parse mã box dạng Bx-Sy thành số để sort
+  function parseBoxCode(code) {
+    const m = /^B(\d+)-S(\d+)$/i.exec(code || "");
+    if (!m) return { B: 9999, S: 9999, raw: code || "" };
+    return {
+      B: parseInt(m[1], 10),
+      S: parseInt(m[2], 10),
+      raw: code || ""
+    };
+  }
+
+  // NEW: Sort theo S trước, rồi đến B
+  function sortBoxesByS(list) {
+    return [...list].sort((a, b) => {
+      const pa = parseBoxCode(a);
+      const pb = parseBoxCode(b);
+      if (pa.S !== pb.S) return pa.S - pb.S;    // Ưu tiên S
+      if (pa.B !== pb.B) return pa.B - pb.B;    // Sau đó B
+      return pa.raw.localeCompare(pb.raw);      // fallback
+    });
+  }
+
   async function loadBoxes() {
     try {
       const res = await fetch('/boxes', { credentials: 'same-origin' });
       if (!res.ok) throw new Error('GET /boxes failed');
       const data = await res.json();
       if (!data || !Array.isArray(data.boxes)) throw new Error('Bad JSON shape');
-      fillBoxSelect(data.boxes);
-      renderBoxList(data.boxes);
+      const list = sortBoxesByS(data.boxes);              // NEW
+      fillBoxSelect(list);
+      renderBoxList(list);
     } catch (err) {
       console.warn('Không thể tải boxes, dùng mặc định.', err);
       const def = ['B1-S1','B1-S2','B2-S1','B2-S2','B3-S1'];
-      fillBoxSelect(def);
-      renderBoxList(def);
+      const list = sortBoxesByS(def);                     // NEW
+      fillBoxSelect(list);
+      renderBoxList(list);
     }
   }
 
@@ -577,9 +602,87 @@
     sel.innerHTML = '';
     list.forEach(v => {
       const opt = document.createElement('option');
-      opt.value = v; opt.textContent = v;
+      opt.value = v;
+      opt.textContent = v;
       sel.appendChild(opt);
     });
+  }
+
+  // (KHÔNG BẮT BUỘC, nhưng nên sửa nhẹ addBox/deleteBox dùng list đã sort)
+
+  async function addBox() {
+    const inp = document.getElementById('new_box_code');
+    const raw = (inp.value || '').trim().toUpperCase();
+    if (!raw) return;
+    try {
+      const res = await fetch('/boxes', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        credentials: 'same-origin',
+        body: JSON.stringify({ code: raw })
+      });
+      if (!res.ok) throw new Error('POST /boxes failed');
+      const data = await res.json();
+      const list = sortBoxesByS(data.boxes || []);      // NEW
+      fillBoxSelect(list);
+      renderBoxList(list);
+      document.getElementById('box_code').value = raw;
+      inp.value = '';
+    } catch (err) {
+      console.error(err);
+      alert('Không thêm được box.');
+    }
+  }
+
+  async function deleteBox(code) {
+    if (!confirm('Xóa box ' + code + ' ?')) return;
+    try {
+      const res = await fetch('/boxes?code=' + encodeURIComponent(code), {
+        method:'DELETE',
+        credentials: 'same-origin'
+      });
+      if (!res.ok) throw new Error('DELETE /boxes failed');
+      const data = await res.json();
+      const list = sortBoxesByS(data.boxes || []);      // NEW
+      fillBoxSelect(list);
+      renderBoxList(list);
+    } catch (err) {
+      console.error(err);
+      alert('Không xóa được box.');
+    }
+  }
+  
+  // ===== Utils =====
+  const $ = s=>document.querySelector(s);
+  const normReport = s => (s||'').toString().replace(/[^0-9]/g,'');
+
+  // NEW: parse + sort box theo S, rồi B
+  function parseBoxCode(code) {
+    const m = /^B(\d+)-S(\d+)$/i.exec(code || "");
+    if (!m) return { B: 9999, S: 9999, raw: code || "" };
+    return {
+      B: parseInt(m[1], 10),
+      S: parseInt(m[2], 10),
+      raw: code || ""
+    };
+  }
+
+  function boxSort(a, b) {
+    const pa = parseBoxCode(a);
+    const pb = parseBoxCode(b);
+    if (pa.S !== pb.S) return pa.S - pb.S;
+    if (pa.B !== pb.B) return pa.B - pb.B;
+    return pa.raw.localeCompare(pb.raw);
+  }
+
+  // Group by box
+  function groupByBox(items){
+    const g = {};
+    items.forEach(it=>{
+      const key = it.box_code || 'NO-BOX';
+      (g[key] ||= []).push(it);
+    });
+    return Object.keys(g).sort(boxSort).map(k=>({ box:k, items:g[k] }));
   }
 
   function renderBoxList(list) {

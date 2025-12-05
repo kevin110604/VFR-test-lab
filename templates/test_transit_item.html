@@ -748,7 +748,7 @@
                 </div>
             {% elif is_rot %}
                 <div class="drop-upload-group" style="display:grid;grid-template-columns:1fr 1fr;gap:18px 24px;justify-content:center;">
-                    {% for i in range(5) %}
+                    {% for i in range(4) %}
                     <div class="drop-upload-zone" style="border:1px solid #c49c48;padding:8px 14px 11px 14px;border-radius:10px;margin-bottom:8px;">
                         <label class="drop-upload-label">{{ rot_labels[i] }}</label>
                         <input type="file" name="rot_img_{{ rot_zones[i] }}" multiple accept="image/*" style="display:none;" id="rot-upload-{{i}}" onchange="uploadSpecialImgsAjax(this, 'rot', {{i}})">
